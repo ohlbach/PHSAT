@@ -17,67 +17,77 @@ import Utilities.BiConsumerWithUnsatisfiable;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
-/** The normalizer takes the inputClauses provided by the supervisor and removes any immediately recognizable redundancies.<br>
+/** The normalizer turns the inputClauses into Clause and ClauseList datastructures, while removing obvious redundancies. <br>
  * In particular: <br>
  * - superfluous multiplicities of literals<br>
  * - complementary literals<br>
  * - immediately recognizable true or false clauses<br>
  * - multiplicities dividable by the greatest common divisor<br>
- * - extractable true or false literals (e.g. atmost 2 p^3,q,r: p must be false)<br>
+ * - extractable true or false literals (e.g. atmost 2 p^3,q,r: p must be false)
+ * - tightening the boundaries of interval clauses.<br>
  * <br>
  * The quantifiers of the clauses are optimized as far as possible (e.g. atleast 1 p,... =&gt; or p,...)<br>
  * Pure and singleton predicates are identified and eliminated.<br>
  * True predicates are put into the model.<br>
  * The simplification operations can be accompanied by inference steps. The soundness of these steps can be verified.<br>
  * The result is a list of simplified clauses which can be submitted to the solvers.
+ * <br>
+ * The Normalizer instance can be reused for other problems by calling the initialize-method.
  */
 public class Normalizer {
 
-    /** the problem's identifier */
-    String problemId;
+    // Problem-independent parameters
+    // ******************************
 
-    /** the clauses to be normalized */
-    public InputClauses inputClauses;
+    /** if true then inference steps are generated */
+    private final boolean trackReasoning;
 
-    public ClauseList clauseList;
+    /** if true then inference steps are immediately model-based verified */
+    private final boolean verify;
+
+    /** null or a monitor for recording infenrence steps  */
+    private final Consumer<String> monitor;
+
 
     /** just 'Normalizer'*/
-    final static String solverId = "Normalizer";
+    private final static String solverId = "Normalizer";
 
-    /** the global model.*/
-    public Model model;
+    // Problem-specific parameters
+    // ***************************
+
+    /** the problem's identifier */
+    private String problemId;
 
     /** the number of predicates in the problem */
     public int predicates;
 
-    /** null or a monitor */
-    public Consumer<String> monitor;
+    /** the clauses to be normalized */
+    protected InputClauses inputClauses;
 
-    /** true if there is a monitor */
-    public boolean monitoring;
-    /** the monitor's identifier */
-    public String monitorId;
+    /** the list of clauses together with the literal index */
+    public ClauseList clauseList;
+
+    /** the global model.*/
+    public Model model;
 
     /** null or a symboltable */
     public Symboltable symboltable;
-
-    /** if true then inference steps are generated */
-    public boolean trackReasoning;
-
-    public boolean verify;
 
     /**the normalizer statistics */
     public StatisticsNormalizer statistics;
 
     /** the current thread*/
-    public Thread myThread;
+    private Thread myThread;
 
+    /** the list of equivalence classes */
     protected ArrayList<Equivalence> equivalences = new ArrayList<>();
 
+    /** to be called when true literals are derived */
     private final BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTrueLiteral =
-            (literal,step) -> model.add(myThread,literal,step);
+            (literal,step) -> {++statistics.initialTrueLiterals;
+                                clauseList.addTrueLiteralTask(literal,step);};
 
-    /**
+    /** creates a Normalizer which can be used for a sequence of QSAT-problems.
      *
      * @param trackReasoning if true then the inference steps are tracked.
      * @param verify if true then the inference steps are verified.
@@ -89,11 +99,11 @@ public class Normalizer {
         this.monitor = monitor;
         clauseList = new ClauseList(trackReasoning,verify,monitor);}
 
-    /**
-     * Initializes the normalizer for a new problem.
+    /** Initializes the normalizer for a new problem.
      * <br>
      * The must be called for each problem separately
      *
+     * @param inputClauses the original clauses
      * @param model The model to be initialized.
      */
     public void initialize(InputClauses inputClauses, Model model) {
@@ -105,14 +115,16 @@ public class Normalizer {
         statistics        = new StatisticsNormalizer(null);
         clauseList.initialize(problemId,model,symboltable);
         equivalences.clear();
-        myThread = Thread.currentThread();
-    }
+        myThread = Thread.currentThread();}
 
     /** turn the inputClauses into Clause datastructures, and simplifies them as far as possible.
+     * <br>
+     * After normalization the QSAT-solvers may work with clauseList.
      *
-     * @return null or Unsatisfiable
+     * @return the simplified ClauseList
+     * @throws Unsatisfiable or Satisfiable
      */
-    public Result normalizeClauses() {
+    public ClauseList normalizeClauses() throws Result {
         try {
             for (int[] inputClause : inputClauses.conjunctions) transformConjunction(inputClause);
             for (int[] inputClause : inputClauses.equivalences) transformEquivalence(inputClause);
@@ -126,8 +138,8 @@ public class Normalizer {
         catch (Result result) {
             result.solverId = solverId;
             result.problemId = problemId;
-            return result;}
-        return null;}
+            throw result;}
+        return clauseList;}
 
 
     /** Puts the literals in the AND-clause into the model.
@@ -141,6 +153,10 @@ public class Normalizer {
         int firstLiteralIndex = quantifier.firstLiteralIndex;
         for(int i = firstLiteralIndex; i < inputClause.length; ++i) {
             int literal = inputClause[i];
+            switch(model.status(literal)) {
+                case 1: continue;
+                case -1: throw new UnsatClause(problemId,solverId,inputClause);}
+            ++statistics.initialTrueLiterals;
             InferenceStep step = null;
             if(trackReasoning) {
                 step = new InfInputClause(inputClause,literal);
@@ -148,6 +164,7 @@ public class Normalizer {
             model.add(myThread,literal,step);}}
 
     /** Generates for an equivalence in the input clauses a corresponding Equivalence object.
+     *
      * @param inputClause the input clause representing an equivalence
      * @throws Unsatisfiable if the equivalence contains a contradiction like p == -p
      */
@@ -159,7 +176,9 @@ public class Normalizer {
         for(int i = firstLiteralIndex+1; i < inputClause.length; ++i) {
             int literal = inputClause[i];
             equivalence.addLiteral(literal);}
-        if(!equivalence.isEmpty()) equivalences.add(equivalence);}
+        if(!equivalence.isEmpty()) {
+            ++statistics.initialEquivalences;
+            equivalences.add(equivalence);}}
 
 
 
@@ -170,13 +189,15 @@ public class Normalizer {
      */
     protected void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)),symboltable);
-        switch(clause.simplify(trackReasoning,null, clauseList::addTrueLiteralTask, monitor,symboltable)) {
-            case -1: throw new UnsatClause(problemId,solverId, clause.inputClause);
+        switch(clause.simplify(trackReasoning,null,reportTrueLiteral,monitor,symboltable)) {
+            case -1: throw new UnsatClause(problemId,solverId, inputClause);
             case 1: return;}
         statistics.simplifiedClauses += clause.version;
         if(!applyEquivalences(clause)) clauseList.addClause(clause);}
 
     /** If the clause contains a literal which is in an equivalence class, it is replaced by the representative literal.
+     * <br>
+     * The clause is not yet in the ClauseList
      *
      * @param clause    a new clause
      * @return true if the clause has become a true clause.
@@ -191,11 +212,8 @@ public class Normalizer {
                if(clause.findPredicate(equivalentLiteral) != null) {
                     switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                     null, reportTrueLiteral,monitor,symboltable)) {
-                    case -1: clauseList.removeClause(clause);
-                        throw new UnsatClause(problemId,solverId, clause);
-                    case 1:
-                        clauseList.removeClause(clause);
-                        return true;}}}}
+                        case -1: throw new UnsatClause(problemId,solverId, clause);
+                        case 1: return true;}}}}
             return false;}
 
 
@@ -246,11 +264,6 @@ public class Normalizer {
                                         model.getInferenceStep(representative));}
                         else model.add(myThread, status1*equivalentLiteral,step);}
                     break;}}}}
-
-
-
-
-
 
 
 }

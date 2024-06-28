@@ -1,5 +1,6 @@
 package Management;
 
+import Datastructures.ClauseList;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Erraneous;
@@ -104,7 +105,7 @@ public class ProblemSupervisor {
             model = new Model(inputClauses.predicates);
             Consumer<String> mon = (monitor != null) ? (string -> monitor.println(problemId + string)) : null;
             normalizer = new Normalizer(trackReasoning,true,mon);
-            Result result = normalizer.normalizeClauses();
+            ClauseList clauseList = normalizer.normalizeClauses();
             System.out.println(result == null ? "no result " :result.toString());
            // System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());

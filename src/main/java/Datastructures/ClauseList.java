@@ -291,12 +291,12 @@ public class ClauseList {
      */
     public void removeSubsumedClauses (Clause subsumer) {
          ++timestamp;
-        int size = subsumer.literals.size();
+        int subsumerSize = subsumer.literals.size();
         Literal subsumerLiteral = subsumer.literals.get(0);
         Literal subsumeeLiteral = literalIndex.getFirstLiteral(subsumerLiteral.literal);
         while(subsumeeLiteral != null) { // the clauses with the first literal get the timestamp.
             Clause subsumee = subsumeeLiteral.clause;
-            if (subsumee != subsumer) subsumee.timestamp = timestamp;
+            if (subsumee != subsumer && subsumee.size() >= subsumerSize) subsumee.timestamp = timestamp;
             subsumeeLiteral = (Literal)subsumeeLiteral.nextItem;}
 
         for(int i = 1; i < subsumer.literals.size(); ++i) {
@@ -305,7 +305,7 @@ public class ClauseList {
             while(subsumeeLiteral != null) {
                 Clause subsumee = subsumeeLiteral.clause;
                 if(subsumee.timestamp >= timestamp) {
-                    if ((subsumee.timestamp - timestamp) == size-2 && subsumes(subsumer,subsumee)) {
+                    if ((subsumee.timestamp - timestamp) == subsumerSize-2 && subsumes(subsumer,subsumee)) {
                         if(verify) verifySubsumption(subsumer,subsumee);
                         removeClause(subsumee);
                         removeClauseFromIndex(subsumee);
@@ -315,7 +315,7 @@ public class ClauseList {
                                 "   subsumes " + subsumee.toString(symboltable,0));}}
                     else ++subsumee.timestamp;}
                 subsumeeLiteral = (Literal)subsumeeLiteral.nextItem;}}
-        timestamp += size;}
+        timestamp += subsumerSize;}
 
     /**
      * Determines whether the given clause is subsumed by some of the clauses in the list.
@@ -325,11 +325,12 @@ public class ClauseList {
      */
     public Clause isSubsumed(Clause subsumee) {
         ++timestamp;
+        int subsumeeSize = subsumee.literals.size();
         for(Literal subsumeeLiteral : subsumee.literals) {
             Literal subsumerLiteral = literalIndex.getFirstLiteral(subsumeeLiteral.literal);
             while(subsumerLiteral != null) {
                 Clause subsumer = subsumerLiteral.clause;
-                if(subsumer == subsumee) {
+                if(subsumer == subsumee || subsumeeSize < subsumer.literals.size()) {
                     subsumerLiteral = (Literal)subsumerLiteral.nextItem;
                     continue;}
                 int subsumerTimestamp = subsumer.timestamp;
@@ -344,7 +345,7 @@ public class ClauseList {
                         return subsumer;}
                     ++subsumer.timestamp;}
                 subsumerLiteral = (Literal)subsumerLiteral.nextItem;}}
-        timestamp += subsumee.literals.size();
+        timestamp += subsumeeSize;
         return null;}
 
     /**
@@ -579,17 +580,20 @@ public class ClauseList {
      */
     protected void mergeResolution(Clause shorterParent) throws Unsatisfiable {
         assert shorterParent.quantifier == Quantifier.OR;
+        ++timestamp;
         ArrayList<Literal> shorterLiterals = shorterParent.literals;
         int shorterSize = shorterLiterals.size();
         Clause longerParent;
         for(int i = 0; i < shorterSize; ++i) { // shorterLiterals may be changed.
-            ++timestamp;
+            timestamp += shorterSize;
             Literal shorterLiteral1  = shorterLiterals.get(i);
             int resolutionLiteral = shorterLiteral1.literal;
             Literal longerLiteral = literalIndex.getFirstLiteral(-resolutionLiteral);
             while(longerLiteral != null) {
                 longerParent = longerLiteral.clause;
-                if(longerParent != shorterParent && (longerParent.quantifier == Quantifier.OR ||
+                if(longerParent != shorterParent &&
+                        longerParent.literals.size() >= shorterSize &&
+                        (longerParent.quantifier == Quantifier.OR ||
                         (longerParent.min == longerLiteral.multiplicity && longerParent.literals.size() == shorterSize) ||
                         (longerParent.min == 2 && longerParent.literals.size() == shorterSize+1)))
                     longerParent.timestamp = timestamp;
@@ -609,14 +613,125 @@ public class ClauseList {
                             if(longerParent.isInList && longerParent.literals.size() < longerSize) addShortenedClauseTask(longerParent);
                             if(!shorterParent.isInList) {timestamp += shorterSize; return;}
                             if(shorterParent.literals.size() < shorterSize) {
-                                timestamp += shorterSize;
+                                timestamp += shorterSize*shorterSize;
                                 removeSubsumedClauses(shorterParent);
                                 mergeResolution(shorterParent);
                                 return;}}
                         else ++longerParent.timestamp;}
                     longerLiteral = (Literal)longerLiteral.nextItem;}}}
-        timestamp += shorterSize;}
+        timestamp += shorterSize*shorterSize;}
 
+
+    public void linkedMergeResolution(Clause clause) throws Unsatisfiable {
+        assert clause.expandedSize == 2;
+        int literal1 = -clause.literals.get(0).literal;
+        int literal2 = -clause.literals.get(1).literal;
+        ++timestamp;
+        int maxSize = 0;
+
+        Literal literalObject1 = literalIndex.getFirstLiteral(literal1);
+        while(literalObject1 != null) {
+            Clause clause1 = literalObject1.clause;
+            if(clause1.quantifier != Quantifier.OR) {literalObject1 = (Literal)literalObject1.nextItem; continue;}
+            maxSize = clause1.size();
+
+            Literal literalObject2 = literalIndex.getFirstLiteral(literal2);
+            while(literalObject2 != null) { // all potiential partners for literal2 are marked.
+                Clause clause2 = literalObject2.clause;
+                if(clause2.quantifier == Quantifier.OR) clause2.timestamp = timestamp;
+                literalObject2 = (Literal)literalObject2.nextItem;}
+
+            boolean clause1Changed = false;
+            for(Literal litObject1 : clause1.literals) {
+                if (litObject1 == literalObject1) continue;
+                if(clause1Changed) break;
+                Literal litObject2 = literalIndex.getFirstLiteral(literalObject1.literal);
+                while(litObject2 != null && !clause1Changed) {
+                    Clause clause2 = litObject2.clause;
+                    if(clause2.quantifier != Quantifier.OR) {literalObject2 = (Literal)literalObject2.nextItem; continue;}
+                    maxSize = Math.max(maxSize,clause2.literals.size());
+                    int timestamp2 = clause2.timestamp;
+                     if(timestamp2 >= timestamp) {
+                         int timestampDiff = timestamp2 - timestamp;
+                         if(timestampDiff == clause2.literals.size()-2 || timestampDiff == clause1.literals.size()-2) {
+                             Clause resolvent = resolveLinked(clause,clause1,clause2);
+                             if(resolvent == clause1) {
+                                 clause1Changed = true;
+                                 timestamp += maxSize;
+                                 literalObject1 = (Literal)literalObject1.nextItem;
+                                 break;}}
+                         else ++clause2.timestamp;}
+                     litObject2 = (Literal)litObject2.nextItem;}}
+            timestamp += maxSize;
+            literalObject1 = (Literal) literalObject1.nextItem;}
+        timestamp += maxSize;
+    }
+
+    /**
+     * Resolves a 2-literal Or-clause clause with two other or-clauses.
+     * <br>
+     * Example:  p,q and -p,a,b and -q,a,b,c  =&gt; a,b,c<br>
+     * If the size of clause1's literals is greater than clause2,
+     * their positions will be swapped.
+     * If clause1 and clause2 have the same number of literals, clause2 will be removed and the literal from clause1 will be removed.
+     * If trackReasoning is true, an InferenceStep will be created with link, clause1Clone, clause2Clone, and clause1.
+     * If monitor is not null, the step will be passed to the monitor's accept method.
+     * If trackReasoning is true, the step will be added to clause1's inference steps and, if verify is true, verified with the monitor and symbol table.
+     * If the literal was successfully removed from clause1, clause1 will be removed and clause1 will be returned.
+     * If the size of clause1's literals is greater than clause2, the same steps as above will be done with clause2, instead of clause1.
+     *
+     * @param link the linked clause to resolve
+     * @param clause1 the first clause to resolve with link
+     * @param clause2 the second clause to resolve with link
+     * @return the resolved clause (clause1 if clause1's literals size is equal to clause2's, clause2 otherwise)
+     * @throws Unsatisfiable if the resolution leads to a false literal
+     */
+    protected Clause resolveLinked(Clause link, Clause clause1, Clause clause2) throws Unsatisfiable{
+        assert link.expandedSize == 2;
+        assert clause1.quantifier == Quantifier.OR;
+        assert clause2.quantifier == Quantifier.OR;
+
+        if(clause1.literals.size() > clause2.literals.size()) {
+            Clause dummy = clause1; clause1 = clause2; clause2 = dummy;}
+
+        int literal1 = -link.literals.get(0).literal;
+        int literal2 = -link.literals.get(1).literal;
+
+        if(clause1.literals.size() > clause2.literals.size()) {
+            Clause dummyCl = clause1; clause1 = clause2; clause2 = dummyCl;
+            int dummyLit = literal1; literal1 = literal2; literal2 = dummyLit;}
+
+        assert clause1.findLiteral(literal1) != null;
+        assert clause2.findLiteral(literal2) != null;
+
+        int[] clause1Clone = clause1.simpleClone();
+        int[] clause2Clone = clause2.simpleClone();
+        if(clause1.literals.size() == clause2.literals.size()) {
+            removeClause(clause2);
+            removeClauseFromIndex(clause2);
+            boolean remove = clause1.removeLiteral(literal1, trackReasoning,this::removeLiteralFromIndex,this::addTrueLiteralTask);
+            InferenceStep step = (trackReasoning || monitor != null) ?
+                    new InfMergeResolution(link,clause1Clone,clause2Clone,clause1) : null;
+            if(monitor != null) monitor.accept(step.toString(symboltable));
+            if(trackReasoning) {
+                clause1.addInferenceStep(step);
+                if(verify) step.verify(monitor,symboltable);}
+            if (remove){
+                removeClause(clause1);
+                removeClauseFromIndex(clause1);}
+            return clause1;}
+
+        boolean remove = clause2.removeLiteral(literal2, trackReasoning,this::removeLiteralFromIndex,this::addTrueLiteralTask);
+        InferenceStep step = (trackReasoning || monitor != null) ?
+                new InfMergeResolution(link,clause1Clone,clause2Clone,clause2) : null;
+        if(monitor != null) monitor.accept(step.toString(symboltable));
+        if(trackReasoning) {
+            clause2.addInferenceStep(step);
+            if(verify) step.verify(monitor,symboltable);}
+        if (remove){
+            removeClause(clause2);
+            removeClauseFromIndex(clause2);}
+        return clause2;}
 
     /**
      * Resolves two clauses by performing merge resolution.
@@ -637,6 +752,8 @@ public class ClauseList {
     protected void resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
         assert shorterParent.quantifier == Quantifier.OR;
         assert shorterParent != longerParent;
+        assert shorterParent.findPredicate(literal) != null;
+        assert longerParent.findPredicate(-literal) != null;
         int[] shorterClone = null;
         int[] longerClone  = null;
         if(trackReasoning || monitor != null) {
@@ -652,7 +769,8 @@ public class ClauseList {
                 if(verify) step.verify(monitor,symboltable);
                 shorterParent.addInferenceStep(step);}
             if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
+                        Symboltable.toString(literal,symboltable) + " + " +
                         Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
             return;}
 
@@ -666,7 +784,8 @@ public class ClauseList {
             removeClause(longerParent);
             removeClauseFromIndex(longerParent);
             if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
+                        Symboltable.toString(literal,symboltable) + " + " +
                         Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
             return;}
 
@@ -677,7 +796,8 @@ public class ClauseList {
             if(verify) step.verify(monitor,symboltable);
             longerParent.addInferenceStep(step);}
         if(monitor != null) {
-            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
+            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
+                    Symboltable.toString(literal,symboltable) + " + " +
                     Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}
     }
 

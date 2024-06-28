@@ -15,12 +15,20 @@ public class InfMergeResolution extends InferenceStep {
     public String rule() {
         return "p,phi and -p,phi,psi => phi,psi";}
 
+    int[] link;
     int[] parent1; int[] parent2; int resolvent[];
 
     public InfMergeResolution(int[] parent1, int[] parent2, Clause resolvent) {
         this.parent1 = parent1;
         this.parent2 = parent2;
         this.resolvent = resolvent.simpleClone();}
+
+    public InfMergeResolution(Clause link, int[] parent1, int[] parent2, Clause resolvent) {
+        this.link = link.simpleClone();
+        this.parent1 = parent1;
+        this.parent2 = parent2;
+        this.resolvent = resolvent.simpleClone();
+    }
 
     public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
         IntArrayList predicates = Clause.predicates(parent1);

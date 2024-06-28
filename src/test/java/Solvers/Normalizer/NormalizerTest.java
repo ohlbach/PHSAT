@@ -1,5 +1,6 @@
 package Solvers.Normalizer;
 
+import Datastructures.ClauseList;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
@@ -103,8 +104,8 @@ public class NormalizerTest extends TestCase {
         Model model = new Model(max);
         nom.initialize(inputClauses, model);
 
-        Result result = nom.normalizeClauses();
-        assertTrue(result instanceof Satisfiable);
+        try{nom.normalizeClauses();}
+        catch(Result result) {assertTrue(result instanceof Satisfiable);}
         //System.out.println(result.toString(null));
         assertEquals(0,inputClauses.falseClausesInModel(model).size());
 
@@ -134,8 +135,8 @@ public class NormalizerTest extends TestCase {
         Model model = new Model(predicates);
         nom.initialize(inputClauses, model);
 
-        Result result = nom.normalizeClauses();
-        System.out.println(result);
+        try{nom.normalizeClauses();}
+        catch(Result result) {System.out.println(result);}
         System.out.println(nom.statistics.toString());
         System.out.println(nom.clauseList.statistics.toString());
     }
@@ -144,15 +145,15 @@ public class NormalizerTest extends TestCase {
         System.out.println("Random 3SAT");
         Normalizer nom = new Normalizer(true, true, monitor);
         StringBuilder errors = new StringBuilder();
-        int seed = 1;
+        int seed = 3;
         int predicates = 50;
-        int[] length = {2,4};
+        int[] length = {2,10};
         boolean redundant = true;
-        int ors = 200;
+        int ors = 150;
         int ands = 0;
         int equivs = 0;
-        int  atleasts = 0;
-        int atmosts = 0;
+        int  atleasts = 10;
+        int atmosts = 10;
         int exactlies = 0;
         int intervals = 0;
         RandomClauseSetGenerator rpg = new RandomClauseSetGenerator(seed, predicates, length, redundant, ors, ands, equivs, atleasts, atmosts, exactlies, intervals);
@@ -161,10 +162,12 @@ public class NormalizerTest extends TestCase {
         Model model = new Model(predicates);
         nom.initialize(inputClauses, model);
 
-        Result result = nom.normalizeClauses();
-        System.out.println(result);
-        System.out.println(nom.clauseList.toString("clauses",null));
-        System.out.println(model.toString(null));
+        ClauseList clauseList = null;
+        try{clauseList = nom.normalizeClauses();}
+        catch(Result result) {System.out.println(result);}
+
+        System.out.println(clauseList.toString("clauses",null));
+        System.out.println("Model: " + model.toString(null));
         System.out.println(nom.statistics.toString());
         System.out.println(nom.clauseList.statistics.toString());
     }
