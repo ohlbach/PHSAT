@@ -628,6 +628,13 @@ public class ClauseList {
         timestamp += shorterSize*shorterSize;}
 
 
+    /** Performs linked merge resolution with the two-literal clause
+     * <br>
+     * Example: p,q and -p,phi,psi and -q,phi -&gt; phi,psi<br>
+     * All possible linked merge resolutions for this clause are performed.
+     *
+     * @param clause a two-literal clause.
+     */
     public void linkedMergeResolution(Clause clause) throws Unsatisfiable {
         assert clause.expandedSize == 2;
         int literal1 = -clause.literals.get(0).literal;
@@ -649,26 +656,25 @@ public class ClauseList {
 
             boolean clause1Changed = false;
             for(Literal litObject1 : clause1.literals) {
-                if (litObject1 == literalObject1) continue;
-                if(clause1Changed) break;
-                Literal litObject2 = literalIndex.getFirstLiteral(literalObject1.literal);
+                if (litObject1.literal == literal1) continue;
+                Literal litObject2 = literalIndex.getFirstLiteral(litObject1.literal);
                 while(litObject2 != null && !clause1Changed) {
                     Clause clause2 = litObject2.clause;
-                    if(clause2.quantifier != Quantifier.OR) {literalObject2 = (Literal)literalObject2.nextItem; continue;}
+                    if(clause2 == clause1 || clause2.quantifier != Quantifier.OR) {litObject2 = (Literal)litObject2.nextItem; continue;}
                     maxSize = Math.max(maxSize,clause2.expandedSize);
                     int timestamp2 = clause2.timestamp;
                      if(timestamp2 >= timestamp) {
                          int timestampDiff = timestamp2 - timestamp;
                          if(timestampDiff == clause2.expandedSize-2 || timestampDiff == clause1.expandedSize-2) {
                              Clause resolvent = resolveLinked(clause,clause1,clause2);
-                             if(resolvent.isInList) addShortenedClauseTask(resolvent);
+                             if(resolvent != null && resolvent.isInList) addShortenedClauseTask(resolvent);
                              if(resolvent == clause1) {
                                  clause1Changed = true;
                                  timestamp += maxSize;
-                                 literalObject1 = (Literal)literalObject1.nextItem;
                                  break;}}
                          else ++clause2.timestamp;}
-                     litObject2 = (Literal)litObject2.nextItem;}}
+                     litObject2 = (Literal)litObject2.nextItem;}
+                if(clause1Changed) break;}
             timestamp += maxSize;
             literalObject1 = (Literal) literalObject1.nextItem;}
         timestamp += maxSize;
@@ -701,6 +707,7 @@ public class ClauseList {
 
         int literal1 = -link.literals.get(0).literal;
         int literal2 = -link.literals.get(1).literal;
+        if(clause1.findLiteral(literal2) != null || clause2.findLiteral(literal1) != null) return null; // tautology
 
         if(clause1.expandedSize > clause2.expandedSize) {
             Clause dummyCl = clause1; clause1 = clause2; clause2 = dummyCl;
@@ -769,41 +776,32 @@ public class ClauseList {
         if(longerParent.quantifier != Quantifier.OR) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
+            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent) : null;
+            if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
-                step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
-                if(verify) step.verify(monitor,symboltable);
-                shorterParent.addInferenceStep(step);}
-            if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
-                        Symboltable.toString(literal,symboltable) + " + " +
-                        Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
+                shorterParent.addInferenceStep(step);
+                if(verify) step.verify(monitor,symboltable);}
             return;}
 
         if(shorterParent.literals.size() == longerParent.literals.size()) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
+            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent) : null;
+            if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
-                step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
-                if(verify) step.verify(monitor,symboltable);
-                shorterParent.addInferenceStep(step);}
+                shorterParent.addInferenceStep(step);
+                if(verify) step.verify(monitor,symboltable);}
             removeClause(longerParent);
             removeClauseFromIndex(longerParent);
-            if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
-                        Symboltable.toString(literal,symboltable) + " + " +
-                        Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
             return;}
 
         if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask))
             removeClause(longerParent); // should not happen
+        step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,longerParent) : null;
+        if(monitor != null) monitor.accept(step.toString(symboltable));
         if(trackReasoning) {
-            step = new InfMergeResolution(shorterClone, longerClone,longerParent);
-            if(verify) step.verify(monitor,symboltable);
-            longerParent.addInferenceStep(step);}
-        if(monitor != null) {
-            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " at " +
-                    Symboltable.toString(literal,symboltable) + " + " +
-                    Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}
+            longerParent.addInferenceStep(step);
+            if(verify) step.verify(monitor,symboltable);}
     }
 
 

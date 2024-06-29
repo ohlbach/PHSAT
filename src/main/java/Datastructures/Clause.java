@@ -1069,6 +1069,14 @@ public class Clause extends LinkedItem implements Cloneable {
             if(i < predicates.size()-1) st.append(",");}
         return st.toString();}
 
+    /**
+     * Returns a string representation of the clause without symboltable.
+     *
+     * @return the string representation of the clause
+     */
+    public String toString() {
+        return toString(null,0);}
+
     /** turns the clause into a string.
      *
      * @param symboltable null or a symboltable.

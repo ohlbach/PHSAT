@@ -475,8 +475,8 @@ public class ClauseListTest extends TestCase {
 
     }
 
-    public void testLinkedMergeResolution() throws Unsatisfiable {
-        System.out.println("linkedMergeResolution");
+    public void testResolveLinked() throws Unsatisfiable {
+        System.out.println("resolveLinked");
         ClauseList cl = new ClauseList(true, true, monitor);
         Model model = new Model(10);
         cl.initialize("Test", model, null);
@@ -554,6 +554,47 @@ public class ClauseListTest extends TestCase {
         assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(monitor,null));
 
     }
+
+
+    public void testLinkedMergeResolution() throws Unsatisfiable {
+        System.out.println("linkedMergeResolution");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 3, 4, 5});
+        cl.addClause(c1);
+        Clause c2 = makeClause(new int[]{2, nor, 2, 3, 4, 5});
+        cl.addClause(c2);
+        Clause c3 = makeClause(new int[]{3, nor, -1, -2});
+        cl.addClause(c3);
+        cl.linkedMergeResolution(c3);
+
+        assertEquals("1.1: 3v4v5\n" +
+                        "  3: -1v-2\n",
+                 cl.toString("clauses", null));
+
+        System.out.println("Example 2");
+
+        model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nor, 1,3,4},
+                new int[]{2,nor, 3,1,5},
+                new int[]{3,nor, 4,1,5,6},
+                new int[]{4,nor, 2,4,3},
+                new int[]{5,nor, 2,5,3},
+                new int[]{6,nor, 6,5,2});
+        Clause c = makeClause(new int[]{10, nor, -1, -2});
+        cl.addClause(c);
+        cl.linkedMergeResolution(c);
+        assertEquals(" 1.1: 3v4\n" +
+                        " 2.1: 3v5\n" +
+                        " 3.1: 4v5v6\n" +
+                        "   6: 6v5v2\n" +
+                        "  10: -1v-2\n",
+                cl.toString("clauses", null));
+    }
+
 
     public void testIsPositivelyPure() {
         System.out.println("isPositivelyPure");
