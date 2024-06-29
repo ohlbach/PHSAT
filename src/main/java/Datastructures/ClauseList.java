@@ -632,6 +632,7 @@ public class ClauseList {
      * All possible linked merge resolutions for this clause are performed.
      *
      * @param clause a two-literal clause.
+     * @throws Unsatisfiable if a contradictory unit clause is derived.
      */
     public void linkedMergeResolution(Clause clause) throws Unsatisfiable {
         assert clause.expandedSize == 2;
@@ -656,7 +657,7 @@ public class ClauseList {
             for(Literal litObject1 : clause1.literals) {
                 if (litObject1.literal == literal1) continue;
                 Literal litObject2 = literalIndex.getFirstLiteral(litObject1.literal);
-                while(litObject2 != null && !clause1Changed) {
+                while(litObject2 != null) {
                     Clause clause2 = litObject2.clause;
                     if(clause2 == clause1 || clause2.quantifier != Quantifier.OR) {litObject2 = (Literal)litObject2.nextItem; continue;}
                     maxSize = Math.max(maxSize,clause2.expandedSize);
