@@ -7,7 +7,7 @@ import InferenceSteps.InferenceStep;
 
 /** This class represents two kinds of unsatisfiabilities in equivalences.
  * <br>
- * 1. contradictory literals like p == -p
+ * 1. contradictory literals like p == -p<br>
  * 2. equivalent literals with different truth values in the model: p == q and true(p) and false(q).
  * */
 public class UnsatEquivalence extends Unsatisfiable {
@@ -51,6 +51,11 @@ public class UnsatEquivalence extends Unsatisfiable {
         this.step2    = step2;}
 
 
+    /** generates a description of the unsatisfiability
+     *
+     * @param symboltable the symbol table used for predicate name mapping
+     * @return a description of the unsatisfiability
+     */
     @Override
     public String description(Symboltable symboltable) {
         if(literal1 == 0)

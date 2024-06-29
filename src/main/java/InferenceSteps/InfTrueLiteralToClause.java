@@ -66,7 +66,7 @@ public class InfTrueLiteralToClause extends InferenceStep {
      */
     @Override
     public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
-        IntArrayList predicates = Datastructures.Clause.predicates(clauseBefore);
+        IntArrayList predicates = Clause.predicates(clauseBefore);
         int nModels = 1 << predicates.size();
         for(int model = 0; model < nModels; ++model) {
             if(Datastructures.Clause.isTrue(clauseBefore, model) && isTrue(model,trueLiteral,predicates)) {

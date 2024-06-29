@@ -63,7 +63,7 @@ public class ClauseList {
     private int predicates;
 
     /** the doubly linked list of clauses */
-    LinkedItemList<Clause> clauses;
+    public LinkedItemList<Clause> clauses;
 
     /** maps literals to the literal occurrences in the clauses */
     public LiteralIndex<Literal> literalIndex;
@@ -182,8 +182,7 @@ public class ClauseList {
                         removeSubsumedClauses(clause);
                         if(clause.quantifier == Quantifier.OR) {
                             mergeResolution(clause);
-                            if(clause.expandedSize == 2 && clause.isInList)
-                            linkedMergeResolution(clause);}}
+                            if(clause.expandedSize == 2 && clause.isInList) linkedMergeResolution(clause);}}
                     break;
                 case PURITY:
                     removePurePredicate(Math.abs(task.literal));
@@ -344,12 +343,11 @@ public class ClauseList {
                     subsumer.timestamp = timestamp;
                     subsumerLiteral = (Literal)subsumerLiteral.nextItem;
                     continue;}
-                if(subsumerTimestamp >= timestamp) {
-                    if((subsumerTimestamp - timestamp) == subsumer.literals.size()-2 && subsumes(subsumer,subsumee)) {
-                        ++timestamp;
-                        if(verify) verifySubsumption(subsumer,subsumee);
-                        return subsumer;}
-                    ++subsumer.timestamp;}
+                if ((subsumerTimestamp - timestamp) == subsumer.literals.size() - 2 && subsumes(subsumer, subsumee)) {
+                    ++timestamp;
+                    if (verify) verifySubsumption(subsumer, subsumee);
+                    return subsumer;}
+                ++subsumer.timestamp;
                 subsumerLiteral = (Literal)subsumerLiteral.nextItem;}}
         timestamp += subsumeeSize;
         return null;}

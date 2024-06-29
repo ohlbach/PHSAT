@@ -138,7 +138,9 @@ public class Normalizer {
         catch (Result result) {
             result.solverId = solverId;
             result.problemId = problemId;
+            statistics.survivedClauses = clauseList.clauses.size();
             throw result;}
+        statistics.survivedClauses = clauseList.clauses.size();
         return clauseList;}
 
 
@@ -191,7 +193,7 @@ public class Normalizer {
         Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)),symboltable);
         switch(clause.simplify(trackReasoning,null,reportTrueLiteral,monitor,symboltable)) {
             case -1: throw new UnsatClause(problemId,solverId, inputClause);
-            case 1: return;}
+            case 1: ++statistics.removedClauses; return;}
         statistics.simplifiedClauses += clause.version;
         if(!applyEquivalences(clause)) clauseList.addClause(clause);}
 
@@ -201,7 +203,7 @@ public class Normalizer {
      *
      * @param clause    a new clause
      * @return true if the clause has become a true clause.
-     * @throws Unsatisfiable    if a contradiction is encountered.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
     protected boolean applyEquivalences(Clause clause) throws Unsatisfiable {
         for(Equivalence equivalence : equivalences) {
@@ -212,9 +214,10 @@ public class Normalizer {
                if(clause.findPredicate(equivalentLiteral) != null) {
                     switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                     null, reportTrueLiteral,monitor,symboltable)) {
+                        case 0: ++statistics.equivalenceReplacements; break;
                         case -1: throw new UnsatClause(problemId,solverId, clause);
-                        case 1: return true;}}}}
-            return false;}
+                        case +1: ++statistics.removedClauses; return true;}}}}
+        return false;}
 
 
     /**

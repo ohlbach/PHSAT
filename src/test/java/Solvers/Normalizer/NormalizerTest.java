@@ -166,7 +166,7 @@ public class NormalizerTest extends TestCase {
         try{clauseList = nom.normalizeClauses();}
         catch(Result result) {System.out.println(result);}
 
-        System.out.println(clauseList.toString("clauses",null));
+        System.out.println(nom.clauseList.toString("clauses",null));
         System.out.println("Model: " + model.toString(null));
         System.out.println(nom.statistics.toString());
         System.out.println(nom.clauseList.statistics.toString());
