@@ -1,7 +1,10 @@
 package Management;
 
+import Datastructures.ClauseList;
 import Management.GIU.ScrollableFrame;
+import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 import Utilities.Utilities;
 
@@ -30,6 +33,10 @@ public class QuSatJob {
 
     /** the list of parameters for the QuSat Solvers */
     ArrayList<Parameters> solverParams;
+    public ClauseList clauseList;
+    public Normalizer normalizer;
+
+    Monitor monitor;
 
     /** the date when the job has been processed. */
     public Date jobDate = new Date();
@@ -91,11 +98,12 @@ public class QuSatJob {
         this.generatorParams  = generatorParameters;
         this.solverParams     = solverParameters;
         makeJobDirectory(this.globalParameters);
+
     }
 
     /** solves the QuSat-problems.
      *
-     * The generatorParams tiggers the construction of one or more clause generators.<br>
+     * The generatorParams triggers the construction of one or more clause generators.<br>
      * Each clause generator represents a QuSat problem. The clauses themselves are generated in the ProblemSupervisors.<br>
      * The ProblemSupervisors then activate one or more Solvers which work in parallel at the problems.
      */
@@ -103,15 +111,21 @@ public class QuSatJob {
         startTime = System.nanoTime();
         generators = ProblemGenerator.makeGenerators(generatorParams);
         solvers = Solver.makeSolvers(solverParams);
-       // System.out.println(description());System.exit(0);
+
         if(solvers.isEmpty()) {
             System.err.println("System Error: No solver found");
             new Exception().printStackTrace();
             System.exit(1);}
+        Monitor monitor = Monitor.getMonitor(this.globalParameters.jobName, this.globalParameters.monitor.toLowerCase(),
+                this.globalParameters.monitorSeparate,
+                this.globalParameters.jobDirectory,1000,150,startTime);
+        clauseList = new ClauseList(globalParameters.trackReasoning,globalParameters.verify,monitor);
+        normalizer = new Normalizer(clauseList, globalParameters.trackReasoning,globalParameters.verify,monitor);
         openLogging(globalParameters);
         for(ProblemGenerator problemGenerator : generators) {
-            problemSupervisors.add(new ProblemSupervisor(this, globalParameters,problemGenerator,solvers));}
-        for(ProblemSupervisor problemSupervisor : problemSupervisors) {problemSupervisor.solveProblem();}
+            ProblemSupervisor problemSupervisor = new ProblemSupervisor(this, globalParameters,problemGenerator,solvers);
+            problemSupervisors.add(problemSupervisor);
+            problemSupervisor.solveProblem();}
         //analyseResults();
         //finalizeSystem();
         endTime = System.nanoTime();

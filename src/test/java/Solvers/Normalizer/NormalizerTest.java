@@ -7,11 +7,11 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import ProblemGenerators.PythagoraenTriples;
 import ProblemGenerators.RandomClauseSetGenerator;
 import junit.framework.TestCase;
-
-import java.util.function.Consumer;
 
 public class NormalizerTest extends TestCase {
 
@@ -23,15 +23,15 @@ public class NormalizerTest extends TestCase {
     int nint = Quantifier.INTERVAL.ordinal();
     int neq = Quantifier.EQUIV.ordinal();
 
-    static Consumer<String> monitor = (string -> System.out.println(string));
-
+    static Monitor monitor = new MonitorLife("Test",System.nanoTime());
 
     static void makeClauses (InputClauses inputClauses, int[]... clauses) {
         for(int[] clause : clauses) inputClauses.addClause(clause);
     }
 
     public void testTransformConjunction() throws Unsatisfiable {
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         int predicates = 5;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
@@ -45,7 +45,8 @@ public class NormalizerTest extends TestCase {
             System.out.println(uns.toString(null));}}
 
     public void testTransformEquivalence() throws Unsatisfiable {
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         int predicates = 5;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
@@ -67,7 +68,8 @@ public class NormalizerTest extends TestCase {
         }}
 
     public void testTransformAndSimplify() throws Unsatisfiable {
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         int predicates = 10;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
@@ -96,7 +98,8 @@ public class NormalizerTest extends TestCase {
 
     public void testPythagoraenTriples() {
         System.out.println("Pythagoraen Triples");
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         int max = 60;
         StringBuilder errors = new StringBuilder();
         PythagoraenTriples ptr = new PythagoraenTriples(3, max);
@@ -116,7 +119,8 @@ public class NormalizerTest extends TestCase {
 
     public void testRandomMixed()  {
         System.out.println("Random mixed");
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         StringBuilder errors = new StringBuilder();
         int seed = 2;
         int predicates = 50;
@@ -143,7 +147,8 @@ public class NormalizerTest extends TestCase {
 
     public void testRandom3SAT()  {
         System.out.println("Random 3SAT");
-        Normalizer nom = new Normalizer(true, true, monitor);
+        ClauseList clauseList = new ClauseList(true,true,monitor);
+        Normalizer nom = new Normalizer(clauseList,true, true, monitor);
         StringBuilder errors = new StringBuilder();
         int seed = 3;
         int predicates = 50;
@@ -162,7 +167,7 @@ public class NormalizerTest extends TestCase {
         Model model = new Model(predicates);
         nom.initialize(inputClauses, model);
 
-        ClauseList clauseList = null;
+        clauseList = null;
         try{clauseList = nom.normalizeClauses();}
         catch(Result result) {System.out.println(result);}
 

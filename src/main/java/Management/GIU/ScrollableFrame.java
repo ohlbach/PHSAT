@@ -44,7 +44,7 @@ public class ScrollableFrame  extends JFrame {
                 sf[0] = new ScrollableFrame(width, height, locationX, locationY, title);
             });
         }
-        catch(Exception e) {System.out.println(e); System.exit(1);}
+        catch(Exception e) {System.err.println(e); System.exit(1);}
 
         return  sf[0].printStream;
     }

@@ -141,7 +141,7 @@ public class Backtracker extends Solver {
 
     private ArrayList<Clause>[] usedClausesArray;
 
-    BacktrackerStatistics statistics;
+    StatisticsBacktracker statistics;
 
 
     /** keeps the local candidate model */

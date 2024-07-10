@@ -2,21 +2,32 @@ package Management.Monitor;
 
 import Utilities.Utilities;
 
+import java.util.Date;
+
 /** This class implements a monitor which prints messages directly to System.out.*/
 
 public class MonitorLife extends Monitor {
 
     /** creates a monitor which does nothing at all.*/
     public MonitorLife() {
-        super("Monitor",System.nanoTime());}
+        super("Monitor",false,System.nanoTime());}
 
     /** creates a monitor that prints the messages to System.out.
      *
      * @param title for identifying the monitor.
+     * @param startTime all print commands are tagged with the difference of the actual time and the startTime.
      */
     public MonitorLife(String title, long startTime) {
-        super(title,startTime);
-        System.out.println("Monitor for " + title + " @ " + startTime + " ns");}
+        super(title,false,startTime);
+        System.out.println("Monitor for " + title + " @ " + (new Date()));}
+
+    /** initializes the monitor for a new problem by printing a message to System.out.
+     *
+     * @param problemId the problem's identifier.
+     */
+    public void initialize(String problemId) {
+        System.out.println("Monitor for problem" + problemId + " @ " + Utilities.duration(System.nanoTime() - startTime));
+    }
 
     /** prints the id and the elapsed time followed by the messages to a single line.
      *
@@ -25,8 +36,8 @@ public class MonitorLife extends Monitor {
      */
     public void print(String id, String... messages) {
         String time = Utilities.duration(System.nanoTime() - startTime);
-        System.out.print(id+","+title+"@" + time + " ");
-        for(String message: messages) System.out.print(message);
+        System.out.print(id+"@ " + time + ":");
+        for(String message: messages) {System.out.print(" "); System.out.print(message);}
         System.out.println();}
 
     /**  prints the id and the elapsed time followed by the messages one per line.
@@ -36,8 +47,8 @@ public class MonitorLife extends Monitor {
      */
     public void println(String id, String... messages) {
         String time = Utilities.duration(System.nanoTime() - startTime);
-        System.out.println(id+","+title+"@" + time);
-        for(String message: messages) System.out.println("  "+message);}
+        System.out.println(id+"@ " + time);
+        for(String message: messages) {System.out.print(" "); System.out.println(message);}}
 
     /** prints just the message.
      *
@@ -45,17 +56,6 @@ public class MonitorLife extends Monitor {
      */
     public void println(String message) {
         System.out.println(message);};
-
-    /** prints the id and the elapsed time followed by the messages one per line.
-     *
-     * @param id        an id for the message.
-     * @param messages messages.
-     */
-    public void print(String id, StringBuilder messages) {
-        String time = Utilities.duration(System.nanoTime() - startTime);
-        System.out.println(id+","+title+"@" + time + " ");
-        System.out.println(messages);}
-
 
     /** does nothing.*/
     public synchronized void flush(boolean close) {}
@@ -66,6 +66,6 @@ public class MonitorLife extends Monitor {
      * @return some information about the monitor.
      */
     public String toString() {
-        return title + ": Immediate printing to System.out";}
+        return "MonitorLife " + title + ": printing to System.out";}
 
 }

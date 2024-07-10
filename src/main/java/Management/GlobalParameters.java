@@ -58,11 +58,24 @@ public class GlobalParameters {
     /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
 
+    /** if true then inference steps are verified */
+    public static boolean verifyDefault = false;
+
+    /** if true then inference steps are verified */
+    public boolean verify = false;
+
     private static String monitorDefault = "frame";
 
     /** the monitor mode: life, file, frame. */
     public String monitor = null;
 
+    /** if true then a separate monitor is opened for each problem. */
+    private static boolean monitorSeparateDefault = false;
+
+    /** if true then a separate monitor is opened for each problem. */
+    public boolean monitorSeparate = false;
+
+    /** specifies how the statistics are printed. */
     private static String statisticDefault = "frame";
 
     /** specifies how the statistics are printed. */
@@ -77,11 +90,13 @@ public class GlobalParameters {
             String variable = parts[0];
             String value = parts[1];
             switch(variable.toLowerCase()) {
-                case "jobname": jobNameDefault = value; break;
-                case "logging": loggingDefault = value; break;
-                case "monitor": monitorDefault = value; break;
-                case "statistic": statisticDefault = value; break;
-                case "tracking": trackReasoningDefault = parseBoolean(value); break;
+                case "jobname":         jobNameDefault = value; break;
+                case "logging":         loggingDefault = value; break;
+                case "monitor":         monitorDefault = value; break;
+                case "monitorseparate": monitorSeparateDefault = parseBoolean(value); break;
+                case "statistic":       statisticDefault = value; break;
+                case "tracking":        trackReasoningDefault = parseBoolean(value); break;
+                case "verify" :         verifyDefault = parseBoolean(value); break;
                 case "directory": if(value.startsWith("home"))
                     homeDirectory = Path.of(System.getenv("USERPROFILE"),value.substring(5));
                     else homeDirectory = Path.of(value);
@@ -126,6 +141,9 @@ public class GlobalParameters {
         monitor.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
         monitor.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(monitor);
+
+        parameters.add(new Parameter("MonitorSeparate",Parameter.Type.Boolean,""+monitorSeparateDefault,monitorSeparateDefault,
+                "If true then a separate monitor is opened for each problem."));
         
         Parameter logging = new Parameter("logging",Parameter.Type.OneOf,loggingDefault,
                 "Specifies the target for logging.\n"+
@@ -165,20 +183,26 @@ public class GlobalParameters {
         parameters.add(statistics);
 
         parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,""+trackReasoningDefault,trackReasoningDefault,
-                "If true then the inference steps are tracked and verified."));
+                "If true then the inference steps are tracked."));
+        parameters.add(new Parameter("Verify",Parameter.Type.Boolean,""+verifyDefault,verifyDefault,
+                "If true then the inference steps are verified."));
         return parameters;}
 
     public GlobalParameters(HashMap<String, ArrayList<String>> defaults) {
         setDefaults(defaults);}
 
     public GlobalParameters(Parameters globalParams) {
-        jobName      = (String)(globalParams.parameters.get(0).value);
-        jobDirectory = (Path)(globalParams.parameters.get(1).value);
-        monitor      = (String)(globalParams.parameters.get(2).value);
-        logging      = (String)(globalParams.parameters.get(3).value);
-        cnfFileSymbols = (String)(globalParams.parameters.get(4).value);
-        statistic    = (String)(globalParams.parameters.get(5).value);
-        trackReasoning = (Boolean)(globalParams.parameters.get(6).value);
+        int index = -1;
+        jobName      = (String)(globalParams.parameters.get(++index).value);
+        jobDirectory = (Path)(globalParams.parameters.get(++index).value);
+        monitor      = (String)(globalParams.parameters.get(++index).value);
+        monitorSeparate = (Boolean)(globalParams.parameters.get(++index).value);
+        logging      = (String)(globalParams.parameters.get(++index).value);
+        cnfFileSymbols = (String)(globalParams.parameters.get(++index).value);
+        statistic    = (String)(globalParams.parameters.get(++index).value);
+        trackReasoning = (Boolean)(globalParams.parameters.get(++index).value);
+        verify       = (Boolean)(globalParams.parameters.get(++index).value);
+        if(verify) trackReasoning = true;
         version      = findVersion();
         jobDirectory = Paths.get(jobDirectory.toString(),jobName+"_"+version);
     }
@@ -206,10 +230,12 @@ public class GlobalParameters {
                 "  jobdirecory:        " + ((jobDirectory == null) ? "null" : jobDirectory.toString()) + "\n"+
                 "  logging:            " + logging +"\n" +
                 "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
+                "  monitorSeparate:    " + monitorSeparate + "\n"+
                 "  showClauses:        " + showClauses+"\n"+
                 "  cnfFile:            " + cnfFileSymbols +"\n"+
                 "  statistic:          " + statistic + "\n" +
-                "  trackReasoning:     " + trackReasoning;}
+                "  trackReasoning:     " + trackReasoning+"\n"+
+                "  verify:             " + verify;}
 
 }
 

@@ -12,6 +12,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Management.Monitor.Monitor;
 import Utilities.BiConsumerWithUnsatisfiable;
 
 import java.util.ArrayList;
@@ -93,11 +94,10 @@ public class Normalizer {
      * @param verify if true then the inference steps are verified.
      * @param monitor for monitoring the inference steps.
      */
-    public Normalizer(boolean trackReasoning, boolean verify, Consumer<String> monitor) {
+    public Normalizer(ClauseList clauseList, boolean trackReasoning, boolean verify, Monitor monitor) {
         this.trackReasoning = trackReasoning;
         this.verify = verify;
-        this.monitor = monitor;
-        clauseList = new ClauseList(trackReasoning,verify,monitor);}
+        this.monitor = monitor == null ? null : (string -> monitor.println(solverId,string));}
 
     /** Initializes the normalizer for a new problem.
      * <br>

@@ -8,6 +8,8 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import ProblemGenerators.PythagoraenTriples;
 import junit.framework.TestCase;
 
@@ -16,7 +18,8 @@ import java.util.function.Function;
 
 public class ClauseListTest extends TestCase {
 
-    static Consumer<String> monitor = (string -> System.out.println(string));
+    static Monitor monitor = new MonitorLife("Test",System.nanoTime());
+    static Consumer<String> mon = (string-> System.out.println(string));
     static Symboltable symboltable = new Symboltable(10);
     static {symboltable.setName(1,"p");
         symboltable.setName(2,"q");
@@ -61,7 +64,7 @@ public class ClauseListTest extends TestCase {
         cl.addClause(clause5);
         cl.addClause(clause6);
         System.out.println(clause6.inferenceSteps.get(0).toString(null));
-        assertTrue(clause6.inferenceSteps.get(0).verify(monitor,null));
+        assertTrue(clause6.inferenceSteps.get(0).verify(mon,null));
         assertEquals("Clauses:\n" +
                 "  1: 1v-2v3\n" +
                 "  2: >=2 3,2,1^2\n" +
@@ -191,8 +194,8 @@ public class ClauseListTest extends TestCase {
                 "6:     4.1: [1,2] 2,3,4,5,6\n", cl.toString("all",null));
 
         Clause c4 = cl.clauses.firstLinkedItem;
-        assertTrue(c4.inferenceSteps.get(0).verify(monitor,null));
-        assertTrue(c4.inferenceSteps.get(1).verify(monitor,null));
+        assertTrue(c4.inferenceSteps.get(0).verify(mon,null));
+        assertTrue(c4.inferenceSteps.get(1).verify(mon,null));
         System.out.println(c4.inferenceSteps.get(0).toString(null));
         System.out.println(c4.inferenceSteps.get(1).toString(null));
 
@@ -238,8 +241,8 @@ public class ClauseListTest extends TestCase {
                 "       4.1: [2,3] 2,3,4,5,6\n" +
                 "5:     4.1: [2,3] 2,3,4,5,6\n" +
                 "6:     4.1: [2,3] 2,3,4,5,6\n", cl.toString("all", null));
-        assertTrue(c4.inferenceSteps.get(0).verify(monitor,null));
-        assertTrue(c4.inferenceSteps.get(1).verify(monitor,null));
+        assertTrue(c4.inferenceSteps.get(0).verify(mon,null));
+        assertTrue(c4.inferenceSteps.get(1).verify(mon,null));
         System.out.println(c4.inferenceSteps.get(0).toString(null));
         System.out.println(c4.inferenceSteps.get(1).toString(null));
     }
@@ -512,7 +515,7 @@ public class ClauseListTest extends TestCase {
         c3 = makeClause(new int[]{3, nor, -1,-2});
         cl.addClause(c3);
         assertEquals(c2,cl.resolveLinked(c3,c1,c2));
-        assertTrue(c2.inferenceSteps.get(c2.inferenceSteps.size()-1).verify(monitor,null));
+        assertTrue(c2.inferenceSteps.get(c2.inferenceSteps.size()-1).verify(mon,null));
 
         assertEquals("  1: 3v1v4v5\n" +
                 "2.1: 3v4v5v6\n" +
@@ -534,7 +537,7 @@ public class ClauseListTest extends TestCase {
                 "  2: 3v4v2v5\n" +
                 "  3: -1v-2\n", cl.toString("clauses", null));
 
-        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(monitor,null));
+        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(mon,null));
 
 
         System.out.println("Example 4");
@@ -551,7 +554,7 @@ public class ClauseListTest extends TestCase {
 
         assertEquals("  3: -1v-2\n", cl.toString("clauses", null));
         assertEquals("3",model.toString(null));
-        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(monitor,null));
+        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(mon,null));
 
     }
 

@@ -51,21 +51,21 @@ public class ProblemSupervisor {
     public SupervisorStatistics statistics = null;
     private ProblemGenerator problemGenerator;
 
-    private boolean trackReasoning;
-
     public QuSatJob quSatJob;
 
     public Normalizer normalizer;
+    public ClauseList clauseList;
 
     public ProblemSupervisor(QuSatJob quSatJob, GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
         this.quSatJob         = quSatJob;
         this.globalParameters = globalParameters;
         jobname               = globalParameters.getJobName();
-        trackReasoning        = globalParameters.trackReasoning;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
         statistics            = new SupervisorStatistics("Supervisor");
+        normalizer            = quSatJob.normalizer;
+        clauseList            = quSatJob.clauseList;
     }
 
 
@@ -95,17 +95,16 @@ public class ProblemSupervisor {
                 System.err.println(problemGenerator.toString());
                 System.err.println("System is aborted.");
                 System.exit(1);}
-            monitor = Monitor.getMonitor(problemId, globalParameters.monitor.toLowerCase(),
-                    globalParameters.jobDirectory,1,1000,150,startTime);
 
+            Consumer<String> mon = (monitor != null) ? (string -> monitor.println(problemId + string)) : null;
             if(!globalParameters.cnfFileSymbols.equals("None")) {
                 Path path = inputClauses.makeCNFFile(globalParameters.jobDirectory,true);
                 if(globalParameters.logstream != null) {globalParameters.logstream.println("Clauses printed to file " + path.toString()); }
             }
             model = new Model(inputClauses.predicates);
-            Consumer<String> mon = (monitor != null) ? (string -> monitor.println(problemId + string)) : null;
-            normalizer = new Normalizer(trackReasoning,true,mon);
-            ClauseList clauseList = normalizer.normalizeClauses();
+            clauseList.initialize(problemId,model,inputClauses.symboltable);
+            normalizer.initialize(inputClauses,model);
+            normalizer.normalizeClauses();
             System.out.println(result == null ? "no result " :result.toString());
            // System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());
@@ -144,7 +143,7 @@ public class ProblemSupervisor {
         if(result instanceof Satisfiable) checkModel((Satisfiable) result);
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
-        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, trackReasoning));
+        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, globalParameters.trackReasoning));
         if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}}
 
     /** checks the model against the input clauses.

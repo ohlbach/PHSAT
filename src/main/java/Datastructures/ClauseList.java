@@ -9,6 +9,8 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InfMergeResolution;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
+import Management.Monitor.Monitor;
+import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -83,6 +85,8 @@ public class ClauseList {
     /** supports efficient identification of subsumption and merge-resolution partners. */
     int timestamp = 0;
 
+    private ArrayList<Solver> solvers = new ArrayList<>();
+
     /** A queue of newly derived unit predicates and binary equivalences.
      * The unit predicates are automatically put at the beginning of the queue.
      */
@@ -99,10 +103,10 @@ public class ClauseList {
      * @param verify specifies whether to verify the inference steps
      * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
     */
-    public ClauseList(boolean trackReasoning, boolean verify, Consumer<String> monitor) {
+    public ClauseList(boolean trackReasoning, boolean verify, Monitor monitor) {
         this.trackReasoning = trackReasoning;
-        this.monitor = monitor;
         this.verify = verify;
+        this.monitor = monitor == null ? null : (string -> monitor.println(solverId,string));
     }
 
     /** Initializes the instance for a new problem.
@@ -131,6 +135,13 @@ public class ClauseList {
         model.addObserver(Thread.currentThread(),
                 (literal,inferenceStep) -> {
                         synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
+
+    /** adds a solver which shares this ClauseList with other solvers.
+     *
+     * @param solver a solver which shares this clause list with other solvers.
+     */
+    public synchronized void addSolver(Solver solver) {
+        solvers.add(solver);}
 
     /**
      * After having inserted all clauses, the following operations are performed: <br>

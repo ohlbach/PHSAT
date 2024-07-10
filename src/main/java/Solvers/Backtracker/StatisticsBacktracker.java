@@ -3,8 +3,8 @@ package Solvers.Backtracker;
 import Datastructures.Statistics.Statistic;
 import Utilities.Description;
 
-public class BacktrackerStatistics extends Statistic {
-    public BacktrackerStatistics(String id) {
+public class StatisticsBacktracker extends Statistic {
+    public StatisticsBacktracker(String id) {
         super(id);
     }
 
