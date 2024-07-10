@@ -3,6 +3,7 @@ package Management;
 import Datastructures.ClauseList;
 import Management.GIU.ScrollableFrame;
 import Management.Monitor.Monitor;
+import Management.Monitor.MonitorFrame;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
@@ -15,7 +16,6 @@ import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 
 /** The class initiates the solution of QuSat problems.
  * <br>
@@ -27,14 +27,6 @@ public class QuSatJob {
 
     /** the global control parameters. */
     public GlobalParameters globalParameters;
-
-    /** the list of parameters for the clause generators */
-    ArrayList<Parameters> generatorParams;
-
-    /** the list of parameters for the QuSat Solvers */
-    ArrayList<Parameters> solverParams;
-    public ClauseList clauseList;
-    public Normalizer normalizer;
 
     Monitor monitor;
 
@@ -55,51 +47,40 @@ public class QuSatJob {
     private static int offsetX = 100;
     private static int offsetY = 100;
 
+    /** stores clauses and a literal index.
+     * The datastructures can be created once and then reused for a sequence of problems.*/
+    public ClauseList clauseList;
 
+    /** is used to normalize and simplifiy the input clauses.
+     * The datastructures can be created once and then reused for a sequence of problems.*/
+    public Normalizer normalizer;
 
-    /** the list of problem supervisors,one for each problem. */
+    /** the list of problem supervisors, one for each problem. */
     public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();
 
-    /**
-     * Sets the default values for the log-frame based on the "logframe" entry of the hashmap
-     *
-     * @param moduleValues the hashmap containing the module parameter values
-     */
-    public static void setDefaults(HashMap<String, ArrayList<String>> moduleValues) {
-        ArrayList<String> globalDefaults = moduleValues.get("logframe");
-        if(globalDefaults == null) {return;}
-        try{
-        for(String line : globalDefaults) {
-            String[] parts = line.split("\\s*=\\s*");
-            if(parts.length != 2) {continue;}
-            String variable = parts[0];
-            String value = parts[1];
-            switch(variable.toLowerCase()) {
-                case "width":   frameWidth = Integer.parseInt(value); break;
-                case "hight":   frameHight = Integer.parseInt(value); break;
-                case "offsetx": offsetX    = Integer.parseInt(value); break;
-                case "offsety": offsetY    = Integer.parseInt(value); break;
-            }}}
-        catch(NumberFormatException e) {
-            System.err.println("Error parsing defaults for LogFrame:\n" + e);
-            System.exit(1);}}
 
 
-    /**QuSatJob class represents a job in the QuSat solver system.
+    /** QuSatJob class represents a job in the QuSat solver system.
+     * <br>
+     * It turns the paramters provided by JFrame into internal datastructures:<br>
+     * - global parameters <br>
+     * - parameters for generating a sequence of QSat problems generate Generators<br>
+     * - parameters for generating a set of solvers generate Solvers. <br>
+     * - if desired a monitor is generated. <br>
+     * The solvers can work in parallel and exchange intermediate results.
      *
-     * It just stores the parameters as specified in the Frame.
-     *
-     * @param globalParameters     global parameters.
+     * @param globalParams         global parameters.
      * @param generatorParameters  parameters for the clause generators.
      * @param solverParameters     parameter for the solvers.
      */
-    public QuSatJob(Parameters globalParameters, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
-        this.globalParameters = new GlobalParameters(globalParameters);
-        this.generatorParams  = generatorParameters;
-        this.solverParams     = solverParameters;
-        makeJobDirectory(this.globalParameters);
-
-    }
+    public QuSatJob(Parameters globalParams, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
+        globalParameters = new GlobalParameters(globalParams);
+        makeJobDirectory();
+        generators = ProblemGenerator.makeGenerators(generatorParameters);
+        solvers    = Solver.makeSolvers(solverParameters);
+        startTime  = System.nanoTime();
+        monitor = Monitor.getMonitor(globalParameters.jobName, globalParameters.monitor.toLowerCase(),
+                globalParameters.monitorSeparate,globalParameters.jobDirectory,startTime);}
 
     /** solves the QuSat-problems.
      *
@@ -108,17 +89,6 @@ public class QuSatJob {
      * The ProblemSupervisors then activate one or more Solvers which work in parallel at the problems.
      */
     public void solveProblems() {
-        startTime = System.nanoTime();
-        generators = ProblemGenerator.makeGenerators(generatorParams);
-        solvers = Solver.makeSolvers(solverParams);
-
-        if(solvers.isEmpty()) {
-            System.err.println("System Error: No solver found");
-            new Exception().printStackTrace();
-            System.exit(1);}
-        Monitor monitor = Monitor.getMonitor(this.globalParameters.jobName, this.globalParameters.monitor.toLowerCase(),
-                this.globalParameters.monitorSeparate,
-                this.globalParameters.jobDirectory,1000,150,startTime);
         clauseList = new ClauseList(globalParameters.trackReasoning,globalParameters.verify,monitor);
         normalizer = new Normalizer(clauseList, globalParameters.trackReasoning,globalParameters.verify,monitor);
         openLogging(globalParameters);
@@ -149,7 +119,8 @@ public class QuSatJob {
                     logstream = new PrintStream(new FileOutputStream(jobdir)); break;
                 } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
             case "frame":
-                 logstream = ScrollableFrame.getPrintStream(frameWidth, frameHight, offsetX, offsetY,"Logfile");}
+                int[] sizes = MonitorFrame.sizes();
+                 logstream = ScrollableFrame.getPrintStream(sizes[0], sizes[1], sizes[2], sizes[3],"Logging");}
         if(logstream != null) {
             logstream.println("Starting Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+
                     " at " + jobDate);
@@ -171,10 +142,9 @@ public class QuSatJob {
      * If this directory already exists, it is used as it is.<br>
      * All generated files are put into this directory.
      *
-     * @param globalParameters the global parameters for the job
      * @return the created job directory
      */
-    public File makeJobDirectory(GlobalParameters globalParameters) {
+    public File makeJobDirectory() {
         File jobDir = globalParameters.jobDirectory.toFile();
         if(!jobDir.exists()) jobDir.mkdirs();
         return jobDir;}

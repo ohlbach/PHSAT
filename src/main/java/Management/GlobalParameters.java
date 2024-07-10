@@ -193,18 +193,18 @@ public class GlobalParameters {
 
     public GlobalParameters(Parameters globalParams) {
         int index = -1;
-        jobName      = (String)(globalParams.parameters.get(++index).value);
-        jobDirectory = (Path)(globalParams.parameters.get(++index).value);
-        monitor      = (String)(globalParams.parameters.get(++index).value);
+        jobName         = (String) (globalParams.parameters.get(++index).value);
+        jobDirectory    = (Path)   (globalParams.parameters.get(++index).value);
+        monitor         = (String) (globalParams.parameters.get(++index).value);
         monitorSeparate = (Boolean)(globalParams.parameters.get(++index).value);
-        logging      = (String)(globalParams.parameters.get(++index).value);
-        cnfFileSymbols = (String)(globalParams.parameters.get(++index).value);
-        statistic    = (String)(globalParams.parameters.get(++index).value);
-        trackReasoning = (Boolean)(globalParams.parameters.get(++index).value);
-        verify       = (Boolean)(globalParams.parameters.get(++index).value);
+        logging         = (String) (globalParams.parameters.get(++index).value);
+        cnfFileSymbols  = (String) (globalParams.parameters.get(++index).value);
+        statistic       = (String) (globalParams.parameters.get(++index).value);
+        trackReasoning  = (Boolean)(globalParams.parameters.get(++index).value);
+        verify          = (Boolean)(globalParams.parameters.get(++index).value);
         if(verify) trackReasoning = true;
-        version      = findVersion();
-        jobDirectory = Paths.get(jobDirectory.toString(),jobName+"_"+version);
+        version         = findVersion();
+        jobDirectory    = Paths.get(jobDirectory.toString(),jobName+"_"+version);
     }
 
     private int findVersion() {

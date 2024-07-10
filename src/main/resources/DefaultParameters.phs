@@ -8,7 +8,7 @@ global
 % either home/... or a full directory name
  directory = home/QuSat/TestDir
 
-LogFrame
+Window
 width = 500
 hight = 400
 offsetX = 100

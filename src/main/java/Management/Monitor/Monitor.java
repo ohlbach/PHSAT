@@ -14,13 +14,13 @@ import java.nio.file.Path;
 public abstract class Monitor {
 
     /**  A title for the monitor.*/
-    public String title = "Monitor";
+    String title = "Monitor";
 
     /** the start time of the job */
-    protected long startTime;
+    long startTime;
 
     /** if true then a separate monitor is opened for each problem */
-    protected boolean separate;
+    boolean separate;
 
     /** just sets the start time.
      *
@@ -41,24 +41,21 @@ public abstract class Monitor {
      * @param title  the identifier of the monitor.
      * @param type   none,life,file or frame
      * @param directory for file monitors
-     * @param size  x- and y-size of the fram
-     * @param offset for placing a frame
      * @param startTime in Nanoseconds
      * @return a monitor.
      */
-    public static Monitor getMonitor(String title, String type, boolean separate, Path directory, int size, int offset, long startTime) {
+    public static Monitor getMonitor(String title, String type, boolean separate, Path directory,  long startTime) {
         Monitor monitor = null;
         switch (type) {
             case "none":    return null;
             case "life":    monitor = new MonitorLife(title, startTime); break;
             case "file":    monitor = new MonitorFile(title, separate,startTime, directory); break;
-            case "frame":   monitor = new MonitorFrame("Monitor for "+title, separate,startTime, size,size/2,
-                    offset,offset);}
+            case "frame":   monitor = new MonitorFrame("Monitor for "+title, separate,startTime);}
        return monitor;}
 
     /** initializes the monitor for a new problem.
      *
-     * @param problemId
+     * @param problemId a name for a new problem
      */
     public abstract void initialize(String problemId);
 

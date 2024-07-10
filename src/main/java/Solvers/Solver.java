@@ -78,12 +78,15 @@ public abstract class Solver {
      */
     public static ArrayList<Solver> makeSolvers(ArrayList<Parameters> parameterList) {
         ArrayList<Solver> solvers = new ArrayList<>();
+        if(parameterList.isEmpty()) {
+            System.err.println("No Solver parameters provided. System stops.");
+            System.exit(1);}
         for(Parameters parameters: parameterList) {
             if(!(Boolean)parameters.parameters.get(0).value) continue;
             Class solverClass = solverClass(parameters.name);
             if(solverClass == null) {
                 System.err.println("System Error: unknown solver: " + parameters.name);
-                new Exception().printStackTrace();System.exit(1);}
+                new Exception().printStackTrace(); System.exit(1);}
             try{
                 Method makeSolver = solverClass.getMethod("makeSolvers",Parameters.class,ArrayList.class);
                 makeSolver.invoke(null,parameters,solvers);}

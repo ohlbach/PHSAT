@@ -1,6 +1,7 @@
 package Management;
 
 import Management.GIU.Frame;
+import Management.Monitor.MonitorFrame;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -34,9 +35,14 @@ public class QUSat {
     /** the name of the Default-file */
     private static String defaultFile = "DefaultParameters.phs";
 
+    /** loads the default values and the starts a JFrame which allows one to set all the parameters and
+     * start the QSat solvers.
+     *
+     * @param args no args necessary.
+     */
     public static void  main(String[] args)  {
         HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
-        QuSatJob.setDefaults(moduleValues);
+        MonitorFrame.setDefaults(moduleValues.get("window"));
         GlobalParameters.setDefaults(moduleValues);
         ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
         Solvers.Solver.setDefaults(moduleValues);

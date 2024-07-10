@@ -4,6 +4,7 @@ import Management.GIU.ScrollableFrame;
 import Utilities.Utilities;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 
 /** This class implements a monitor which prints to a JFrame.
  * <br>
@@ -11,15 +12,15 @@ import java.io.PrintStream;
  */
 public class MonitorFrame extends Monitor {
     /** the width of the frame */
-    int width;
+    private static int width = 500;
     /** the hight of the frame */
-    int hight;
+    private static int hight = 400;
     /** the initial horizontal offset */
-    int xOffset;
+    private static int offsetX = 100;
     /** the initial vertical offset */
-    int yOffset;
+    private static int offsetY = 100;
     /** where to print the messages */
-    PrintStream printStream;
+    private PrintStream printStream;
     /** counts the frames and controls the offsets */
     private int index = 0;
 
@@ -32,20 +33,35 @@ public class MonitorFrame extends Monitor {
      * @param title      a title for the monitor.
      * @param separate   if true then a separate frame is opened by each call of the initialize-method.
      * @param startTime  the start time or the job.
-     * @param width      of the frame
-     * @param hight      of the frame
-     * @param xOffset    x-offset of the left upper corner
-     * @param yOffset    y-offset of the left upper corner
      */
 
-    public MonitorFrame(String title, boolean separate, long startTime, int width, int hight, int xOffset, int yOffset) {
+    public MonitorFrame(String title, boolean separate, long startTime) {
         super(title, separate, startTime);
-        this.width = width;
-        this.hight = hight;
-        this.xOffset = xOffset;
-        this.yOffset = yOffset;
-        if(!separate) printStream = ScrollableFrame.getPrintStream(width, hight, xOffset, yOffset,title);
+        if(!separate) printStream = ScrollableFrame.getPrintStream(width, hight, offsetX, offsetY,title);
     }
+
+    /**
+     * Sets the default values for the log-frame based on the "logframe" entry of the hashmap
+     *
+     * @param moduleValues the hashmap containing the module parameter values
+     */
+    public static void setDefaults(ArrayList<String> moduleValues) {
+        if(moduleValues == null) {return;}
+        try{
+            for(String line : moduleValues) {
+                String[] parts = line.split("\\s*=\\s*");
+                if(parts.length != 2) {continue;}
+                String variable = parts[0];
+                String value = parts[1];
+                switch(variable.toLowerCase()) {
+                    case "width":   width   = Integer.parseInt(value); break;
+                    case "hight":   hight   = Integer.parseInt(value); break;
+                    case "offsetx": offsetX = Integer.parseInt(value); break;
+                    case "offsety": offsetY = Integer.parseInt(value); break;
+                }}}
+        catch(NumberFormatException e) {
+            System.err.println("Error parsing defaults for LogFrame:\n" + e);
+            System.exit(1);}}
 
     /** initializes the monitor for each new problem.
      * <br>
@@ -58,8 +74,15 @@ public class MonitorFrame extends Monitor {
     @Override
     public void initialize(String name) {
         if(separate) {
-            printStream = ScrollableFrame.getPrintStream(width, hight, index*xOffset, index*yOffset,name);
+            printStream = ScrollableFrame.getPrintStream(width, hight, index*offsetX, index*offsetY,name);
             ++index;}}
+
+    /** returns the sizes: with, hight, offsetY and offsetY
+     *
+     * @return the sizes: with, hight, offsetY and offsetY
+     */
+    public static int[] sizes() {
+        return new int[]{width,hight,offsetX,offsetY};}
 
 
     /** prints the messages into a single line.
