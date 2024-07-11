@@ -41,12 +41,15 @@ public class QUSat {
      * @param args no args necessary.
      */
     public static void  main(String[] args)  {
+        StringBuilder errors = new StringBuilder();
         HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
         MonitorFrame.setDefaults(moduleValues.get("window"));
-        GlobalParameters.setDefaults(moduleValues);
+        GlobalParameters.setDefaults(moduleValues.get("global"),errors);
         ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
         Solvers.Solver.setDefaults(moduleValues);
-        Frame.openFrame();
+        if(!errors.isEmpty()) {
+            System.err.println("Errors while parsing the default values:\n" + errors.toString());}
+        else Frame.openFrame();
     }
 
     /** This method is used to load the default parameters from the default file into a HashMap.

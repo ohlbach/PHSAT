@@ -60,7 +60,7 @@ public class ProblemSupervisor {
                              ArrayList<Solver> solvers) {
         this.quSatJob         = quSatJob;
         this.globalParameters = globalParameters;
-        jobname               = globalParameters.getJobName();
+        jobname               = globalParameters.jobName;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
         statistics            = new SupervisorStatistics("Supervisor");
@@ -185,7 +185,7 @@ public class ProblemSupervisor {
      * @return the array of Statistics objects.
      */
     public static void printStatistics(GlobalParameters globalParameters, ArrayList<ProblemSupervisor> problemSupervisors) {
-       String statistics = globalParameters.statistic;
+       String statistics = globalParameters.statisticPrintType;
 
     }
 

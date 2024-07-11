@@ -1,11 +1,19 @@
 package Management;
 
+import Management.GIU.ScrollableFrame;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorFrame;
+import Utilities.Utilities;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Date;
+import java.util.Objects;
 
 import static java.lang.Boolean.parseBoolean;
 
@@ -16,36 +24,35 @@ public class GlobalParameters {
     /** the homedirectory. */
     public static Path homeDirectory = Path.of(System.getenv("USERPROFILE"),"QuSat");
 
+    /** the date when the job has been processed. */
+    public Date jobDate = new Date();
+
+    /** the default jobname */
+    private static String jobNameDefault = "TestJob";
+
+    /** the name of the current job, extended by _version.*/
+    public String jobName;
+
+    /** the directory where to create the subdirectory for the generated files. Default: homeDirectory
+     * <br>
+     * In order to distinguish different versions of the same job,
+     * jobName and jobDirectory are extended by a version number (starting from 0).
+     * Example: If a jobname is 'myJob' then the files are actually put into myJob_&lt;Version&gt;<br>
+     * The extendJobDirectory-method analyses the directories and finds the first free directory.
+     * */
+    public Path jobDirectory = homeDirectory;
+
+    /** the time (in ns) when the job started. */
+    public long jobStartTime = System.nanoTime();
+
     /** the parameters as specified by the GUI */
     public Parameters parameters;
 
-    private static String jobNameDefault = "TestJob";
-    /** the name of the current job.*/
-    public String jobName;
-
-    /** to distinguish different versions of the same Job.
-     * Example: If a jobname is 'myJob' then the files are actually put into myJob&lt;Version&gt;
-     */
-    public int version = 0;
-
-    public String jobName() {
-        return version == 0 ? jobName : jobName+"_"+version;}
-
-    /** the directory where to create the subdirectory for the generated files */
-    public Path jobDirectory = homeDirectory;
-
-    /**  @return the jobname (without version) */
-    public String getJobName(){return jobName;}
-
+    /** the default value for the logging: none, life, or file */
     private static String loggingDefault = "life";
-    /** life, none or file. */
-    public String logging;
 
-    /** for printing information about the working of the system, set by the QuSat instance. */
-    public PrintStream logstream;
-
-    /** just for the description method, set by the QuSat instance. */
-    public String logFile = "System.out";
+    /** for printing information about the working of the system. */
+    public PrintStream logstream = null;
 
     /** if true then the clauses are printed to the logfile */
     public boolean showClauses = false;
@@ -53,65 +60,114 @@ public class GlobalParameters {
     /** enables printing the clauses to a cnf-file */
     public String cnfFileSymbols = "none";
 
+    /** the default value for trackReasoning */
     private static boolean trackReasoningDefault = false;
 
-    /** if false then many things are done destructively. Only the final results are needed. */
+    /** If true then reasoning steps are tracked and can be verified.
+     * <br>
+     * If false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
 
     /** if true then inference steps are verified */
     public static boolean verifyDefault = false;
 
-    /** if true then inference steps are verified */
+    /** If true then inference steps are verified.
+     * <br>
+     * If verify is set to true then trackReasoning is also set to true.*/
     public boolean verify = false;
 
-    private static String monitorDefault = "frame";
+    /** the default value for the monitor type:  none, life, file, frame */
+    private static String monitorTypeDefault = "frame";
 
-    /** the monitor mode: life, file, frame. */
-    public String monitor = null;
-
-    /** if true then a separate monitor is opened for each problem. */
+    /** the default value for monitorSeparate. */
     private static boolean monitorSeparateDefault = false;
 
     /** if true then a separate monitor is opened for each problem. */
     public boolean monitorSeparate = false;
 
-    /** specifies how the statistics are printed. */
-    private static String statisticDefault = "frame";
+    /** the monitor */
+    public Monitor monitor = null;
 
     /** specifies how the statistics are printed. */
-    public String statistic = "life";
+    private static String statisticPrintTypeDefault = "life";
 
-    public static void setDefaults(HashMap<String, ArrayList<String>> moduleValues) {
-        ArrayList<String> globalDefaults = moduleValues.get("global");
+    /** specifies how the statistics are printed: none,life,file,frame. */
+    public String statisticPrintType = "life";
+
+    /** This method can be used to change the default values for various global parameters.
+     * <br>
+     * - jobname: any name without ending _&lt;number&gt;<br>
+     * - logging: none,life,file,frame<br>
+     * - monitor: none,life,file,frame<br>
+     * - monitorSeparate: true,false<br>
+     * - statistic: none,life,file,frame<br>
+     * - tracking: true,false<br>
+     * - verify: true,false<br>
+     * - directory: either a full pathname, or a pathname starting with home/
+     *
+     * @param globalDefaults an ArrayList of strings: name = value.
+     */
+    public static void setDefaults(ArrayList<String> globalDefaults, StringBuilder errors) {
         if(globalDefaults == null) {return;}
         for(String line : globalDefaults) {
             String[] parts = line.split("\\s*=\\s*");
             if(parts.length != 2) {continue;}
             String variable = parts[0];
-            String value = parts[1];
+            String value = parts[1].trim();
             switch(variable.toLowerCase()) {
-                case "jobname":         jobNameDefault = value; break;
-                case "logging":         loggingDefault = value; break;
-                case "monitor":         monitorDefault = value; break;
-                case "monitorseparate": monitorSeparateDefault = parseBoolean(value); break;
-                case "statistic":       statisticDefault = value; break;
-                case "tracking":        trackReasoningDefault = parseBoolean(value); break;
-                case "verify" :         verifyDefault = parseBoolean(value); break;
+                case "jobname":         jobNameDefault            = value; checkJobname(value,errors); break;
+                case "logging":         loggingDefault            = value; checkType("logging",value,errors); break;
+                case "monitor":         monitorTypeDefault        = value; checkType("monitor",value,errors); break;
+                case "monitorseparate": monitorSeparateDefault    = parseBoolean(value); checkBoolean("monitorSeparate",value,errors); break;
+                case "statistic":       statisticPrintTypeDefault = value; checkType("statistic",value,errors); break;
+                case "tracking":        trackReasoningDefault     = parseBoolean(value); checkBoolean("tracking",value,errors); break;
+                case "verify" :         verifyDefault             = parseBoolean(value); checkBoolean("verify",value,errors); break;
                 case "directory": if(value.startsWith("home"))
                     homeDirectory = Path.of(System.getenv("USERPROFILE"),value.substring(5));
-                    else homeDirectory = Path.of(value);
-                break;
-            }
+                    else homeDirectory = Path.of(value); break;
+                default: errors.append("Unknown parameter: ").append(variable);}
             }}
 
+    /** checks if the jobname ends with _&lt;number&gt; and in this case adds an error message.
+     *
+     * @param jobname the default jobname.
+     * @param errors for appending an error message.
+     */
+    protected static void checkJobname(String jobname, StringBuilder errors) {
+        String[] parts = jobname.split("_");
+        if(parts.length > 1) {
+            try {Integer.parseInt(parts[1]);
+                errors.append("Jobname ").append(jobname).append(" should not end with _<number>\n");}
+            catch(NumberFormatException ignore) {}}}
+
+    /** checks the value. It must be one of none,life,file,frame
+     *
+     * @param name a parameter name
+     * @param value must be one of none,life,file,frame
+     * @param errors for appending an error message.
+     */
+    protected static void checkType(String name, String value, StringBuilder errors) {
+        if(!(value.equals("none") || value.equals("life") || value.equals("file") || value.equals("frame")))
+            errors.append(name).append(" = ").append(value).append(" is not one of none,life,file,frame.\n");}
+
+
+    /** checks the value. It must be true or false.
+     *
+     * @param name a parameter name
+     * @param value must be one of none,life,file,frame
+     * @param errors for appending an error message.
+     */
+    protected static void checkBoolean(String name, String value, StringBuilder errors) {
+        if(!(value.equals("true") || value.equals("false")))
+            errors.append(name).append(" = ").append(value).append(" is not one of true,false.\n");}
 
 
 
-
-    /**Creates a Parameters object with predefined set of global parameters.
+    /** Creates a Parameters object with predefined set of global parameters.
      * - jobname (name of the job, without version)<br>
      * - jobDirectory<br>
      * - monitor<br>
+     * - monitorSeparate<br>
      * - logging<br>
      * - CNFFile<br>
      * - statistics<br>
@@ -125,16 +181,20 @@ public class GlobalParameters {
                 "Identifier for the job.");
         parameters.add(jobName);
         Parameter jobDirectory = new Parameter("jobdirectory",Parameter.Type.Directory, homeDirectory.toString(),homeDirectory,
-                "Directory where to place the produced files.");
+                """
+                        Directory where to place a subdirectory to contain the produced files.
+                        The actual subdirectoy is then <jobdirectory>/<jobname>_<version>, the version counting from 0.
+                        The jobdirectory must exists, whereas the subdirectory will be created.""");
         jobDirectory.parser = (text,ignore) -> new File(text).getAbsolutePath();
         parameters.add(jobDirectory);
 
-        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf,monitorDefault,
-                "Specifies the target for monitoring.\n"+
-                " None:  No monitoring.\n"+
-                " Life:  Print the monitor text to System.out.\n"+
-                " File:  Print the monitor text to a File.\n"+
-                " Frame: Print the monitor text into a frame.");
+        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf, monitorTypeDefault,
+                """
+                        Specifies the target for monitoring.
+                         None:  No monitoring.
+                         Life:  Print the monitor text to System.out.
+                         File:  Print the monitor text to a File.
+                         Frame: Print the monitor text into a frame.""");
         monitor.parameters = new Parameters("monitor");
         monitor.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
         monitor.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
@@ -142,15 +202,16 @@ public class GlobalParameters {
         monitor.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(monitor);
 
-        parameters.add(new Parameter("MonitorSeparate",Parameter.Type.Boolean,""+monitorSeparateDefault,monitorSeparateDefault,
+        parameters.add(new Parameter("monitorSeparate",Parameter.Type.Boolean,""+monitorSeparateDefault,monitorSeparateDefault,
                 "If true then a separate monitor is opened for each problem."));
         
         Parameter logging = new Parameter("logging",Parameter.Type.OneOf,loggingDefault,
-                "Specifies the target for logging.\n"+
-                        " None:  No logging.\n"+
-                        " Life:  Print the logging text to System.out.\n"+
-                        " File:  Print the logging text to a File.\n"+
-                        " Frame: Print the logging text into a frame.");
+                """
+                        Specifies the target for logging.
+                         None:  No logging.
+                         Life:  Print the logging text to System.out.
+                         File:  Print the logging text to a File.
+                         Frame: Print the logging text into a frame.""");
         logging.parameters = new Parameters("logging");
         logging.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
         logging.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
@@ -159,22 +220,24 @@ public class GlobalParameters {
         parameters.add(logging);
 
         Parameter cnfFileSymbols = new Parameter("CNFFile",Parameter.Type.OneOf,"none",
-                "Specifies the form of the CNFFile for the clauses.\n"+
-                        " None:         No output to a CNFFile.\n"+
-                        " Symboltable:  Output using a symboltable, if available.\n"+
-                        " Numbers:      Output using numbers for the predicates.");
+                """
+                        Specifies the form of the CNFFile for the clauses.
+                         None:         No output to a CNFFile.
+                         Symboltable:  Output using a symboltable, if available.
+                         Numbers:      Output using numbers for the predicates.""");
         cnfFileSymbols.parameters = new Parameters("CNFFile");
         cnfFileSymbols.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
         cnfFileSymbols.parameters.add(new Parameter("Symboltable",Parameter.Type.Label,null, null));
         cnfFileSymbols.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
         parameters.add(cnfFileSymbols);
 
-        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf,statisticDefault,
-                "Specifies the target for statistics.\n"+
-                        " None:  No statistics.\n"+
-                        " Life:  Print the statistics text to System.out.\n"+
-                        " File:  Print the statistics text to a File.\n"+
-                        " Frame: Print the statistics text into a frame.");
+        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf, statisticPrintTypeDefault,
+                """
+                        Specifies the target for statistics.
+                         None:  No statistics.
+                         Life:  Print the statistics text to System.out.
+                         File:  Print the statistics text to a File.
+                         Frame: Print the statistics text into a frame.""");
         statistics.parameters = new Parameters("statistics");
         statistics.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
         statistics.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
@@ -188,36 +251,74 @@ public class GlobalParameters {
                 "If true then the inference steps are verified."));
         return parameters;}
 
-    public GlobalParameters(HashMap<String, ArrayList<String>> defaults) {
-        setDefaults(defaults);}
-
     public GlobalParameters(Parameters globalParams) {
         int index = -1;
         jobName         = (String) (globalParams.parameters.get(++index).value);
         jobDirectory    = (Path)   (globalParams.parameters.get(++index).value);
-        monitor         = (String) (globalParams.parameters.get(++index).value);
+        extendJobDirectory();
+        String monitorType = (String) (globalParams.parameters.get(++index).value);
         monitorSeparate = (Boolean)(globalParams.parameters.get(++index).value);
-        logging         = (String) (globalParams.parameters.get(++index).value);
+        String logging         = (String) (globalParams.parameters.get(++index).value);
         cnfFileSymbols  = (String) (globalParams.parameters.get(++index).value);
-        statistic       = (String) (globalParams.parameters.get(++index).value);
+        statisticPrintType = (String) (globalParams.parameters.get(++index).value);
         trackReasoning  = (Boolean)(globalParams.parameters.get(++index).value);
         verify          = (Boolean)(globalParams.parameters.get(++index).value);
         if(verify) trackReasoning = true;
-        version         = findVersion();
-        jobDirectory    = Paths.get(jobDirectory.toString(),jobName+"_"+version);
+        jobStartTime = System.nanoTime();
+        monitor = Monitor.getMonitor(jobName, monitorType.toLowerCase(),monitorSeparate,jobDirectory, jobStartTime);
+        logstream = openLogging(logging);
     }
 
-    private int findVersion() {
-        int version = 0;
-        for(File file: jobDirectory.toFile().listFiles()) {
+
+    /** A subdirectory of jobDirectory is determined as follows: jobDirectory/jobName_version
+     * <br>
+     * The jobDirectory is checked for the first subdirectory jobDirectory/jobName_number,
+     * and the version is number + 1.<br>
+     * The subdirectory is new and will be created.<br>
+     * The jobName is extended by _version (counting from 0).
+     */
+    protected void extendJobDirectory() {
+        int version = -1;
+        for(File file: Objects.requireNonNull(jobDirectory.toFile().listFiles())) {
             if(file.isDirectory() && file.getName().startsWith(jobName)) {
                 String[] parts = file.getName().split("_",2);
                 if(parts.length == 2) {
-                    try{version = Math.max(version,Integer.parseInt(parts[1]));}catch(NumberFormatException e){}}}}
-        return version+1;}
+                    try{version = Math.max(version,Integer.parseInt(parts[1]));}catch(NumberFormatException ignore){}}}}
+        jobName += "_"+ (version+1);
+        jobDirectory = Path.of(jobDirectory.toString(),jobName);
+        jobDirectory.toFile().mkdirs();}
 
 
+    /**Opens logging for the QuSat job using globalParameters.logging.
+     * <br>
+     * Depending on this either no logging at all is opened, or a file is opened, or System.out is used, or a frame is opened.
+     */
+    public PrintStream openLogging(String logging) {
+        PrintStream logstream = null;
+        switch(logging.toLowerCase()) {
+            case "none": return null;
+            case "life":  logstream = System.out; break;
+            case "file":
+                try {
+                    File jobdir = Paths.get(jobDirectory.toString(),"Logfile").toFile();
+                    logstream = new PrintStream(new FileOutputStream(jobdir)); break;
+                } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
+            case "frame":
+                int[] sizes = MonitorFrame.sizes();
+                logstream = ScrollableFrame.getPrintStream(sizes[0], sizes[1], sizes[2], sizes[3],"Logging");}
+        if(logstream != null) {
+            logstream.println("Starting Logging for QuSat job " + jobName + " at " + jobDate);
+            return logstream;}
+        return null;}
 
+    /** A final message is printed to the logstream and the logstream is closed.
+     *
+     */
+    public void closeLogging() {
+        if(logstream == null) return;
+        String duration = Utilities.duration(System.nanoTime()- jobStartTime);
+        logstream.println("Ending Logging for QuSat job " + jobName +" Duration: " + duration);
+        logstream.close();}
 
 
 
@@ -225,15 +326,16 @@ public class GlobalParameters {
     public String toString() {
         return "Global Parameters:\n" +
                 "  jobname             " + jobName +"\n"+
-                "  version             " + version +"\n"+
                 "  homedirectory       " + homeDirectory + "\n"+
                 "  jobdirecory:        " + ((jobDirectory == null) ? "null" : jobDirectory.toString()) + "\n"+
-                "  logging:            " + logging +"\n" +
+                ((logstream == null) ? "" :
+                "  logging:            " + logstream + "\n")+
+                "  logging:            " + (logstream == null) +"\n" +
                 "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
                 "  monitorSeparate:    " + monitorSeparate + "\n"+
                 "  showClauses:        " + showClauses+"\n"+
                 "  cnfFile:            " + cnfFileSymbols +"\n"+
-                "  statistic:          " + statistic + "\n" +
+                "  statistic:          " + statisticPrintType + "\n" +
                 "  trackReasoning:     " + trackReasoning+"\n"+
                 "  verify:             " + verify;}
 

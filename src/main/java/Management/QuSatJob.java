@@ -1,21 +1,12 @@
 package Management;
 
 import Datastructures.ClauseList;
-import Management.GIU.ScrollableFrame;
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorFrame;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 import Utilities.Utilities;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Date;
 
 /** The class initiates the solution of QuSat problems.
  * <br>
@@ -27,17 +18,6 @@ public class QuSatJob {
 
     /** the global control parameters. */
     public GlobalParameters globalParameters;
-
-    Monitor monitor;
-
-    /** the date when the job has been processed. */
-    public Date jobDate = new Date();
-
-    /** the start time in nanoseconds. */
-    public long startTime;
-
-    /** the end time in nanoseconds. */
-    public long endTime;
 
     ArrayList<ProblemGenerator> generators = null;
     ArrayList<Solver> solvers = null;
@@ -75,12 +55,8 @@ public class QuSatJob {
      */
     public QuSatJob(Parameters globalParams, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
         globalParameters = new GlobalParameters(globalParams);
-        makeJobDirectory();
         generators = ProblemGenerator.makeGenerators(generatorParameters);
-        solvers    = Solver.makeSolvers(solverParameters);
-        startTime  = System.nanoTime();
-        monitor = Monitor.getMonitor(globalParameters.jobName, globalParameters.monitor.toLowerCase(),
-                globalParameters.monitorSeparate,globalParameters.jobDirectory,startTime);}
+        solvers    = Solver.makeSolvers(solverParameters);}
 
     /** solves the QuSat-problems.
      *
@@ -89,70 +65,22 @@ public class QuSatJob {
      * The ProblemSupervisors then activate one or more Solvers which work in parallel at the problems.
      */
     public void solveProblems() {
-        clauseList = new ClauseList(globalParameters.trackReasoning,globalParameters.verify,monitor);
-        normalizer = new Normalizer(clauseList, globalParameters.trackReasoning,globalParameters.verify,monitor);
-        openLogging(globalParameters);
+        clauseList = new ClauseList(globalParameters.trackReasoning,globalParameters.verify,globalParameters.monitor);
+        normalizer = new Normalizer(clauseList, globalParameters.trackReasoning,globalParameters.verify,globalParameters.monitor);
         for(ProblemGenerator problemGenerator : generators) {
             ProblemSupervisor problemSupervisor = new ProblemSupervisor(this, globalParameters,problemGenerator,solvers);
             problemSupervisors.add(problemSupervisor);
             problemSupervisor.solveProblem();}
         //analyseResults();
         //finalizeSystem();
-        endTime = System.nanoTime();
-        closeLogging(globalParameters);
+        globalParameters.closeLogging();
     }
 
-    /**Opens logging for the QuSat job using globalParameters.logging.
-     *
-     * Depending on this either no logging at all is opened, or a file is opened, or System.out is used, or a frame is opened.
-     *
-     * @param globalParameters the global parameters for the job
-     */
-    private void openLogging(GlobalParameters globalParameters) {
-        PrintStream logstream = null;
-        switch(globalParameters.logging.toLowerCase()) {
-            case "none": return;
-            case "life":  logstream = System.out; break;
-            case "file":
-                try {
-                    File jobdir = Paths.get(globalParameters.jobDirectory.toString(),"Logfile").toFile();
-                    logstream = new PrintStream(new FileOutputStream(jobdir)); break;
-                } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
-            case "frame":
-                int[] sizes = MonitorFrame.sizes();
-                 logstream = ScrollableFrame.getPrintStream(sizes[0], sizes[1], sizes[2], sizes[3],"Logging");}
-        if(logstream != null) {
-            logstream.println("Starting Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+
-                    " at " + jobDate);
-            globalParameters.logstream = logstream;}}
-
-    /** A final message is printed to the logstream and the logstream is closed.
-     *
-     * @param globalParameters the global parameters.
-     */
-    public void closeLogging(GlobalParameters globalParameters) {
-        PrintStream logstream = globalParameters.logstream;
-        if(logstream == null) return;
-        String duration = Utilities.duration(endTime-startTime);
-        logstream.println("Ending Logging for QuSat job " + globalParameters.jobName() +" Duration: " + duration);
-        logstream.close();}
-
-    /** Creates a job directory using the provided global parameters.
-     *
-     * If this directory already exists, it is used as it is.<br>
-     * All generated files are put into this directory.
-     *
-     * @return the created job directory
-     */
-    public File makeJobDirectory() {
-        File jobDir = globalParameters.jobDirectory.toFile();
-        if(!jobDir.exists()) jobDir.mkdirs();
-        return jobDir;}
 
     public String toString() {
         StringBuilder st = new StringBuilder();
-        st.append("QuSatJob:   ").append(globalParameters.jobName()).append("\n");
-        st.append("Start Time: ").append(jobDate).append("\n");
+        st.append("QuSatJob:   ").append(globalParameters.jobName).append("\n");
+        st.append("Start Time: ").append(globalParameters.jobDate).append("\n");
         st.append(globalParameters.toString()).append("\n");
         if(generators != null) {
             for(ProblemGenerator generator : generators) st.append(generator.toString()).append("\n");}
@@ -181,7 +109,7 @@ public class QuSatJob {
      */
     public void printlog(String message) {
         if(globalParameters.logstream == null) return;
-        globalParameters.logstream.print(Utilities.duration(System.nanoTime() - startTime) + " ");
+        globalParameters.logstream.print(Utilities.duration(System.nanoTime() - globalParameters.jobStartTime) + " ");
         globalParameters.logstream.println(message);
     }
 
