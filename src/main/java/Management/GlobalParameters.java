@@ -251,18 +251,22 @@ public class GlobalParameters {
                 "If true then the inference steps are verified."));
         return parameters;}
 
+    /** creates an instance of GlobalParameters based on the parameters provided by the GUI.
+     *
+     * @param globalParams the parameters provided by the GUI.
+     */
     public GlobalParameters(Parameters globalParams) {
         int index = -1;
-        jobName         = (String) (globalParams.parameters.get(++index).value);
-        jobDirectory    = (Path)   (globalParams.parameters.get(++index).value);
+        jobName            = (String) (globalParams.parameters.get(++index).value);
+        jobDirectory       = (Path)   (globalParams.parameters.get(++index).value);
         extendJobDirectory();
         String monitorType = (String) (globalParams.parameters.get(++index).value);
-        monitorSeparate = (Boolean)(globalParams.parameters.get(++index).value);
-        String logging         = (String) (globalParams.parameters.get(++index).value);
-        cnfFileSymbols  = (String) (globalParams.parameters.get(++index).value);
+        monitorSeparate    = (Boolean)(globalParams.parameters.get(++index).value);
+        String logging     = (String) (globalParams.parameters.get(++index).value);
+        cnfFileSymbols     = (String) (globalParams.parameters.get(++index).value);
         statisticPrintType = (String) (globalParams.parameters.get(++index).value);
-        trackReasoning  = (Boolean)(globalParams.parameters.get(++index).value);
-        verify          = (Boolean)(globalParams.parameters.get(++index).value);
+        trackReasoning     = (Boolean)(globalParams.parameters.get(++index).value);
+        verify             = (Boolean)(globalParams.parameters.get(++index).value);
         if(verify) trackReasoning = true;
         jobStartTime = System.nanoTime();
         monitor = Monitor.getMonitor(jobName, monitorType.toLowerCase(),monitorSeparate,jobDirectory, jobStartTime);
@@ -322,7 +326,9 @@ public class GlobalParameters {
 
 
 
-    /** returns a description of the parameters */
+    /** returns a description of the parameters
+     *
+     * @return a description of the parameters */
     public String toString() {
         return "Global Parameters:\n" +
                 "  jobname             " + jobName +"\n"+
@@ -330,7 +336,6 @@ public class GlobalParameters {
                 "  jobdirecory:        " + ((jobDirectory == null) ? "null" : jobDirectory.toString()) + "\n"+
                 ((logstream == null) ? "" :
                 "  logging:            " + logstream + "\n")+
-                "  logging:            " + (logstream == null) +"\n" +
                 "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
                 "  monitorSeparate:    " + monitorSeparate + "\n"+
                 "  showClauses:        " + showClauses+"\n"+

@@ -45,7 +45,7 @@ public class MonitorFrame extends Monitor {
      *
      * @param moduleValues the hashmap containing the module parameter values
      */
-    public static void setDefaults(ArrayList<String> moduleValues) {
+    public static void setDefaults(ArrayList<String> moduleValues, StringBuilder errors) {
         if(moduleValues == null) {return;}
         try{
             for(String line : moduleValues) {
@@ -58,10 +58,10 @@ public class MonitorFrame extends Monitor {
                     case "hight":   hight   = Integer.parseInt(value); break;
                     case "offsetx": offsetX = Integer.parseInt(value); break;
                     case "offsety": offsetY = Integer.parseInt(value); break;
+                    default: errors.append("Unknown parameter for window: ").append(value).append(".\nAllowed values: width,hight,offsetX,offsetY");
                 }}}
         catch(NumberFormatException e) {
-            System.err.println("Error parsing defaults for LogFrame:\n" + e);
-            System.exit(1);}}
+            errors.append("Error when parsing defaults for window:\n").append(e);}}
 
     /** initializes the monitor for each new problem.
      * <br>
@@ -113,7 +113,7 @@ public class MonitorFrame extends Monitor {
      * @param message the messages themselves.
      */
     public void println(String message) {
-        printStream.println(message);};
+        printStream.println(message);}
 
     /** does nothing*/
     @Override

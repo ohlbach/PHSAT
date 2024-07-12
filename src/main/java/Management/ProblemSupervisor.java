@@ -56,10 +56,9 @@ public class ProblemSupervisor {
     public Normalizer normalizer;
     public ClauseList clauseList;
 
-    public ProblemSupervisor(QuSatJob quSatJob, GlobalParameters globalParameters, ProblemGenerator problemGenerator,
-                             ArrayList<Solver> solvers) {
+    public ProblemSupervisor(QuSatJob quSatJob, ProblemGenerator problemGenerator, ArrayList<Solver> solvers) {
         this.quSatJob         = quSatJob;
-        this.globalParameters = globalParameters;
+        globalParameters      = quSatJob.globalParameters;
         jobname               = globalParameters.jobName;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
@@ -86,31 +85,24 @@ public class ProblemSupervisor {
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
+            if(!errors.isEmpty())
+                ErrorReporter.reportErrorAndStop(" when reading/generating problem '" + problemId + "':\n" + errors);
             System.out.println(inputClauses.toString());
             problemId = inputClauses.problemId;
             clauseCounter = inputClauses.nextId-1;
-            if(errors.length() > 1) {
-                System.err.println("Error when reading/generating problem '" + problemId + "'");
-                System.err.println(errors);
-                System.err.println(problemGenerator.toString());
-                System.err.println("System is aborted.");
-                System.exit(1);}
 
             Consumer<String> mon = (monitor != null) ? (string -> monitor.println(problemId + string)) : null;
             if(!globalParameters.cnfFileSymbols.equals("None")) {
-                Path path = inputClauses.makeCNFFile(globalParameters.jobDirectory,true);
-                if(globalParameters.logstream != null) {globalParameters.logstream.println("Clauses printed to file " + path.toString()); }
-            }
+                Path path = inputClauses.makeCNFFile(globalParameters.jobDirectory,
+                        globalParameters.cnfFileSymbols.equals("Symboltable"));
+                if(globalParameters.logstream != null) {
+                    globalParameters.logstream.println(problemId + " clauses printed to file " + path.toString()); }}
             model = new Model(inputClauses.predicates);
             clauseList.initialize(problemId,model,inputClauses.symboltable);
             normalizer.initialize(inputClauses,model);
-            normalizer.normalizeClauses();
-            System.out.println(result == null ? "no result " :result.toString());
-           // System.out.println(normalizer.toString(null));
+            normalizer.normalizeClauses(); // may throw Result
             System.out.println(normalizer.statistics.toString());
 
-           // Utilities.wait(15000);System.exit(1);
-            if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
@@ -118,6 +110,7 @@ public class ProblemSupervisor {
                 solvers.get(i).initialize(threads[i],this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable));}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();

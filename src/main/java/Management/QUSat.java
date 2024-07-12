@@ -43,7 +43,7 @@ public class QUSat {
     public static void  main(String[] args)  {
         StringBuilder errors = new StringBuilder();
         HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
-        MonitorFrame.setDefaults(moduleValues.get("window"));
+        MonitorFrame.setDefaults(moduleValues.get("window"),errors);
         GlobalParameters.setDefaults(moduleValues.get("global"),errors);
         ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
         Solvers.Solver.setDefaults(moduleValues);

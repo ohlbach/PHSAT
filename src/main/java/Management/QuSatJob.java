@@ -22,11 +22,6 @@ public class QuSatJob {
     ArrayList<ProblemGenerator> generators = null;
     ArrayList<Solver> solvers = null;
 
-    private static int frameWidth = 500;
-    private static int frameHight = 400;
-    private static int offsetX = 100;
-    private static int offsetY = 100;
-
     /** stores clauses and a literal index.
      * The datastructures can be created once and then reused for a sequence of problems.*/
     public ClauseList clauseList;
@@ -68,7 +63,7 @@ public class QuSatJob {
         clauseList = new ClauseList(globalParameters.trackReasoning,globalParameters.verify,globalParameters.monitor);
         normalizer = new Normalizer(clauseList, globalParameters.trackReasoning,globalParameters.verify,globalParameters.monitor);
         for(ProblemGenerator problemGenerator : generators) {
-            ProblemSupervisor problemSupervisor = new ProblemSupervisor(this, globalParameters,problemGenerator,solvers);
+            ProblemSupervisor problemSupervisor = new ProblemSupervisor(this,problemGenerator,solvers);
             problemSupervisors.add(problemSupervisor);
             problemSupervisor.solveProblem();}
         //analyseResults();
