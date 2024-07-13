@@ -62,7 +62,7 @@ public class ClauseList {
     Model model = null;
 
     /** the number of predicates */
-    private int predicates;
+    public int predicates;
 
     /** the doubly linked list of clauses */
     public LinkedItemList<Clause> clauses;
@@ -249,6 +249,24 @@ public class ClauseList {
      */
     public boolean isEmpty() {
         return clauses.isEmpty();}
+
+    /** checks if there are no clauses with the given literal
+     *
+     * @param literal a literal
+     * @return true if there are no clauses with the given literal anymore.
+     */
+    public boolean isEmpty(int literal) {
+        return literalIndex.isEmpty(literal);}
+
+    /** checks if there are no clauses anymore containing the literal positively or negatively.
+     *
+     * @param literal a literal
+     * @return true if there are no clauses anymore containing the literal positively or negatively.
+     */
+    public boolean isBothEmpty(int literal) {
+        return literalIndex.isBothEmpty(literal);}
+
+
 
     /** applies the true literal to all clauses containing the literal.
      *

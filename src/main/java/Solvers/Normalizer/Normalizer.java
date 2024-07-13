@@ -190,7 +190,7 @@ public class Normalizer {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     protected void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)),symboltable);
+        Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)));
         switch(clause.simplify(trackReasoning,null,reportTrueLiteral,monitor,symboltable)) {
             case -1: throw new UnsatClause(problemId,solverId, inputClause);
             case 1: ++statistics.removedClauses; return;}

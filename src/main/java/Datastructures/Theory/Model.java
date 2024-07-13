@@ -47,6 +47,8 @@ public class Model {
     /** functions to be called when a new true literal is inserted. */
     private final ArrayList<Pair<Thread,BiConsumer<Integer, InferenceStep>>> observers = new ArrayList<>();
 
+    /** set to true when a solver has foound a model */
+    private boolean finished = false;
 
     /** creates a model with a maximum number of predicates.
      *
@@ -81,9 +83,12 @@ public class Model {
         for(int literal : literals) add(thread,literal,null);}
 
     /** adds a literal to the model and checks if the literal is already in the model.
+     * <br>
      * If the literal is new to the model then all observers are called.
      * If the literal is already false in the model then an UnsatisfiableLiteral exception is thrown
      * with the literal, the old inference step and the new inference step.
+     * <br>
+     * If the finished flag is set to true, then nothing is done.
      *
      * @param thread  which submitted the literal (for avoiding its observer)
      * @param literal the literal for the model.
@@ -91,6 +96,7 @@ public class Model {
      * @throws UnsatisfiableLiteral if a contradiction with an earlier entry in the model occurs.
      */
     public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+        if(finished) return;
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -103,6 +109,15 @@ public class Model {
         for(Pair<Thread, BiConsumer<Integer, InferenceStep>> observer : observers) {
             if(observer.first != thread) observer.second.accept(literal,inferenceStep);}}
 
+    /** copies the status of the model to a new array.
+     * <br>
+     * The method is synchronized such that the status of the model cannot be changed while the array is copied.
+     *
+     * @param localModel a byte-array with at least predicates+1 elements.
+     */
+    public synchronized void copy(byte[] localModel) {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            localModel[predicate] = status(predicate);}}
 
     /** adds the predicates immediately without any checks and inference step.
      * No observers are called.
@@ -173,6 +188,7 @@ public class Model {
     public synchronized void exchangeModel(byte[] status) {
         this.status = status;
         model.clear();
+        finished = true;
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(status[predicate] == 1) model.add(predicate);
             else if(status[predicate] == -1) model.add(-predicate);}}

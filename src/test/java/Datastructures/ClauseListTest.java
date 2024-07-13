@@ -38,11 +38,11 @@ public class ClauseListTest extends TestCase {
     static int nex = Quantifier.EXACTLY.ordinal();
 
     static Clause makeClause(int[] inputClause) {
-        return new Clause(inputClause,true,(lit -> new Literal(lit,1)), null);
+        return new Clause(inputClause,true,(lit -> new Literal(lit,1)));
     }
     static void makeClauses(ClauseList clauseList, int[]... inputClause) {
         for(int[] clause : inputClause) {
-            clauseList.addClause(new Clause(clause, true, ((Integer lit) -> new Literal(lit, 1)), null));
+            clauseList.addClause(new Clause(clause, true, ((Integer lit) -> new Literal(lit, 1))));
         }}
 
 

@@ -1246,6 +1246,16 @@ public class Utilities {
             product = product1;}
         return product;}
 
+    /** adds all elements of collection b which are not contained in collection a to the end of a.
+     *
+     * @param a a collection
+     * @param b a collection
+     */
+    public static void addIfNotContained(Collection a, Collection b) {
+        if(b != null) {
+            for(Object item : b) {
+                if(!a.contains(item)) a.add(b);}}}
+
 
     /** multiplies the elements of the list
      *
