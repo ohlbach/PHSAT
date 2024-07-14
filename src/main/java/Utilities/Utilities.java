@@ -1254,7 +1254,7 @@ public class Utilities {
     public static void addIfNotContained(Collection a, Collection b) {
         if(b != null) {
             for(Object item : b) {
-                if(!a.contains(item)) a.add(b);}}}
+                if(!a.contains(item)) a.add(item);}}}
 
 
     /** multiplies the elements of the list

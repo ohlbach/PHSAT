@@ -135,7 +135,7 @@ public class Backtracker extends Solver {
     /** collects the globally true literals which are still to be processed. */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
 
-    private ArrayList<Clause>[] usedClausesArray;
+    protected ArrayList<Clause>[] usedClausesArray;
 
     StatisticsBacktracker statistics;
 
@@ -261,10 +261,11 @@ public class Backtracker extends Solver {
 
 
 
-    /** finds from the given predicateIndex the next index of the predicate without a global and local truth value
+    /** finds from the given predicateIndex this one or the next index of the predicate without a global and local truth value
+     * and with clauses containing such a predicate.
      *
      * @param predicateIndex the index of a predicate in predicateSequence
-     * @return the next index of the predicate without a global and local truth value
+     * @return 0 or the next index of the predicate without a global and local truth value and with clauses containing this predicate
      */
     int findNextPredicateIndex(int predicateIndex)  {
         for(; predicateIndex <= predicates; ++predicateIndex) {
@@ -662,9 +663,10 @@ public class Backtracker extends Solver {
      * @param literal  a derived literal.
      */
     protected void clearLocalStatus(int literal) {
-        if(literal > 0) localModel[literal] = 0; else localModel[-literal] = 0;
+        int predicate = Math.abs(literal);
+        localModel[predicate] = 0;
         if(trackReasoning) {
-            ArrayList<Clause> usedClauses = usedClausesArray[Math.abs(literal)];
+            ArrayList<Clause> usedClauses = usedClausesArray[predicate];
             if(usedClauses != null) usedClauses.clear();}}
 
 
@@ -678,18 +680,22 @@ public class Backtracker extends Solver {
         return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
 
 
-    /** Converts Local Model to String representation.
+    /** Converts LocalModel to String representation.
      *
-     * @return The String representation of Local Model.
+     * @return The String representation of LocalModel.
      */
     public String toStringLocalModel() {
         StringBuilder st = new StringBuilder();
-        for (int predicate = 1; predicate <= predicates; predicate++) {
-            st.append(predicate).append(":").append(localModel[predicate]);
-            if(predicate < predicates) st.append(",");
-            if(predicate % 50 == 0) st.append("\n");}
-        return st.toString();
-    }
+        int counter = 0;
+        for (int predicate = 1; predicate <= predicates; ++predicate) {
+            int sign = localModel[predicate];
+            if(sign != 0) {
+                st.append(sign*predicate).append(",");
+                ++counter;
+                if(counter % 50 == 0) st.append("\n");}}
+        if(counter == 0) return "";
+        String str = st.toString();
+        return str.substring(0,str.length()-1);}
 
 
     @Override
