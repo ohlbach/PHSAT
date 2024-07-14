@@ -353,7 +353,7 @@ public class Backtracker extends Solver {
                 literalObject = (Literal)literalObject.nextItem;}}
         return false;}
 
-    /** Analyzes a clause given the current local model.
+    /** Analyzes a clause given the current local model (the global model is ignored).
      * <p>
      * The following cases are possible:<br>
      * - the clause is already true: return null; <br>
@@ -373,11 +373,11 @@ public class Backtracker extends Solver {
             for(Literal literalObject : clause.literals) {
                 switch(localStatus(literalObject.literal)) {
                     case 0:
-                        if(unsignedLiteral != null) return null; // two unsigned literals: nothing to be done
+                        if(unsignedLiteral != null) return null;    // two unsigned literals: nothing to be done
                         unsignedLiteral = literalObject; break;
-                    case 1: return null;}}                   // clause is true;
-            if(unsignedLiteral == null) {return clause;} // all literals are false. backtrack
-            makeLiteralLocallyTrue(clause,unsignedLiteral,1);        // all other literals are false
+                    case 1: return null;}}                          // clause is true;
+            if(unsignedLiteral == null) {return clause;}            // all literals are false. backtrack
+            makeLiteralLocallyTrue(clause,unsignedLiteral,1);  // all other literals are false
             return null;}
 
         // all other clause types.
@@ -392,18 +392,24 @@ public class Backtracker extends Solver {
         // too many or not enough true literals.
         if(trueLiterals > max || trueLiterals + unsignedLiterals < min) return clause; // clause is false
 
-        if(min <= trueLiterals && trueLiterals <= max) return null; // clause is true.
+        if(min <= trueLiterals && trueLiterals <= max) { // clause is already true.
+            if(max < clause.expandedSize) {              // more true literals might be dangerous
+                for(Literal literalObject : clause.literals) {
+                    if(localStatus(literalObject.literal) == 0 &&
+                            trueLiterals + literalObject.multiplicity > max){    // making it true causes too many true literals
+                        makeLiteralLocallyTrue(clause,literalObject,-1);}}} // literal must be false
+            return null;}
 
-        // try to derive new true or false literals
+        if(min == 0) return null;
+        // The clause is not yet true because there are not enough true literals.
+        // We check if a making a particular literal true is sufficient to make the clause true.
+        int candidates = 0;
+        Literal candidateLiteral = null;
         for(Literal literalObject : clause.literals) {
-            if(localStatus(literalObject.literal) == 0) {
-                int trueLits = trueLiterals + literalObject.multiplicity;
-                if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
-                    makeLiteralLocallyTrue(clause,literalObject,-1); // literal must be false
-                    continue;}
-                trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
-                if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
-                    makeLiteralLocallyTrue(clause,literalObject,1);}}}
+            if(localStatus(literalObject.literal) == 0 && trueLiterals + literalObject.multiplicity >= min) {
+                ++candidates;
+                candidateLiteral = literalObject;}}
+        if(candidates == 1) makeLiteralLocallyTrue(clause,candidateLiteral,1);
         return null;}
 
     /**

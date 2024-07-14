@@ -16,6 +16,7 @@ public class BacktrackerTest extends TestCase {
 
     static int or = Quantifier.OR.ordinal();
     static int intv = Quantifier.INTERVAL.ordinal();
+    static int ex = Quantifier.EXACTLY.ordinal();
     static int natl = Quantifier.ATLEAST.ordinal();
     static int natm = Quantifier.ATMOST.ordinal();
 
@@ -158,8 +159,77 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[5: -3v-4v-6, 1: 1v2v3, 2: 2v3v4]",usedClauses[6].toString());
     }
 
+    static class Backtracker1 extends Backtracker{
 
-        public void testDependencies() throws Result {
+        /**
+         * constructs a new Backtracker.
+         *
+         * @param solverNumber         for enumerating the solvers.
+         * @param predicateArrangement for initializing the sequence of predicates to be selected.<br>
+         *                             -  1: just the sequence of natural numbers: 1,2,...<br>
+         *                             -  2: just the inverse sequence of natural numbers: n,n-1,...<br>
+         *                             -  3: predicates with more literal occurrences first<br>
+         *                             -  4: predicates with less literal occurrences first.
+         * @param seed                 if seed &gt;= 0 then the predicates are sorted randomly, and predicateArrangement is ignored.
+         * @param firstSign            : +1 selected predicates are always true, -1: selected predicates are always false.
+         */
+        public Backtracker1(int solverNumber, int predicateArrangement, int seed, int firstSign) {
+            super(solverNumber, predicateArrangement, seed, firstSign);
+            predicates = 20;
+            localModel = new byte[predicates];
+            model = new Model(predicates);
+            clauseList = new ClauseList(false,false,null);}
+
+        ArrayList<Clause> clauses = new ArrayList<>();
+        IntArrayList literals = new IntArrayList();
+
+        void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
+            clauses.add(clause);
+            literals.add(sign * literalObject.literal);}
+    }
+    public void testAnalyseClause() throws Result {
+        System.out.println("analyseClause");
+        Backtracker1 backtracker = new Backtracker1(1, 1, -1, 1);
+        Clause c1 = makeClause(new int[]{1,or,1,2,3});
+        assertNull(backtracker.analyseClause(c1));
+        backtracker.setLocalStatus(-3);
+        assertNull(backtracker.analyseClause(c1));
+        backtracker.setLocalStatus(-1);
+        assertNull(backtracker.analyseClause(c1));
+        assertEquals(1,backtracker.clauses.size());
+        assertEquals(1,backtracker.literals.size());
+        assertEquals(c1,backtracker.clauses.get(0));
+        assertEquals(2,backtracker.literals.getInt(0));
+        backtracker.setLocalStatus(-2);
+        assertEquals(c1,backtracker.analyseClause(c1));
+
+        Clause c2 = makeClause(new int[]{2,intv,1,2, 4,5,6});
+        assertNull(backtracker.analyseClause(c2));
+        backtracker.setLocalStatus(-5);
+        assertNull(backtracker.analyseClause(c2));
+        backtracker.setLocalStatus(-6);
+        assertNull(backtracker.analyseClause(c2));
+        assertEquals(2,backtracker.clauses.size());
+        assertEquals(2,backtracker.literals.size());
+        assertEquals(c2,backtracker.clauses.get(1));
+        assertEquals(4,backtracker.literals.getInt(1));
+
+        Clause c3 = makeClause(new int[]{3,ex,1,7,8,9});
+        assertNull(backtracker.analyseClause(c3));
+
+        backtracker.setLocalStatus(7);
+        assertNull(backtracker.analyseClause(c3));
+        assertEquals("[2, 4, -8, -9]",backtracker.literals.toString());
+
+        Clause c4 = makeClause(new int[]{4,ex,0, 10,11,12});
+        assertNull(backtracker.analyseClause(c4));
+        assertEquals("[2, 4, -8, -9, -10, -11, -12]",backtracker.literals.toString());
+
+
+ }
+
+
+    public void testDependencies() throws Result {
         System.out.println("dependencies");
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
         int predicates = 5;
