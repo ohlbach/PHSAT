@@ -154,7 +154,7 @@ public class Backtracker extends Solver {
      * If a propagator founds a false clause, the false clause is inserted.
      * If all propagator jobs are finished, 'this' is inserted.
      * This way propagateSelectedLiteral can wait until all propagator jobs are finished. */
-    private final BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>(2);
+    private final BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>();
 
     /** counts the active propagator threads */
     private int propagatorThreadCounter = 0;
@@ -175,7 +175,7 @@ public class Backtracker extends Solver {
      * @param clause a locally false clause
      * @return the false clause itself.
      */
-    private synchronized Clause falseClauseFound(Clause clause) {
+    protected synchronized Clause falseClauseFound(Clause clause) {
         propagatorQueue.add(clause);
         return clause;}
 
@@ -350,7 +350,7 @@ public class Backtracker extends Solver {
             while(literalObject != null && !currentThread.isInterrupted() && !myThread.isInterrupted()) {
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true trueLiteral in an OR: ignore clause
-                    Clause falseClause = analyseClause(clause); // may produce new Propagator jobs
+                    Clause falseClause = analyseClause(clause);          // may produce new Propagator jobs
                     if(falseClause != null) {falseClauseFound(clause); return true;}}
                 literalObject = (Literal)literalObject.nextItem;}}
         return false;}
@@ -707,7 +707,8 @@ public class Backtracker extends Solver {
      * @param literal  a derived true literal.
      */
     protected void setLocalStatus(int literal) {
-        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;}
+        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;
+    }
 
     /** resets the local status value of the literal and clears usedClauses[literal]
      *

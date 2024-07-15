@@ -227,7 +227,7 @@ public class BacktrackerTest extends TestCase {
         public Backtracker1(int solverNumber, int predicateArrangement, int seed, int firstSign) {
             super(solverNumber, predicateArrangement, seed, firstSign);
             predicates = 20;
-            localModel = new byte[predicates];
+            localModel = new byte[predicates+1];
             model = new Model(predicates);
             clauseList = new ClauseList(false,false,null);
             verify = true;}
@@ -239,11 +239,19 @@ public class BacktrackerTest extends TestCase {
             clauses.add(clause);
             int literal = sign * literalObject.literal;
             literals.add(literal);
-            if(!verifyTrueLiteral(clause,literal))
+            if(!verifyTrueLiteral(clause,literal)) {
                 System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
-             System.exit(1);};
+                System.exit(1);}}
+
+        IntArrayList falseClauseIds = new IntArrayList();
+
+        @Override
+        protected synchronized Clause  falseClauseFound(Clause clause) {
+             System.out.println("FALSE Clause " + clause.toString(symboltable,0));
+             falseClauseIds.add(clause.id);
+             return clause;}
         }
 
     public void testAnalyseClause() throws Result {
@@ -283,9 +291,29 @@ public class BacktrackerTest extends TestCase {
         Clause c4 = makeClause(new int[]{4,ex,0, 10,11,12});
         assertNull(backtracker.analyseClause(c4));
         assertEquals("[2, 4, -8, -9, -10, -11, -12]",backtracker.literals.toString());
-
-
  }
+
+    public void testPropagateLocally() throws Result {
+        System.out.println("propagateLocally");
+        Backtracker1 backtracker = new Backtracker1(1, 1, -1, 1);
+        backtracker.clauseList = makeClauses(backtracker.model,
+                new int[]{1,or,1,2,3},
+                new int[]{2,ex,1,1,2,4},
+                new int[]{3,intv,1,2,-1,-2,-5});
+        backtracker.propagateLocally(-1);
+        assertEquals(0,backtracker.falseClauseIds.size());
+        backtracker.setLocalStatus(-2);
+
+        assertFalse(backtracker.propagateLocally(-1));
+        assertEquals(0,backtracker.falseClauseIds.size());
+        assertEquals("[5, 3, 4]",backtracker.literals.toString());
+
+        backtracker.localModel = new byte[backtracker.predicates+1];
+        backtracker.setLocalStatus(1);
+        assertTrue(backtracker.propagateLocally(2));
+        assertEquals("[2]",backtracker.falseClauseIds.toString());
+
+    }
 
 
     public void testDependencies() throws Result {
