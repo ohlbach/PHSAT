@@ -5,6 +5,7 @@ import Datastructures.ClauseList;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Literal;
 import Datastructures.Results.Result;
+import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
@@ -159,7 +160,57 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[5: -3v-4v-6, 1: 1v2v3, 2: 2v3v4]",usedClauses[6].toString());
     }
 
-    static class Backtracker1 extends Backtracker{
+    public void testCompatibleLocally() throws Result {
+        System.out.println("compatibleLocally");
+        Backtracker backtracker = new Backtracker(1,1,-1,1);
+        int predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.model = new Model(predicates);
+        backtracker.initializeLocalModel();
+
+        IntArrayList preds = IntArrayList.wrap(new int[]{1,2,3});
+        int model = 0;
+        assertTrue(backtracker.compatibleLocally(model,preds));
+        backtracker.setLocalStatus(2);
+        model = 1;
+        assertFalse(backtracker.compatibleLocally(model,preds));
+        model = 2;
+        assertTrue(backtracker.compatibleLocally(model,preds));
+        model = 3;
+        assertTrue(backtracker.compatibleLocally(model,preds));
+        backtracker.setLocalStatus(-1);
+        assertFalse(backtracker.compatibleLocally(model,preds));
+        }
+
+    public void testVerifyTrueLiteral() throws Result {
+        System.out.println("verifyTrueLiteral");
+        Backtracker backtracker = new Backtracker(1,1,-1,1);
+        int predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.model = new Model(predicates);
+        backtracker.initializeLocalModel();
+        Clause c1 = makeClause(new int[]{1,or,1,2,3});
+        backtracker.setLocalStatus(-1);
+        assertFalse(backtracker.verifyTrueLiteral(c1,3));
+        backtracker.setLocalStatus(-2);
+        assertTrue(backtracker.verifyTrueLiteral(c1,3));
+
+        Clause c2 = makeClause(new int[]{2,ex,0,4,5,6});
+        assertTrue(backtracker.verifyTrueLiteral(c2,-5));
+
+        Clause c3 = makeClause(new int[]{3,ex,1,4,5,6});
+        assertFalse(backtracker.verifyTrueLiteral(c3, -4));
+        backtracker.setLocalStatus(5);
+        assertTrue(backtracker.verifyTrueLiteral(c3, -4));
+
+        Clause c5 = makeClause(new int[]{5,intv,1,2,7,8,9});
+        assertFalse(backtracker.verifyTrueLiteral(c5, 9));
+        backtracker.setLocalStatus(-7);
+        assertFalse(backtracker.verifyTrueLiteral(c5, 9));
+        backtracker.setLocalStatus(-8);
+        assertTrue(backtracker.verifyTrueLiteral(c5, 9));}
+
+        static class Backtracker1 extends Backtracker{
 
         /**
          * constructs a new Backtracker.
@@ -178,15 +229,23 @@ public class BacktrackerTest extends TestCase {
             predicates = 20;
             localModel = new byte[predicates];
             model = new Model(predicates);
-            clauseList = new ClauseList(false,false,null);}
+            clauseList = new ClauseList(false,false,null);
+            verify = true;}
 
         ArrayList<Clause> clauses = new ArrayList<>();
         IntArrayList literals = new IntArrayList();
 
         void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
             clauses.add(clause);
-            literals.add(sign * literalObject.literal);}
-    }
+            int literal = sign * literalObject.literal;
+            literals.add(literal);
+            if(!verifyTrueLiteral(clause,literal))
+                System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
+                        " derived literal: " + Symboltable.toString(literal,symboltable) +
+                        "\nLocal Model: " + toStringLocalModel());
+             System.exit(1);};
+        }
+
     public void testAnalyseClause() throws Result {
         System.out.println("analyseClause");
         Backtracker1 backtracker = new Backtracker1(1, 1, -1, 1);

@@ -148,6 +148,8 @@ public class Backtracker extends Solver {
 
     public Consumer<String> monitor = null;
 
+    public boolean verify;
+
     /** is used to signal the end of the propagator jobs.
      * If a propagator founds a false clause, the false clause is inserted.
      * If all propagator jobs are finished, 'this' is inserted.
@@ -362,7 +364,7 @@ public class Backtracker extends Solver {
      * - making an unsigned literal false causes the clause to become false: make the literal true.
      *
      * @param clause The clause to be analyzed.
-     * @return the clause if it is false already (locally or globally), otherwise null.
+     * @return the clause if it is locally false already, otherwise null.
      */
     protected Clause analyseClause(Clause clause) {
         // Since disjunctions are frequent,
@@ -423,12 +425,55 @@ public class Backtracker extends Solver {
      */
     synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int literal = sign*literalObject.literal;
+        if(verify) {
+            if(!verifyTrueLiteral(clause,literal)) {
+                System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
+                        " derived literal: " + Symboltable.toString(literal,symboltable) +
+                        "\nLocal Model: " + toStringLocalModel());
+                System.exit(1);}}
         int predicate = Math.abs(literal);
         IntArrayList depSelections = dependentSelections[predicate];
         if(depSelections == null) {depSelections = new IntArrayList(); dependentSelections[predicate] = depSelections;}
         dependentSelections[predicate] = joinDependencies(clause,predicate,depSelections);
         setLocalStatus(literal);
         propagatorPool.addPropagatorJob(this,literal);}
+
+    /** performs a model-based check for the derivation of a true literal from a clause in the local model.
+     *
+     * @param clause a clause
+     * @param literal a derived true literal.
+     * @return true if the verification succeeded.
+     */
+    protected boolean verifyTrueLiteral(Clause clause, int literal) {
+        IntArrayList predicates = clause.predicates();
+        int literalPosition = predicates.indexOf(Math.abs(literal));
+        int nModels = 1 << predicates.size();
+        int trueCases = 0;
+        for (int model = 0; model < nModels; ++model) {
+            if(compatibleLocally(model,predicates) &&
+                    ((literal > 0) ? (model & (1 << literalPosition)) != 0 :
+                                     (model & (1 << literalPosition)) == 0) &&
+                    clause.isTrue(model,predicates)){++trueCases;}}
+        return trueCases == 1;}
+
+
+    /** checks if the model (an int) is compatible with the local model.
+     *  <br>
+     *  If the local model is unassigned (= 0) for a predicate, it is ignored.<br>
+     *  Otherwise if the model is 1 for a predicate, the local model must also be 1.<br>
+     *  If the model is 0 for a predicate, the local model must be -1.
+     *
+     * @param model      a model as int-value
+     * @param predicates the predicates which determine the bits in the model
+     * @return true if the given model is true in the local model.
+     */
+    protected boolean compatibleLocally(int model, IntArrayList predicates) {
+        for(int predicate : predicates) {
+            if(localModel[predicate] == 0) continue;
+            boolean isTrue = (model & (1 << predicates.indexOf(predicate))) != 0;
+            if(isTrue) {if(localModel[predicate] == -1) return false;}
+            else       {if(localModel[predicate] == 1)  return false;}}
+         return true;}
 
     /** Adds a literal to the list of globally true predicates.
      *
