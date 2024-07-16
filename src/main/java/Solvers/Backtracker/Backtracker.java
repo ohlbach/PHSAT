@@ -21,8 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-import static Utilities.Utilities.addIfNotContained;
-import static Utilities.Utilities.shuffleArray;
+import static Utilities.Utilities.*;
 
 public class Backtracker extends Solver {
 
@@ -123,18 +122,10 @@ public class Backtracker extends Solver {
      * such that the last element is the selected literal to which backtracking is necessary. */
     protected IntArrayList[] dependentSelections;
 
-    /** contains the derived predicates.*/
-    protected IntArrayList derivedPredicates;
+    /** contains the sequence of (0, selected literal) followed by the derived literals.*/
+    protected IntArrayList currentlyTrueLiterals;
 
-    /** points to the end (first free index) of the derivedPredicates in the current recursion level */
-    int derivedPredicatesEnd;
-
-    /** maps the selected predicates to the first index in derivedPredicates where the derived predicates start. */
-    int[] derivedPredicatesStarts;
-
-    /** collects the globally true literals which are still to be processed. */
-    private final IntArrayList globallyTrueLiterals = new IntArrayList();
-
+    /** maps a derived predicate to the clauses used to derive this predicate (if trackReasoning = true*/
     protected ArrayList<Clause>[] usedClausesArray;
 
     StatisticsBacktracker statistics;
@@ -199,23 +190,25 @@ public class Backtracker extends Solver {
         myThread                  = Thread.currentThread();} // for testing purposes.
 
     /** initializes the datastructures for a new problem to be solved.
+     * <br>
+     * The initialize methods for the solvers are called sequentially, whereas the solveProblem methods are called in parallel.
+     *
+     * @param myThread the calling thread
+     * @param problemSupervisor the problemSupervisor for the solver.
      */
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
         super.initialize(myThread,problemSupervisor);
         clauseList = problemSupervisor.clauseList;
-        model.addObserver(myThread, (literal,step) -> addGloballyTrueLiteral(literal));
         monitor = monitoring ? (message) -> super.monitor.println(solverId+"_" + solverNumber, message) : null;
         startTime = System.nanoTime();
         propagatorQueue.clear();
-        globallyTrueLiterals.clear();
         recursionLevel = -1;
         if(selectedPredicates == null || selectedPredicates.length < predicates) selectedPredicates = new int[predicates+1];
         if(dependentSelections == null || dependentSelections.length < predicates +1)
             dependentSelections = new IntArrayList[predicates+1];
-        if(derivedPredicates == null) derivedPredicates = new IntArrayList(predicates);
-        else                          derivedPredicates.ensureCapacity(predicates);
-        derivedPredicates.clear();
-        derivedPredicatesEnd = 0;
+        if(currentlyTrueLiterals == null) currentlyTrueLiterals = new IntArrayList(predicates);
+        else                                currentlyTrueLiterals.ensureCapacity(predicates);
+        currentlyTrueLiterals.size(0);
         if(trackReasoning) {
             if((usedClausesArray == null || usedClausesArray.length < predicates+1)) usedClausesArray = new ArrayList[predicates+1];
             else {for(int i = 1; i <= predicates; ++i) {if(usedClausesArray[i] != null) usedClausesArray[i].clear();}}}}
@@ -251,9 +244,8 @@ public class Backtracker extends Solver {
             if(monitoring) monitor.accept("Selected predicate " + Symboltable.toString(selectedPredicate,symboltable));
             ++recursionLevel;
             selectedPredicates[recursionLevel] = selectedPredicate;
-            derivedPredicatesStarts[selectedPredicate] = derivedPredicatesEnd; // initially 0, changed in backtrack
-            derivedPredicates.add(selectedPredicate);
             selectedLiteral = firstSign * selectedPredicate;
+            currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
             int predicate = propagateSelectedLiteral(selectedLiteral);
             if(predicate > 0) {nextPredicateIndex = predicateSequence[predicate]-1; }}}
         catch(Result result) {
@@ -287,7 +279,7 @@ public class Backtracker extends Solver {
      * is determined and returned as a result.
      * If no contradiction is detected then 0 is returned (and a further predicate has to be selected)
      *
-     * @param selectedLiteral
+     * @param selectedLiteral the selected literal
      * @return 0 (no false clause found or thread is interrupted) or the selected predicate to be backtracked to.
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
@@ -431,6 +423,7 @@ public class Backtracker extends Solver {
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
                 System.exit(1);}}
+        currentlyTrueLiterals.add(literal);
         int predicate = Math.abs(literal);
         IntArrayList depSelections = dependentSelections[predicate];
         if(depSelections == null) {depSelections = new IntArrayList(); dependentSelections[predicate] = depSelections;}
@@ -475,29 +468,6 @@ public class Backtracker extends Solver {
             else       {if(localModel[predicate] == 1)  return false;}}
          return true;}
 
-    /** Adds a literal to the list of globally true predicates.
-     *
-     * @param literal The literal to be added.
-     */
-    public synchronized void addGloballyTrueLiteral(int literal) {
-        globallyTrueLiterals.add(literal);}
-
-    /** Retrieves a globally true literal from the list of globally true predicates.
-     *
-     * @return The globally true literal. If the list is empty, returns 0.
-     */
-    public synchronized int getGloballyTrueLiteral() {
-        if(globallyTrueLiterals.isEmpty()) return 0;
-        int literal = globallyTrueLiterals.getInt(globallyTrueLiterals.size()-1);
-        globallyTrueLiterals.removeInt(globallyTrueLiterals.size()-1);
-        return literal;}
-
-    protected int backtrackPredicate;
-    protected boolean backtrackTryAgain;
-    protected boolean backtrackTryNegated;
-    protected IntArrayList backtrackDependencies;
-
-
 
     /**Joins the dependencies of a given clause to the provided IntArrayList.
      * <br>
@@ -505,7 +475,7 @@ public class Backtracker extends Solver {
      * If trackReasing = true then all clauses used to derive truePredicate are joined and put into usedClauseArray[truePredicate]
      *
      * @param clause The clause whose dependencies will be joined.
-     * @param truePredicate the predicate which is to be made locally true/false
+     * @param truePredicate the predicate which is to be made locally true/false (0 if a false clause was found)
      * @param joinedDependencies The IntArrayList to which the dependencies will be joined.
      * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
@@ -518,27 +488,13 @@ public class Backtracker extends Solver {
             else usedClauses.clear();
             usedClauses.add(clause);}
         for(Literal literalObject : clause.literals) {
-            int literal = literalObject.literal;
-            if(model.status(literal) == 0 && localStatus(literal) != 0){
-                int predicate = Math.abs(literal);
-                joinDependencies(joinedDependencies, dependentSelections[predicate]);
+            int predicate = Math.abs(literalObject.literal);
+            if(model.status(predicate) == 0 && localStatus(predicate) != 0){
+                addIfNotContained(joinedDependencies,dependentSelections[predicate]);
                 if(trackReasoning && truePredicate != 0 && predicate != truePredicate) {
-                    ArrayList<Clause> usedClp = usedClausesArray[predicate];
-                    if(usedClp != null) {
-                        for(Clause cl : usedClp) if(!usedClauses.contains(cl)) usedClauses.add(cl);}}}}
+                     addIfNotContained(usedClauses,usedClausesArray[predicate]);}}}
         return joinedDependencies;}
 
-    /**
-     * Joins two dependencies by adding all elements from dependencies2 to dependencies1, skipping duplicates.
-     * <br>
-     * Predicates which are globally true/false are ignored.
-     *
-     * @param dependencies1 The first dependency list.
-     * @param dependencies2 The second dependency list to join.
-     */
-    protected void joinDependencies(IntArrayList dependencies1, IntArrayList dependencies2){
-        for(int predicate : dependencies2) {
-            if(model.status(predicate) == 0 && !dependencies1.contains(predicate)) dependencies1.add(predicate);}}
 
     /** The selected predicate which has the last position in predicatePositions.
      * <br>
@@ -633,26 +589,118 @@ public class Backtracker extends Solver {
                     else {dependencies.rem(selectedPredicate);
                          dependentSelections[selectedPredicate] = dependencies;}}
 
-                for(int i = derivedPredicatesStarts[selectedPredicate]; i < derivedPredicatesEnd; ++i) {
-                    clearLocalStatus(derivedPredicates.getInt(i));}
-                derivedPredicatesEnd = derivedPredicatesStarts[selectedPredicate];}}
+                for(int i = currentlyTrueLiterals.size()-1; i >= 0; --i) {
+                    int pred = Math.abs(currentlyTrueLiterals.getInt(i));
+                    clearLocalStatus(pred);
+                    if(pred == predicate) {currentlyTrueLiterals.size(i); break;}}}}
         return predicate;
     }
 
+    // incorporation of global changes
 
-    /** initializes the predicate sequence.
+    protected void incorporateGlobalChanges() {
+        boolean selected = false;
+        for(int i = 0; i < currentlyTrueLiterals.size(); ++i) {
+            int literal = currentlyTrueLiterals.getInt(i);
+            if(literal == 0) {selected = true; continue;}
+            if(selected) {
+                selected = false;
+                switch(model.status(literal)) {
+                    case 0:  continue;
+                    case 1:  removeSelectedTrueLiteral(i); i-=2; continue;
+                    case -1: removeSelectedFalseLiteral(i); return;
+                }}
+            else {
+                switch(model.status(literal)) {
+                    case 0:  continue;
+                    case 1:  removeDerivedTrueLiteral(i); i-=1; continue;
+                    case -1: removeDerivedFalseLiteral(i); return;}
+            }
+        }
+    }
+
+    /** removes a selected literal, which is globally true, from the search.
      * <br>
-     * The predicates are sorted as follows:<br>
-     * - seed &gt;= 0:              randomly<br>
-     * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
-     * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
-     * - predicateArrangement == 3: predicates with more literal occurrences first<br>
-     * - predicateArrangement == 4: predicates with less literal occurrences first.<br>
-     * The arrays may be reused for different problems.
+     * i is the position of a selected literal.<br>
+     * The selected literal is removed from currentlyTrueLiterals and all further literals are shifted backwards by 2 positions.<br>
+     * The selected literal is removed from all dependencies of the derived literals after index i.
      *
-     * @param predicateArrangement see above
-     * @param seed for the random number generator
+     * @param i the position of a selected literal.
      */
+    protected void removeSelectedTrueLiteral(int i) {
+        int selectedLiteral = currentlyTrueLiterals.getInt(i);
+        for(int j = i+1; j < currentlyTrueLiterals.size(); ++j) {
+            int literal = currentlyTrueLiterals.getInt(j);
+            if(literal == 0) continue;
+            IntArrayList dependencies = dependentSelections[Math.abs(literal)];
+            if(dependencies != null) dependencies.remove(selectedLiteral);}
+        removeRange(currentlyTrueLiterals,i,2);}
+
+    /** removes a selected literal, which is globally false, from the search.
+     * <br>
+     * i is the position of a selected literal.<br>
+     * From i onwards all dependencies are cleared and the literals are removed from currentlyTrueLiterals.
+     *
+     * @param i the position of a selected literal.
+     */
+    protected void removeSelectedFalseLiteral(int i) {
+        for(int j = i+1; j < currentlyTrueLiterals.size(); ++j) {
+            int literal = currentlyTrueLiterals.getInt(j);
+            if(literal == 0) continue;
+            IntArrayList dependencies = dependentSelections[Math.abs(literal)];
+            if(dependencies != null) dependencies.clear();}
+        currentlyTrueLiterals.size(i-2);
+     // backtrack
+    }
+    /** removes a derived literal, which is globally true, from the search.
+     * <br>
+     * i is the position of a derived literal.<br>
+     * The derived literal is removed from currentlyTrueLiterals and all further literals are shifted backwards by 1 position.<br>
+     * The derived literal's dependencies is cleared.
+     *
+     * @param i the position of a derived literal.
+     */
+    protected void removeDerivedTrueLiteral(int i) {
+        int derivedLiteral = currentlyTrueLiterals.getInt(i);
+        IntArrayList dependencies = dependentSelections[Math.abs(derivedLiteral)];
+        if(dependencies != null) dependencies.clear();
+        removeRange(currentlyTrueLiterals,i,1);}
+
+
+    /** removes a derived literal, which is globally false, from the search.
+     * <br>
+     * i is the position of a derived literal.<br>
+     * The derived literal is removed from currentlyTrueLiterals and all further literals are shifted backwards by 1 position.<br>
+     * The derived literal's dependencies is cleared.
+     *
+     * @param i the position of a derived literal.
+     */
+    protected void removeDerivedFalseLiteral(int i) {
+        int derivedLiteral = currentlyTrueLiterals.getInt(i);
+        IntArrayList dependencies = dependentSelections[Math.abs(derivedLiteral)];
+        if(dependencies != null) dependencies.clear();
+
+        for(int j = i-1; j >= 0; --j) {
+            int literal = currentlyTrueLiterals.getInt(j);
+            if(literal == 0) {
+                int falseLiteral = currentlyTrueLiterals.getInt(j+1);
+                removeSelectedFalseLiteral(j+1);
+                return;}}} // backtrack
+
+
+        /** initializes the predicate sequence.
+         * <br>
+         * The predicates are sorted as follows:<br>
+         * - seed &gt;= 0:              randomly<br>
+         * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
+         * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
+         * - predicateArrangement == 3: predicates with more literal occurrences first<br>
+         * - predicateArrangement == 4: predicates with less literal occurrences first.<br>
+         * The arrays may be reused for different problems.
+         *
+         * @param predicateArrangement see above
+         * @param seed for the random number generator
+         */
     protected void initializePredicateSequence(int predicateArrangement, int seed) {
         if(predicateSequence == null || predicateSequence.length < predicates+1) {
             predicateSequence  = new int[predicates+1];
@@ -771,21 +819,13 @@ public class Backtracker extends Solver {
         st.append("\nClauses:\n").append(clauseList.toString("clauses",symboltable));
         st.append("\nGlobal Model: ").append(model.toString(symboltable));
         st.append("\nLocal Model:  ").append(toStringLocalModel());
-        if(!globallyTrueLiterals.isEmpty()) {
-            st.append("Globally True Literals: ");
-            for(int literal : globallyTrueLiterals)
-                st.append(Symboltable.toString(globallyTrueLiterals.getInt(literal),symboltable)).append(",");
-            st.append("\n");}
+
         if(recursionLevel >= 0) {
             st.append("\nRecursion Level: ").append(recursionLevel).append("\n");
             st.append("Selected Predicates: ");
             for(int i = 0; i <= recursionLevel; ++i)
                 st.append(Symboltable.toString(firstSign*selectedPredicates[i],symboltable)).append(",");
             st.append("Derived Literals:\n");
-            for(int i = 0; i <= recursionLevel; ++i) {
-                st.append(Symboltable.toString(selectedPredicates[i],symboltable)).append(": ");
-                int end = (i < recursionLevel) ? derivedPredicatesStarts[selectedPredicates[i+1]] : derivedPredicatesEnd;
-                for(int j = derivedPredicatesStarts[selectedPredicates[i]]; j < end; ++i) {
-                    st.append(Symboltable.toString(derivedPredicates.getInt(j),symboltable)).append(",");}}}
+            st.append(currentlyTrueLiterals.toString());}
         return st.toString();}
 }

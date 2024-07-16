@@ -1256,6 +1256,18 @@ public class Utilities {
             for(Object item : b) {
                 if(!a.contains(item)) a.add(item);}}}
 
+    /** moves all elements of the list from index onwards by 'removes' positions back abd shortens the list.
+     *
+     * @param list   an IntArrayList
+     * @param index  an index in the list
+     * @param removes the number of elements to be removed.
+     */
+    public static void removeRange(IntArrayList list, int index, int removes) {
+        if(removes == 0 || index > list.size()) return;
+        assert removes > 0;
+        for(int i = index; i < list.size(); ++i) {list.set(i,list.getInt(i+removes));}
+        list.size(list.size()-removes);}
+
 
     /** multiplies the elements of the list
      *
