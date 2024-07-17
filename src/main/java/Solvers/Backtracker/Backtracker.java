@@ -633,17 +633,13 @@ public class Backtracker extends Solver {
                 selected = false;
                 switch(model.status(literal)) {
                     case 0:  continue;
-                    case 1:  removeSelectedTrueLiteral(i); i-=2; continue;
-                    case -1: removeSelectedFalseLiteral(i); return;
-                }}
+                    case 1:  removeSelectedTrueLiteral(i); i -= 2; continue;
+                    case -1: removeSelectedFalseLiteral(i); return;}}
             else {
                 switch(model.status(literal)) {
                     case 0:  continue;
                     case 1:  removeDerivedTrueLiteral(i--); continue;
-                    case -1: removeDerivedFalseLiteral(i); return;}
-            }
-        }
-    }
+                    case -1: removeDerivedFalseLiteral(i); return;}}}}
 
     /** removes a selected literal, which is globally true, from the search.
      * <br>
@@ -655,17 +651,34 @@ public class Backtracker extends Solver {
      * <br>
      * The selectedPredicatePosition remains as it is.
      * <br>
+     * If the true literal is the first selected literal then all literals which are derived from this literal are made true
+     * (might not be necessary because clauseList should have done this already).
+     * <br>
      * The incorporation loop over currentlyTrueLiterals must continue.
      *
      * @param position the position of a selected literal in currentlyTrueLiterals.
      */
-    protected void removeSelectedTrueLiteral(int position) {
+    private void removeSelectedTrueLiteral(int position) throws Unsatisfiable {
         int selectedLiteral = currentlyTrueLiterals.getInt(position);
+
+        if(position == 1) {
+            for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
+                int literal = currentlyTrueLiterals.getInt(j);
+                if(literal == 0) {removeRange(currentlyTrueLiterals,0,j); break;}
+                model.add(myThread,literal,null);} // might not be necessary
+
+            for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
+                int literal = currentlyTrueLiterals.getInt(j);
+                if(literal != 0) {
+                    IntArrayList dependencies = dependentSelections[Math.abs(literal)];
+                    if(dependencies != null) dependencies.rem(selectedLiteral);}}
+            return;}
+
         for(int j = position+1; j < currentlyTrueLiterals.size(); ++j) {
             int literal = currentlyTrueLiterals.getInt(j);
             if(literal == 0) continue;
             IntArrayList dependencies = dependentSelections[Math.abs(literal)];
-            if(dependencies != null) dependencies.remove(selectedLiteral);}
+            if(dependencies != null) dependencies.rem(selectedLiteral);}
         removeRange(currentlyTrueLiterals,position-1,2);} // remove 0,selectedLiteral
 
     /** removes a selected literal, which is globally false, from the search.
@@ -685,7 +698,7 @@ public class Backtracker extends Solver {
      *
      * @param position the position of a selected literal in currentlyTrueLiterals.
      */
-    protected void removeSelectedFalseLiteral(int position) {
+    private void removeSelectedFalseLiteral(int position) {
         int selectedLiteral = currentlyTrueLiterals.getInt(position);
         for(int j = position+1; j < currentlyTrueLiterals.size(); ++j) {
             int literal = currentlyTrueLiterals.getInt(j);
@@ -709,7 +722,7 @@ public class Backtracker extends Solver {
      *
      * @param position the position of a derived literal in currentlyTrueLiterals.
      */
-    protected void removeDerivedTrueLiteral(int position) {
+    private void removeDerivedTrueLiteral(int position) {
         int derivedLiteral = currentlyTrueLiterals.getInt(position);
         IntArrayList dependencies = dependentSelections[Math.abs(derivedLiteral)];
         if(dependencies != null) dependencies.clear();
@@ -725,7 +738,7 @@ public class Backtracker extends Solver {
      *
      * @param position the position of a derived literal in currentlyTrueLiterals.
      */
-    protected void removeDerivedFalseLiteral(int position) throws Unsatisfiable {
+    private void removeDerivedFalseLiteral(int position) throws Unsatisfiable {
         int derivedLiteral = currentlyTrueLiterals.getInt(position);
         IntArrayList dependencies = dependentSelections[Math.abs(derivedLiteral)];
         int lastSelectedPredicate = getLastSelectedPredicate(dependencies);

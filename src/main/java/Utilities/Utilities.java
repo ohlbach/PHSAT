@@ -1265,7 +1265,7 @@ public class Utilities {
     public static void removeRange(IntArrayList list, int index, int removes) {
         if(removes == 0 || index > list.size()) return;
         assert removes > 0;
-        for(int i = index; i < list.size(); ++i) {list.set(i,list.getInt(i+removes));}
+        for(int i = index; i < list.size()-removes; ++i) {list.set(i,list.getInt(i+removes));}
         list.size(list.size()-removes);}
 
 
