@@ -15,6 +15,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.Consumer;
 
@@ -134,14 +136,47 @@ public class ClauseList {
         myThread = Thread.currentThread();
         model.addObserver(Thread.currentThread(),
                 (literal,inferenceStep) -> {
-                        synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
+                        synchronized(this) {
+                            interruptSolvers(); // the solvers must wait until the true literal has been processed.
+                            queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
+
+    /** the number of solvers sharing this clause list */
+    private int nSolvers = 0;
 
     /** adds a solver which shares this ClauseList with other solvers.
      *
      * @param solver a solver which shares this clause list with other solvers.
      */
     public synchronized void addSolver(Solver solver) {
-        solvers.add(solver);}
+        solvers.add(solver);
+        ++nSolvers;}
+
+    /** the number of solvers waiting until a new true literal has been processed */
+    private int waitingSolvers = 0;
+
+    /** used to block the thread until all solvers have been acknowledged that they are now waiting.*/
+    private BlockingQueue<Boolean> waitingQueue = new LinkedBlockingQueue<>(1);
+
+    /** interrupts all solvers when a new true literal has to be processed.
+     * <br>
+     * The method waits until all solvers have acknowledged that they are waiting.
+     */
+    private void interruptSolvers(){
+        waitingSolvers = 0;
+        waitingQueue.clear();
+        for(Solver solver : solvers) {solver.waitForTrueLiteralProcessing();}
+        try{waitingQueue.take();} catch(InterruptedException ignore){} // waits until all solvers acknowledged waiting
+    }
+
+    /** called by the solvers as soon as they have been interrupted.
+     */
+    public synchronized void acknowledgeWaiting() {
+        if(++waitingSolvers == nSolvers) waitingQueue.add(true);}
+
+    /** sends all solvers the signal that a new true literal has been processed, and they can continue their work.
+     * Called by processTask when the task queue is empty.*/
+    private void signalContinue() {
+        for(Solver solver : solvers) {solver.continueProcessing();}}
 
     /**
      * After having inserted all clauses, the following operations are performed: <br>
@@ -199,7 +234,8 @@ public class ClauseList {
                     removePurePredicate(Math.abs(task.literal));
                     break;
                 default:
-                    break;}}}
+                    break;}}
+        signalContinue();}
 
     /** adds the clause to the clauses and to the literal index.
      * <br>

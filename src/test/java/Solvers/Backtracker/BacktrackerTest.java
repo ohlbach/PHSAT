@@ -108,7 +108,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.model.add(null,3,-4);
         backtracker.initializeLocalModel();
         assertEquals("3,-4",backtracker.toStringLocalModel());
-        backtracker.setLocalStatus(2); backtracker.setLocalStatus(-5);
+        backtracker.makeLocallyTrue(2); backtracker.makeLocallyTrue(-5);
         assertEquals("2,3,-4,-5",backtracker.toStringLocalModel());
         assertEquals(1,backtracker.localStatus(2));
         assertEquals(-1,backtracker.localStatus(4));
@@ -128,7 +128,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.model = new Model(predicates);
         backtracker.model.add(null,3,-4);
         backtracker.initializeLocalModel();
-        backtracker.setLocalStatus(7);
+        backtracker.makeLocallyTrue(7);
         backtracker.clauseList = makeClauses(backtracker.model,
                 new int[]{1,or,1,2,3},
                 new int[]{2,or,1,3,4},
@@ -171,14 +171,14 @@ public class BacktrackerTest extends TestCase {
         IntArrayList preds = IntArrayList.wrap(new int[]{1,2,3});
         int model = 0;
         assertTrue(backtracker.compatibleLocally(model,preds));
-        backtracker.setLocalStatus(2);
+        backtracker.makeLocallyTrue(2);
         model = 1;
         assertFalse(backtracker.compatibleLocally(model,preds));
         model = 2;
         assertTrue(backtracker.compatibleLocally(model,preds));
         model = 3;
         assertTrue(backtracker.compatibleLocally(model,preds));
-        backtracker.setLocalStatus(-1);
+        backtracker.makeLocallyTrue(-1);
         assertFalse(backtracker.compatibleLocally(model,preds));
         }
 
@@ -190,9 +190,9 @@ public class BacktrackerTest extends TestCase {
         backtracker.model = new Model(predicates);
         backtracker.initializeLocalModel();
         Clause c1 = makeClause(new int[]{1,or,1,2,3});
-        backtracker.setLocalStatus(-1);
+        backtracker.makeLocallyTrue(-1);
         assertFalse(backtracker.verifyTrueLiteral(c1,3));
-        backtracker.setLocalStatus(-2);
+        backtracker.makeLocallyTrue(-2);
         assertTrue(backtracker.verifyTrueLiteral(c1,3));
 
         Clause c2 = makeClause(new int[]{2,ex,0,4,5,6});
@@ -200,14 +200,14 @@ public class BacktrackerTest extends TestCase {
 
         Clause c3 = makeClause(new int[]{3,ex,1,4,5,6});
         assertFalse(backtracker.verifyTrueLiteral(c3, -4));
-        backtracker.setLocalStatus(5);
+        backtracker.makeLocallyTrue(5);
         assertTrue(backtracker.verifyTrueLiteral(c3, -4));
 
         Clause c5 = makeClause(new int[]{5,intv,1,2,7,8,9});
         assertFalse(backtracker.verifyTrueLiteral(c5, 9));
-        backtracker.setLocalStatus(-7);
+        backtracker.makeLocallyTrue(-7);
         assertFalse(backtracker.verifyTrueLiteral(c5, 9));
-        backtracker.setLocalStatus(-8);
+        backtracker.makeLocallyTrue(-8);
         assertTrue(backtracker.verifyTrueLiteral(c5, 9));}
 
         static class Backtracker1 extends Backtracker{
@@ -259,22 +259,22 @@ public class BacktrackerTest extends TestCase {
         Backtracker1 backtracker = new Backtracker1(1, 1, -1, 1);
         Clause c1 = makeClause(new int[]{1,or,1,2,3});
         assertNull(backtracker.analyseClause(c1));
-        backtracker.setLocalStatus(-3);
+        backtracker.makeLocallyTrue(-3);
         assertNull(backtracker.analyseClause(c1));
-        backtracker.setLocalStatus(-1);
+        backtracker.makeLocallyTrue(-1);
         assertNull(backtracker.analyseClause(c1));
         assertEquals(1,backtracker.clauses.size());
         assertEquals(1,backtracker.literals.size());
         assertEquals(c1,backtracker.clauses.get(0));
         assertEquals(2,backtracker.literals.getInt(0));
-        backtracker.setLocalStatus(-2);
+        backtracker.makeLocallyTrue(-2);
         assertEquals(c1,backtracker.analyseClause(c1));
 
         Clause c2 = makeClause(new int[]{2,intv,1,2, 4,5,6});
         assertNull(backtracker.analyseClause(c2));
-        backtracker.setLocalStatus(-5);
+        backtracker.makeLocallyTrue(-5);
         assertNull(backtracker.analyseClause(c2));
-        backtracker.setLocalStatus(-6);
+        backtracker.makeLocallyTrue(-6);
         assertNull(backtracker.analyseClause(c2));
         assertEquals(2,backtracker.clauses.size());
         assertEquals(2,backtracker.literals.size());
@@ -284,7 +284,7 @@ public class BacktrackerTest extends TestCase {
         Clause c3 = makeClause(new int[]{3,ex,1,7,8,9});
         assertNull(backtracker.analyseClause(c3));
 
-        backtracker.setLocalStatus(7);
+        backtracker.makeLocallyTrue(7);
         assertNull(backtracker.analyseClause(c3));
         assertEquals("[2, 4, -8, -9]",backtracker.literals.toString());
 
@@ -302,15 +302,15 @@ public class BacktrackerTest extends TestCase {
                 new int[]{3,intv,1,2,-1,-2,-5});
         backtracker.propagateLocally(-1);
         assertEquals(0,backtracker.falseClauseIds.size());
-        backtracker.setLocalStatus(-2);
+        backtracker.makeLocallyTrue(-2);
 
-        assertFalse(backtracker.propagateLocally(-1));
+        assertNull(backtracker.propagateLocally(-1));
         assertEquals(0,backtracker.falseClauseIds.size());
         assertEquals("[5, 3, 4]",backtracker.literals.toString());
 
         backtracker.localModel = new byte[backtracker.predicates+1];
-        backtracker.setLocalStatus(1);
-        assertTrue(backtracker.propagateLocally(2));
+        backtracker.makeLocallyTrue(1);
+        assertTrue(backtracker.propagateLocally(2) != null);
         assertEquals("[2]",backtracker.falseClauseIds.toString());
 
     }
@@ -331,17 +331,17 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[0, 5, 3, 2, 4, 1]", Arrays.toString(backtracker.predicatePositions));
 
         IntArrayList dependencies = IntArrayList.wrap(new int[]{3,1,2});
-        assertEquals(1,backtracker.getLastSelection(dependencies));
+        assertEquals(1,backtracker.getLastSelectedPredicate(dependencies));
         assertEquals(1,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[3, 2]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{3});
-        assertEquals(3,backtracker.getLastSelection(dependencies));
+        assertEquals(3,backtracker.getLastSelectedPredicate(dependencies));
         assertEquals(3,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{2,3});
-        assertEquals(2,backtracker.getLastSelection(dependencies));
+        assertEquals(2,backtracker.getLastSelectedPredicate(dependencies));
         assertEquals(2,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[3]",dependencies.toString());
 
@@ -350,12 +350,12 @@ public class BacktrackerTest extends TestCase {
         backtracker.dependentSelections[2] = IntArrayList.wrap(new int[]{3});
         backtracker.dependentSelections[3] = IntArrayList.wrap(new int[]{1,3});
         Clause clause = new Clause(new int[]{1,or,-3,-1,2},false,(lit->new Literal(lit,1)));
-        assertEquals(1,backtracker.getLastSelection(clause));
+        assertEquals(1,backtracker.getLastSelectedPredicate(clause));
 
         backtracker.model = new Model(predicates);
         backtracker.initializeLocalModel();
-        backtracker.setLocalStatus(1);
-        backtracker.setLocalStatus(2);
+        backtracker.makeLocallyTrue(1);
+        backtracker.makeLocallyTrue(2);
 
       //  backtracker.joinDependencies(clause,dependencies);
         assertEquals("[3, 2]",dependencies.toString());

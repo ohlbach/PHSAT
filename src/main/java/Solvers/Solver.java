@@ -149,12 +149,22 @@ public abstract class Solver {
 
     public Thread myThread;
 
+    /** specifies a reason for an interrupt */
+    protected InterruptReason interruptReason;
+
     /** the list of solver classes */
     public static ArrayList<Class> solverClasses = new ArrayList<>();
     static{
         solverClasses.add(Solvers.Walker.Walker.class);
         solverClasses.add(Solvers.Backtracker.Backtracker.class);
     }
+
+    /** each solver which uses ClauseList will wait until a new true literal has been processed.
+     */
+    public void waitForTrueLiteralProcessing() {}
+
+    /** causes the solvers to continue their work */
+    public void continueProcessing(){}
 
     /**
      * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
@@ -201,6 +211,12 @@ public abstract class Solver {
         trackReasoning             = globalParameters.trackReasoning;
         }
 
+    /** to be called when another solver has found a solution.
+     *  It interrupts myThread.
+     */
+    public synchronized void problemSolved() {
+        interruptReason = InterruptReason.PROBLEMSOLVED;
+        myThread.interrupt();}
 
     /** The key method, which has to be implemented by the solvers.<br>
      * It is supposed to find a model or a contradiction in the clauses.
