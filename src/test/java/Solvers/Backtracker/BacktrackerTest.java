@@ -380,6 +380,13 @@ public class BacktrackerTest extends TestCase {
         backtracker.dependentSelections[7] = new IntArrayList();
         backtracker.dependentSelections[7].add(5);
         backtracker.dependentSelections[7].add(1);
+        Clause c1 = makeClause(new int[]{1,or,1,2,3});
+        Clause c2 = makeClause(new int[]{2,or,3,4,5});
+        ArrayList<Clause> depClauses = new ArrayList<>();
+        depClauses.add(c1); depClauses.add(c2);
+        backtracker.usedClausesArray = new ArrayList[predicates+1];
+        backtracker.usedClausesArray[2] = depClauses;
+
         backtracker.incorporateGlobalChanges();
         assertEquals("[0, 1, 2, 0, 3, 4, 6, 7, 8, 9]", backtracker.currentlyTrueLiterals.toString());
         assertEquals("[1]",backtracker.dependentSelections[7].toString());
@@ -391,6 +398,8 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[]",backtracker.dependentSelections[7].toString());
         assertEquals("1,2,5",backtracker.model.toString());
 
+        System.out.println(backtracker.model.getInferenceStep(2).toString());
+
         backtracker.currentlyTrueLiterals = IntArrayList.wrap(new int[]{0,1,2,0,3,4,0,5,6,7,8,9});
         backtracker.model = new Model(predicates);
         backtracker.model.addImmediately(1,5);
@@ -401,4 +410,76 @@ public class BacktrackerTest extends TestCase {
     }
 
 
+    public void testRemoveSelectedFalseLiteral() throws Result {
+        System.out.println("removeSelectedFalseLiteral");
+        Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        int predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.initializePredicateSequence(1, -1);
+        backtracker.selectedPredicatePosition = 5;
+        backtracker.model = new Model(predicates);
+        backtracker.localModel = new byte[predicates+1];
+        backtracker.currentlyTrueLiterals = IntArrayList.wrap(new int[]{0,1,2,0,3,4,0,5,6,7,8,9});
+        backtracker.model.addImmediately(-5);
+        backtracker.makeLocallyTrue(8);
+
+        backtracker.incorporateGlobalChanges();
+        assertEquals("[0, 1, 2, 0, 3, 4]", backtracker.currentlyTrueLiterals.toString());
+        assertEquals(3,backtracker.selectedPredicatePosition);
+        assertEquals("",backtracker.toStringLocalModel());
+
+
+        backtracker.model.addImmediately(-1);
+        backtracker.incorporateGlobalChanges();
+        assertEquals("[]", backtracker.currentlyTrueLiterals.toString());
+        assertEquals(1,backtracker.selectedPredicatePosition);
+    }
+
+    public void testRemoveDerivedTrueLiteral() throws Result {
+        System.out.println("removeDerivedTrue");
+        Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        int predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.initializePredicateSequence(1, -1);
+        backtracker.dependentSelections = new IntArrayList[predicates+1];
+        backtracker.selectedPredicatePosition = 5;
+        backtracker.model = new Model(predicates);
+        backtracker.localModel = new byte[predicates + 1];
+        backtracker.currentlyTrueLiterals = IntArrayList.wrap(new int[]{0, 1, 2, 0, 3, 4, 0, 5, 6, 7, 8, 9});
+        backtracker.model.addImmediately(6);
+
+        backtracker.incorporateGlobalChanges();
+        assertEquals("[0, 1, 2, 0, 3, 4, 0, 5, 7, 8, 9]", backtracker.currentlyTrueLiterals.toString());
+
+    }
+
+    public void testRemoveDerivedFalseLiteral() throws Result {
+        System.out.println("removeDerivedFalse");
+        Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        int predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.initializePredicateSequence(1, -1);
+        backtracker.monitoring = true;
+        backtracker.monitor = (string -> System.out.println(string));
+        backtracker.dependentSelections = new IntArrayList[predicates+1];
+        backtracker.selectedPredicatePosition = 5;
+        backtracker.model = new Model(predicates);
+        backtracker.localModel = new byte[predicates + 1];
+        backtracker.dependentSelections[6] = IntArrayList.wrap(new int[]{1,3});
+        backtracker.currentlyTrueLiterals = IntArrayList.wrap(new int[]{0, 1, 2, 0, 3, 4, 0, 5, 6, 7, 8, 9});
+        backtracker.model.addImmediately(-6);
+
+        Clause c1 = makeClause(new int[]{1,or,1,2,3});
+        Clause c2 = makeClause(new int[]{2,or,3,4,5});
+        ArrayList<Clause> depClauses = new ArrayList<>();
+        depClauses.add(c1); depClauses.add(c2);
+        backtracker.usedClausesArray = new ArrayList[predicates+1];
+        backtracker.usedClausesArray[6] = depClauses;
+
+        backtracker.incorporateGlobalChanges();
+        assertEquals("-3,-6",backtracker.model.toString());
+        assertEquals("[0, 1, 2]", backtracker.currentlyTrueLiterals.toString());
+        assertEquals(1,backtracker.selectedPredicatePosition);
+        System.out.println(backtracker.model.getInferenceStep(3).toString(null));
+    }
     }

@@ -10,6 +10,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
@@ -665,7 +666,7 @@ public class Backtracker extends Solver {
             for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
                 int literal = currentlyTrueLiterals.getInt(j);
                 if(literal == 0) {removeRange(currentlyTrueLiterals,0,j); break;}
-                model.add(myThread,literal,null);} // might not be necessary
+                if(model.status(literal) == 0) incGlobChAddTrueLiteral(selectedLiteral,literal);} // might not be necessary
 
             for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
                 int literal = currentlyTrueLiterals.getInt(j);
@@ -680,6 +681,22 @@ public class Backtracker extends Solver {
             IntArrayList dependencies = dependentSelections[Math.abs(literal)];
             if(dependencies != null) dependencies.rem(selectedLiteral);}
         removeRange(currentlyTrueLiterals,position-1,2);} // remove 0,selectedLiteral
+
+    /** makes the literal globally true, while adding the corresponding inference step, and prints to the monitor
+     *
+     * @param selectedLiteral a selected true literal
+     * @param literal         a locally derived literal
+     * @throws Unsatisfiable  if the model discovers a contradiction.
+     */
+    private void incGlobChAddTrueLiteral(int selectedLiteral, int literal) throws Unsatisfiable {
+        if(monitoring)
+            monitor.accept("incorprateGlobalChanges: globally true selected literal " +
+                    Symboltable.toString(selectedLiteral,symboltable) + " causes locally derived literal " +
+                    Symboltable.toString(literal,symboltable) + " to become globally true");
+        InferenceStep step = trackReasoning ?
+            new InfClauseInference(selectedLiteral,model.getInferenceStep(selectedLiteral),
+                    literal, usedClausesArray[Math.abs(literal)]) : null;
+        model.add(myThread,literal,step);}
 
     /** removes a selected literal, which is globally false, from the search.
      * <br>
@@ -700,11 +717,11 @@ public class Backtracker extends Solver {
      */
     private void removeSelectedFalseLiteral(int position) {
         int selectedLiteral = currentlyTrueLiterals.getInt(position);
-        for(int j = position+1; j < currentlyTrueLiterals.size(); ++j) {
+        for(int j = position+1; j < currentlyTrueLiterals.size(); ++j) { // the local truth value all literals after position are zeroed
             int literal = currentlyTrueLiterals.getInt(j);
             if(literal != 0) localModel[Math.abs(literal)] = 0;}
 
-        currentlyTrueLiterals.size(position-2); // remove all items from this position on.
+        currentlyTrueLiterals.size(position-1); // remove all items from this position on.
 
         if(currentlyTrueLiterals.isEmpty()) {
             selectedPredicatePosition = predicatePositions[Math.abs(selectedLiteral)];
@@ -745,9 +762,12 @@ public class Backtracker extends Solver {
         dependencies.clear();
         int newTrueLiteral = -firstSign*lastSelectedPredicate;
         if(monitoring) {
-            monitor.accept("Globally false derived literal " + Symboltable.toString(derivedLiteral,symboltable) +
-                    " causes new true selected literal " + Symboltable.toString(newTrueLiteral,symboltable));}
-        model.add(myThread,newTrueLiteral,null);
+            monitor.accept("incorparateGlobalChanges: derived literal " + Symboltable.toString(derivedLiteral,symboltable) +
+                    " which is globally false causes new false selected literal: " + Symboltable.toString(-newTrueLiteral,symboltable));}
+        InferenceStep step = trackReasoning ?
+            new InfClauseInference(-derivedLiteral, model.getInferenceStep(-derivedLiteral),
+                    newTrueLiteral, usedClausesArray[Math.abs(derivedLiteral)]) : null;
+        model.add(myThread,newTrueLiteral,step);
         incorporateGlobalChanges();}
 
 
