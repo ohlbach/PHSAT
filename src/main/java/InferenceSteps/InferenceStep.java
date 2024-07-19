@@ -44,6 +44,7 @@ public abstract class InferenceStep {
      *  collects the inputClause ids of all clauses causing the current inference
      *
      * @param steps a list for collecting the inference steps.
+     * @param ids a list of identifiers of input clauses
      */
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(!steps.contains(this)) {steps.add(this);}}

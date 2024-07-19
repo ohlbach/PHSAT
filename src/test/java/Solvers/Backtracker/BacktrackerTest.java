@@ -333,17 +333,14 @@ public class BacktrackerTest extends TestCase {
 
         IntArrayList dependencies = IntArrayList.wrap(new int[]{3,1,2});
         assertEquals(1,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals(1,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[3, 2]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{3});
         assertEquals(3,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals(3,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{2,3});
         assertEquals(2,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals(2,backtracker.getAndRemoveLastSelection(dependencies));
         assertEquals("[3]",dependencies.toString());
 
         backtracker.dependentSelections = new IntArrayList[predicates+1];

@@ -462,7 +462,7 @@ public void testWalk() throws Unsatisfiable {
     for(int[] inputClause : inputClauses.disjunctions) {
         walker.insertClause(makeClause(inputClause));}
     try{
-        walker.startTime = System.nanoTime();
+        walker.solverStartTime = System.nanoTime();
         walker.initializeModel();
         for(Clause clause : walker.clauses) {
             walker.initializeLocalTruthForClause(clause);

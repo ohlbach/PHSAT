@@ -20,6 +20,9 @@ public class PropagatorPool {
     /** The index of the first passive propagator */
     int firstPassive = 0;
 
+    /** constructs a new PropagatorPool */
+    public PropagatorPool() {}
+
     /** Adds a new propagator job.
      * <p>
      * If there is a passive propagator,this one gets the job, otherwise a new Propagator is created.

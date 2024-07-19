@@ -154,7 +154,7 @@ public abstract class Resolution extends Solver {
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
             //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
-            result = new Aborted(null,"Resolution", startTime, + resolvents + " resolvents");}
+            result = new Aborted(null,"Resolution", solverStartTime, + resolvents + " resolvents");}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
@@ -304,13 +304,13 @@ public abstract class Resolution extends Solver {
         }
         if(result == null) {
             System.out.println(toString());
-            return new Aborted(null,"Resolution",startTime,"Maximum Resolution Limit " + resolutionLimit + " exceeded");
+            return new Aborted(null,"Resolution", solverStartTime,"Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
-            return new Erraneous(problemId,"Resolution",startTime, ((Satisfiable)result).model,falseClauses,symboltable);}
+            return new Erraneous(problemId,"Resolution", solverStartTime, ((Satisfiable)result).model,falseClauses,symboltable);}
         return result;}
 
     private HashSet<Integer> indices = new HashSet<>();
@@ -586,7 +586,7 @@ public abstract class Resolution extends Solver {
             case SOS:       // there should be no clauses any more.
                 for(Clause clause : secondaryClauses) {
                     if(!trueInModel(clause,model)) {
-                        return new Erraneous(problemId,"Resolution",startTime, model,clause,symboltable);}}
+                        return new Erraneous(problemId,"Resolution", solverStartTime, model,clause,symboltable);}}
                 break;
             case NEGATIVE: isPositive = false;
             case POSITIVE:
@@ -597,7 +597,7 @@ public abstract class Resolution extends Solver {
                         int literal = cliteral.literal;
                         if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
                             model.addImmediately(literal); found = true; break;}}
-                    if(!found) return new Erraneous(problemId,"Resolution",startTime, model,clause,symboltable);}}
+                    if(!found) return new Erraneous(problemId,"Resolution", solverStartTime, model,clause,symboltable);}}
         completeEliminations();
         Result result = null;
         if(result != null) {return result;}

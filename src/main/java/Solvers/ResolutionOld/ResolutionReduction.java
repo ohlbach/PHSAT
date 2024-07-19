@@ -132,7 +132,7 @@ public abstract class ResolutionReduction extends Solver {
             if(result == null) {result = doTheWork();}}
         catch(InterruptedException ex) {
             //globalParameters.log(combinedId + " interrupted.\n");
-            result = new Aborted(null,"Resolution",startTime, combinedId + " aborted after ");}
+            result = new Aborted(null,"Resolution", solverStartTime, combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
         //problemSupervisor.finished(this.solverId, result, "done");

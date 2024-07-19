@@ -33,7 +33,10 @@ public class Propagator extends Thread {
     int poolIndex;
 
     /** constructs a new propagator.
-     * @param propagatorPool the corresponding pool or propagators.*/
+     *
+     * @param propagatorPool the corresponding pool or propagators.
+     * @param identifier counts the propagators.
+     * */
     public Propagator(PropagatorPool propagatorPool, int identifier) {
         this.propagatorPool = propagatorPool;
         this.identifier = identifier;}

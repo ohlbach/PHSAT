@@ -171,7 +171,7 @@ public class Walker extends Solver {
      */
     @Override
     public Result solveProblem() {
-        startTime          = System.nanoTime();
+        solverStartTime = System.nanoTime();
         localModel         = new boolean[predicates+1];
         random             = new Random(seed);
         statistics         = new WalkerStatistics(combinedId);
@@ -191,10 +191,10 @@ public class Walker extends Solver {
             initializePredicatesWithPositiveScores();
             walk();}
         catch(Result result) {
-            statistics.elapsedTime = System.nanoTime() - startTime;
+            statistics.elapsedTime = System.nanoTime() - solverStartTime;
             System.out.println("RESULT " + result);
             return result;}
-        statistics.elapsedTime = System.nanoTime() - startTime;
+        statistics.elapsedTime = System.nanoTime() - solverStartTime;
         return null;
     }
 
@@ -335,7 +335,7 @@ public class Walker extends Solver {
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
             if(falseClauseList.size == 0) {throw localToGlobalModel();}}
-        throw new Aborted(problemId,solverId,startTime,"Aborted after " + statistics.flips + " flips");}
+        throw new Aborted(problemId,solverId, solverStartTime,"Aborted after " + statistics.flips + " flips");}
 
 
     /** selects a predicate to be flipped.

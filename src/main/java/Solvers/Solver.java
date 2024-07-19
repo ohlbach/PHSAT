@@ -21,19 +21,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /** This is the superclass of all solver classes.
- * Its static methods maintain information about all solver classes.
- *
- * Its instance methods proved the interface to the ProblemSupervisor.
- *
- * Created by ohlbach on 09.10.2018.
+ * <br>
+ * Its static methods maintain information about all solver classes.<br>
+ * Its instance methods provide the interface to the ProblemSupervisor.
  */
 public abstract class Solver {
 
-    /* Static data and methods
-       *********************** */
+    // Static data and methods
+    // ***********************
 
     /** the list of all solver types */
     public static String[] solvers = new String[]{"walker","backtracker","resolution"};
+
+    /** the list of solver classes */
+    public static ArrayList<Class> solverClasses = new ArrayList<>();
+    static{
+        solverClasses.add(Solvers.Walker.Walker.class);
+        solverClasses.add(Solvers.Backtracker.Backtracker.class);
+    }
 
     /** checks if the name is a solver name
      *
@@ -52,11 +57,11 @@ public abstract class Solver {
      * @return the solver class, or null
      */
     public static Class solverClass(String solverName) {
-        switch (solverName.toLowerCase()) {
-            case "resolution":  return Resolution.class;
-            case "walker":      return Walker.class;
-            case "backtracker": return Backtracker.class;
-            default: return null;}}
+        return switch (solverName.toLowerCase()) {
+            case "resolution"  -> Resolution.class;
+            case "walker"      -> Walker.class;
+            case "backtracker" -> Backtracker.class;
+            default -> null;};}
 
     /**
      * Sets the default values for the solvers based on the module values.
@@ -65,10 +70,17 @@ public abstract class Solver {
      */
     public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
         for(String solver : solvers) {
+            Class solverClass = solverClass(solver);
+            if(solverClass == null) {
+                System.err.println("setDefaults: unknown solver class " + solver + ".");
+                System.exit(1);}
             ArrayList<String> values = moduleValues.get(solver);
             if(values != null) {
                 try{solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
-                catch(Exception ignore) {}}}}
+                catch(Exception ignore) {
+                    System.err.println("No Method 'setDefaults' for solver " + solver + " found\n"+
+                            "Either unknown solver, or incomplete implementation of the solver class.");
+                    System.exit(1);}}}}
 
 
     /** Analyses the parameters and generates the corresponding solvers.
@@ -95,12 +107,26 @@ public abstract class Solver {
                 ex.printStackTrace();System.exit(1);}}
         return solvers;}
 
+    /**
+     * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
+     *
+     * @return an ArrayList of Parameters objects
+     */
+    public static ArrayList<Parameters> makeParameters() {
+        ArrayList<Parameters> parameters = new ArrayList<>();
+        for(Class clazz : solverClasses) {
+            try{
+                Method method = clazz.getMethod("makeParameter");
+                parameters.add((Parameters)method.invoke(null));}
+            catch(Exception ignored){
+                System.err.println("Unknown method 'makeParameter' for solver class: " + clazz.getName()+
+                        "\nProbably incomplete implementation of the solver class.");
+                System.exit(1);}}
+        return parameters;}
 
 
-
-
-    /** Instance data and methods
-       *************************  */
+    // Instance data and methods
+    // *************************
 
     /** the solver's identifier. */
     public String solverId = "solverId";
@@ -124,7 +150,7 @@ public abstract class Solver {
     protected Normalizer normalizer;
 
     /** the start time of the solver. */
-    public long startTime;
+    public long solverStartTime;
 
     /** the number of predicates in the problem. */
     public int predicates;
@@ -150,49 +176,25 @@ public abstract class Solver {
     /** an identifier for the monitor */
     protected String monitorId;
 
+    /** the thread which operates the solver */
     public Thread myThread;
 
     /** specifies a reason for an interrupt */
     protected InterruptReason interruptReason;
 
-    /** the list of solver classes */
-    public static ArrayList<Class> solverClasses = new ArrayList<>();
-    static{
-        solverClasses.add(Solvers.Walker.Walker.class);
-        solverClasses.add(Solvers.Backtracker.Backtracker.class);
-    }
-
-    /** each solver which uses ClauseList will wait until a new true literal has been processed.
-     */
+    /** each solver which uses ClauseList will wait until a new true literal has been processed.*/
     public void waitForTrueLiteralProcessing() {}
 
     /** causes the solvers to continue their work */
     public void continueProcessing(){}
 
-    /**
-     * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
-     *
-     * @return an ArrayList of Parameters objects
-     */
-    public static ArrayList<Parameters> makeParameters() {
-        ArrayList<Parameters> parameters = new ArrayList<>();
-        for(Class clazz : solverClasses) {
-            try{
-                Method method = clazz.getMethod("makeParameter");
-                parameters.add((Parameters)method.invoke(null));}
-            catch(Exception ignored){}}
-        return parameters;}
-
     /** constructs a solver as an instance of the Processor class.
      *
-     * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
+     * @param solverNumber  to distinguish different solvers of the same type, but different parameters,
      */
     public Solver(Integer solverNumber) {
         this.solverNumber = solverNumber;}
 
-
-
-    public Solver() {}
 
     /** initializes the parameters which are common to all solvers.
      * <br>
@@ -228,12 +230,12 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public Result solveProblem() {return null;};
+    public Result solveProblem() {return null;}
 
     /** returns the solver's statistics.
      *
      * @return the statistics of the solver */
-    public Statistic getStatistics() {return null;};
+    public Statistic getStatistics() {return null;}
 
 
     /** This method checks if some predicates are true or all predicates are false in a model
@@ -253,7 +255,7 @@ public abstract class Solver {
      */
     public Result checkModel(Model model) {
         ArrayList<int[]> falseClauses = problemSupervisor.inputClauses.falseClausesInModel(model);
-        if(falseClauses != null) {return new Erraneous(problemId,"Solver", startTime, model,falseClauses,symboltable);}
+        if(falseClauses != null) {return new Erraneous(problemId,"Solver", solverStartTime, model,falseClauses,symboltable);}
         else {return null;}}
 
 
