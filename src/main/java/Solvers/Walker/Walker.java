@@ -158,12 +158,11 @@ public class Walker extends Solver {
 
     /** initializes the parameters which are common to all solvers.
      *
-     * @param thread the solver's thread.
      * @param problemSupervisor the supervisor for the problem.
      */
     @Override
-    public void initialize(Thread thread, ProblemSupervisor problemSupervisor) {
-        super.initialize(thread,problemSupervisor);
+    public void initialize(ProblemSupervisor problemSupervisor) {
+        super.initialize(problemSupervisor);
         model.addObserver(myThread,this::addGloballyTrueLiteral);}
 
     /** starts the search for a model.

@@ -138,6 +138,9 @@ public abstract class Solver {
     /** controls the application of inferenceSteps. */
     public boolean trackReasoning = true;
 
+    /** controls the verification of inference steps. */
+    public boolean verify = false;
+
     /** a monitor for showing the actions */
     public Monitor monitor = null;
 
@@ -192,12 +195,12 @@ public abstract class Solver {
     public Solver() {}
 
     /** initializes the parameters which are common to all solvers.
+     * <br>
+     * This method is called in the problemSupervisor's thread.
      *
-     * @param thread the solver's thread.
      * @param problemSupervisor the supervisor for the problem.
      */
-    public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {
-        this.myThread              = thread;
+    public void initialize(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor     = problemSupervisor;
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
@@ -209,6 +212,7 @@ public abstract class Solver {
         monitor                    = problemSupervisor.monitor;
         model                      = problemSupervisor.model;
         trackReasoning             = globalParameters.trackReasoning;
+        verify                     = globalParameters.verify;
         }
 
     /** to be called when another solver has found a solution.
@@ -219,7 +223,8 @@ public abstract class Solver {
         myThread.interrupt();}
 
     /** The key method, which has to be implemented by the solvers.<br>
-     * It is supposed to find a model or a contradiction in the clauses.
+     * It is supposed to find a model or a contradiction in the clauses.<br>
+     * This method is called in the solver's own thread.
      *
      * @return Un/Satisfiable or null
      */

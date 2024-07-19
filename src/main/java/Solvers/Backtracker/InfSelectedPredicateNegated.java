@@ -17,18 +17,20 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     public String rule() {
         return "";
     }
+
     int negatedPredicate;
-    ArrayList<Clause> usedClauses;
+    ArrayList<int[]> usedClauses;
 
     public InfSelectedPredicateNegated(int negatedPredicate, ArrayList<Clause> usedClauses) {
         this.negatedPredicate = negatedPredicate;
-        this.usedClauses = usedClauses;}
+        this.usedClauses = new ArrayList<>(usedClauses.size());
+        for(Clause clause : usedClauses) { this.usedClauses.add(clause.simpleClone());}}
 
     @Override
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append(title()).append("\n");
-        for(Clause clause : usedClauses) st.append(clause.toString(symboltable,0)).append("\n");
+        for(int[] clause : usedClauses) st.append(Clause.toString(clause,symboltable)).append("\n");
         st.append(" -> ").append(Symboltable.toString(negatedPredicate,symboltable));
         return st.toString();}
 

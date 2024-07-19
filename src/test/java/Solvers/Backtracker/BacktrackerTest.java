@@ -112,7 +112,7 @@ public class BacktrackerTest extends TestCase {
         assertEquals("2,3,-4,-5",backtracker.toStringLocalModel());
         assertEquals(1,backtracker.localStatus(2));
         assertEquals(-1,backtracker.localStatus(4));
-        backtracker.clearLocalStatus(4);
+        backtracker.localModel[4] = 0;
         assertEquals("2,3,-5",backtracker.toStringLocalModel());
   }
 
@@ -191,24 +191,24 @@ public class BacktrackerTest extends TestCase {
         backtracker.initializeLocalModel();
         Clause c1 = makeClause(new int[]{1,or,1,2,3});
         backtracker.makeLocallyTrue(-1);
-        assertFalse(backtracker.verifyTrueLiteral(c1,3));
+        assertFalse(backtracker.verifyTrueLiteral(c1,3, false));
         backtracker.makeLocallyTrue(-2);
-        assertTrue(backtracker.verifyTrueLiteral(c1,3));
+        assertTrue(backtracker.verifyTrueLiteral(c1,3, false));
 
         Clause c2 = makeClause(new int[]{2,ex,0,4,5,6});
-        assertTrue(backtracker.verifyTrueLiteral(c2,-5));
+        assertTrue(backtracker.verifyTrueLiteral(c2,-5, false));
 
         Clause c3 = makeClause(new int[]{3,ex,1,4,5,6});
-        assertFalse(backtracker.verifyTrueLiteral(c3, -4));
+        assertFalse(backtracker.verifyTrueLiteral(c3, -4, false));
         backtracker.makeLocallyTrue(5);
-        assertTrue(backtracker.verifyTrueLiteral(c3, -4));
+        assertTrue(backtracker.verifyTrueLiteral(c3, -4, false));
 
         Clause c5 = makeClause(new int[]{5,intv,1,2,7,8,9});
-        assertFalse(backtracker.verifyTrueLiteral(c5, 9));
+        assertFalse(backtracker.verifyTrueLiteral(c5, 9, false));
         backtracker.makeLocallyTrue(-7);
-        assertFalse(backtracker.verifyTrueLiteral(c5, 9));
+        assertFalse(backtracker.verifyTrueLiteral(c5, 9, false));
         backtracker.makeLocallyTrue(-8);
-        assertTrue(backtracker.verifyTrueLiteral(c5, 9));}
+        assertTrue(backtracker.verifyTrueLiteral(c5, 9, false));}
 
         static class Backtracker1 extends Backtracker{
 
@@ -239,7 +239,7 @@ public class BacktrackerTest extends TestCase {
             clauses.add(clause);
             int literal = sign * literalObject.literal;
             literals.add(literal);
-            if(!verifyTrueLiteral(clause,literal)) {
+            if(!verifyTrueLiteral(clause,literal, false)) {
                 System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
