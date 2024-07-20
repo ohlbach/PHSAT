@@ -223,6 +223,28 @@ public class Utilities {
             return null;}
         return range;}
 
+    /**
+     * Parses the given value and ensures it falls within the specified range.
+     *
+     * @param value   The value to be parsed.
+     * @param minimum The minimum allowed value.
+     * @param maximum The maximum allowed value.
+     * @param errors  A StringBuilder to store any error messages.
+     * @return The parsed integer value if it falls within the specified range, or 0 if an error occurred.
+     */
+    public static int parseIntRange(String value, int minimum, int maximum, StringBuilder errors) {
+        try{
+            int result = (int)Integer.parseInt(value);
+            if(!(minimum <= result && result <= maximum)) {
+                errors.append("The value " + value + " must be between " + minimum+ " and " + maximum +"\n");
+                return 0;}
+            return result;}
+        catch(NumberFormatException ex) {
+            errors.append("The value " + value + " is no integer between " + minimum+ " and " + maximum +"\n");}
+        return 0;}
+
+
+
     /** expands a Float  range into a list of Integers<br>
      * The formats are: <br>
      * - just an integer<br>

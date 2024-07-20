@@ -69,16 +69,20 @@ public abstract class Solver {
      * @param moduleValues A HashMap containing the module values.
      */
     public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
+        StringBuilder errors = new StringBuilder();
         for(String solver : solvers) {
             Class solverClass = solverClass(solver);
             if(solverClass == null) {
-                System.err.println("setDefaults: unknown solver class " + solver + ".");
+                System.err.println("Class Solver: setDefaults: unknown solver class " + solver + ".");
                 System.exit(1);}
             ArrayList<String> values = moduleValues.get(solver);
             if(values != null) {
-                try{solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
+                try{solverClass(solver).getMethod("setDefaults",ArrayList.class,StringBuilder.class).invoke(null,values,errors);
+                    if(!errors.isEmpty()) {
+                        System.err.println("Error in setDefaults for solver " + solver + ": " + errors.toString());
+                        System.exit(1);}}
                 catch(Exception ignore) {
-                    System.err.println("No Method 'setDefaults' for solver " + solver + " found\n"+
+                    System.err.println("Class Solver: No Method 'setDefaults' for solver " + solver + " found\n"+
                             "Either unknown solver, or incomplete implementation of the solver class.");
                     System.exit(1);}}}}
 

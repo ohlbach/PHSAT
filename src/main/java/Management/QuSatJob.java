@@ -2,6 +2,7 @@ package Management;
 
 import Datastructures.ClauseList;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Backtracker.PropagatorPool;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -29,6 +30,8 @@ public class QuSatJob {
     /** is used to normalize and simplifiy the input clauses.
      * The datastructures can be created once and then reused for a sequence of problems.*/
     public Normalizer normalizer;
+
+    public PropagatorPool propagatorPool = new PropagatorPool();
 
     /** the list of problem supervisors, one for each problem. */
     public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();

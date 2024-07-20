@@ -509,12 +509,19 @@ public class BacktrackerTest extends TestCase {
         ArrayList<Clause> depClauses = new ArrayList<>();
         depClauses.add(c1); depClauses.add(c2);
         backtracker.usedClausesArray = new ArrayList[predicates+1];
-        backtracker.usedClausesArray[6] = depClauses;
+        backtracker.usedClausesArray[2] = depClauses;
 
         backtracker.incorporateGlobalChanges();
-        assertEquals("-3,-6",backtracker.model.toString());
+        assertEquals("-3",backtracker.toStringLocalModel());
         assertEquals("[0, 1, 2]", backtracker.currentlyTrueLiterals.toString());
-        assertEquals(1,backtracker.selectedPredicatePosition);
-        System.out.println(backtracker.model.getInferenceStep(3).toString(null));
+        assertEquals(3,backtracker.selectedPredicatePosition);
+
+        backtracker.model.addImmediately(-2);
+        backtracker.dependentSelections[2] = IntArrayList.wrap(new int[]{1});
+        backtracker.incorporateGlobalChanges();
+        assertEquals("-1,-2,-6",backtracker.model.toString());
+        System.out.println(backtracker.model.getInferenceStep(1).toString(null));
+
+
     }
     }

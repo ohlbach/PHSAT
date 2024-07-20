@@ -9,6 +9,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
 import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Backtracker.PropagatorPool;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -35,8 +36,6 @@ public class ProblemSupervisor {
     /** the final result */
     public Result result = null;
 
-    private long startTime;
-
     /** stores all the solver threads */
     Thread[] threads;
     /** the number of solvers */
@@ -48,8 +47,9 @@ public class ProblemSupervisor {
 
     public Monitor monitor;
 
-    public SupervisorStatistics statistics = null;
+    public StatisticsSupervisor statistics = null;
     private ProblemGenerator problemGenerator;
+    public PropagatorPool propagatorPool;
 
     public QuSatJob quSatJob;
 
@@ -62,9 +62,10 @@ public class ProblemSupervisor {
         jobname               = globalParameters.jobName;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
-        statistics            = new SupervisorStatistics("Supervisor");
+        statistics            = new StatisticsSupervisor("Supervisor");
         normalizer            = quSatJob.normalizer;
         clauseList            = quSatJob.clauseList;
+        propagatorPool        = quSatJob.propagatorPool;
     }
 
 
@@ -81,7 +82,7 @@ public class ProblemSupervisor {
     /** starts the solvers in parallel threads and waits for their results.
      */
     public void solveProblem()  {
-        startTime = System.nanoTime();
+        long problemStartTime = System.nanoTime();
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
@@ -99,13 +100,15 @@ public class ProblemSupervisor {
                     globalParameters.logstream.println(problemId + " clauses printed to file " + path.toString()); }}
             model = new Model(inputClauses.predicates);
             clauseList.initialize(problemId,model,inputClauses.symboltable);
-            normalizer.initialize(inputClauses,model);
+            normalizer.initialize(inputClauses,clauseList, model);
             normalizer.normalizeClauses(); // may throw Result
             System.out.println(normalizer.statistics.toString());
 
             numberOfSolvers = solvers.size();
+            statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
-            for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
+            for(int i = 0; i < numberOfSolvers; ++i) {
+                int j = i;
                 threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem()));
                 solvers.get(i).initialize(this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
@@ -116,8 +119,9 @@ public class ProblemSupervisor {
             ex.printStackTrace();
             System.exit(0);}
         if(globalParameters.logstream != null) {
-            long time = System.nanoTime() - startTime;
-            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + Utilities.duration(time));}}
+            statistics.elapsedTime = System.nanoTime() - problemStartTime;
+            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " +
+                    Utilities.duration(statistics.elapsedTime));}}
 
 
 
@@ -137,7 +141,7 @@ public class ProblemSupervisor {
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
         quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, globalParameters.trackReasoning));
-        if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}}
+        for(Solver solver: solvers) {solver.problemSolved();}}
 
     /** checks the model against the input clauses.
      * If some clauses are false in this model, they are printed and the system exits.

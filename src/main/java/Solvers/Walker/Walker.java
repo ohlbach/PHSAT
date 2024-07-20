@@ -81,7 +81,7 @@ public class Walker extends Solver {
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
     private static final int trueLiteralScore = Integer.MIN_VALUE/2;
 
-    public static void setDefaults(ArrayList<String> defaults) {
+    public static void setDefaults(ArrayList<String> defaults, StringBuilder errors) {
         try{
             for(String line : defaults) {
                 String[] parts = line.split("\\s*=\\s*");
@@ -94,8 +94,7 @@ public class Walker extends Solver {
                     case "seed":          seedDefault = Integer.parseInt(value); break;
                 }}}
         catch(NumberFormatException e) {
-            System.err.println("Error in defaults for Walker:\n" + e);
-            System.exit(1);}}
+            errors.append("Walker: " + e.getMessage());}}
 
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Walker");

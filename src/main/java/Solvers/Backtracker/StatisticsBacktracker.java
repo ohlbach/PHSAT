@@ -1,12 +1,19 @@
 package Solvers.Backtracker;
 
 import Datastructures.Statistics.Statistic;
+import Solvers.Solver;
 import Utilities.Description;
+
+import java.util.ArrayList;
+
+import static Utilities.Utilities.duration;
 
 /**
  * StatisticsBacktracker is a subclass of Statistic that keeps track of various statistics related to backtracking operations.
  */
 public class StatisticsBacktracker extends Statistic {
+
+
     public StatisticsBacktracker(String id) {
         super(id);
     }
@@ -29,6 +36,9 @@ public class StatisticsBacktracker extends Statistic {
     @Description("Propagator Jobs")
     public int propagatorJobs = 0;
 
+    @Description("Elapsed Time")
+    public long elapsedTime = 0;
+
 
     public String toString() {
         StringBuilder st = new StringBuilder();
@@ -39,6 +49,7 @@ public class StatisticsBacktracker extends Statistic {
         st.append("\n  backjumps:         ").append(backjumps);
         st.append("\n  incorporations:    ").append(incoporations);
         st.append("\n  propagator jobs:   ").append(propagatorJobs);
+        st.append("\n  elapsed time:      ").append(duration(elapsedTime));
         return st.toString();}
 
 }

@@ -32,3 +32,8 @@ Walker
  maxFlips = 0   % 0 means no limit for the number of flips
  jumpFrequency = 10
  seed = 0
+
+Backtracker
+arrangement = 1  % natural order of predicates to be selected
+seed = -1        % no random selection of predicates
+firstSign = 1    % selected predicates are positive.

@@ -106,14 +106,14 @@ public class Normalizer {
      * @param inputClauses the original clauses
      * @param model The model to be initialized.
      */
-    public void initialize(InputClauses inputClauses, Model model) {
+    public void initialize(InputClauses inputClauses, ClauseList clauseList, Model model) {
         this.inputClauses = inputClauses;
+        this.clauseList   = clauseList;
         this.problemId    = inputClauses.problemId;
         this.model        = model;
         this.symboltable  = inputClauses.symboltable;
         this.predicates   = inputClauses.predicates;
         statistics        = new StatisticsNormalizer(null);
-        clauseList.initialize(problemId,model,symboltable);
         equivalences.clear();
         myThread = Thread.currentThread();}
 
