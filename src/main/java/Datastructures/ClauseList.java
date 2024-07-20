@@ -961,6 +961,7 @@ public class ClauseList {
         if(clauses.isEmpty()) return "";
         int size = (clauses.lastLinkedItem.id + "." + clauses.lastLinkedItem.version).length();
         StringBuilder sb = new StringBuilder();
+        sb.append("Clauses:\n");
         Clause clause = clauses.firstLinkedItem;
         while (clause != null) {
             sb.append(clause.toString(symboltable,size)).append("\n");

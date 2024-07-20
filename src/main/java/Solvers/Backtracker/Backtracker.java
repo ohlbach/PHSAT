@@ -375,6 +375,7 @@ public class Backtracker extends Solver {
             catch(InterruptedException exception){processInterrupt(exception); }} // maybe another solver found a solution
         if(myThread.isInterrupted()) processInterrupt(null);             // global changes incorporated
         if(falseClause == null) return;  // continue search, next selection
+
         int lastSelectedPredicate = getLastSelectedPredicate(falseClause);
         backtrackTo(lastSelectedPredicate);
         selectedPredicatePosition = predicatePositions[lastSelectedPredicate]; // this predicate must be false.
@@ -388,8 +389,7 @@ public class Backtracker extends Solver {
             model.add(myThread,negateLastSelectedPredicate,step);}
         else {
             makeLocallyTrue(negateLastSelectedPredicate);
-            IntArrayList joinedDependencies = clearDependencies(lastSelectedPredicate);
-            dependentSelections[lastSelectedPredicate] = joinDependencies(falseClause,0,joinedDependencies);
+            joinDependencies(falseClause,lastSelectedPredicate);
             if(monitoring) monitor.accept(
                     "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable));
             --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
@@ -511,8 +511,7 @@ public class Backtracker extends Solver {
         currentlyTrueLiterals.add(trueLiteral);
         makeLocallyTrue(trueLiteral);
         int truePredicate = Math.abs(trueLiteral);
-        IntArrayList depSelections = clearDependencies(truePredicate);
-        dependentSelections[truePredicate] = joinDependencies(clause,truePredicate,depSelections);
+        joinDependencies(clause,truePredicate);
         ++statistics.propagatorJobs;
         propagatorPool.addPropagatorJob(this,trueLiteral);}
 
@@ -581,7 +580,7 @@ public class Backtracker extends Solver {
             else       {if(localModel[predicate] == 1)  return false;}}
          return true;}
 
-    /** either clears an existing depencies list for the given predicate, or creates a new empty list.
+    /** either clears an existing dependencies list for the given predicate, or creates a new empty list.
      *
      * @param predicate a predicate
      * @return the old cleared or new dependency list.
@@ -594,30 +593,41 @@ public class Backtracker extends Solver {
         else joinedDependencies.clear();
         return joinedDependencies;}
 
+    /** either clears an existing usedClauses array  for the given predicate, or creates a new empty list.
+     *
+     * @param predicate a predicate
+     * @return the old cleared or new usedClauses list.
+     */
+    private ArrayList<Clause> clearUsedClauses(int predicate) {
+        ArrayList<Clause> usedClauses = usedClausesArray[predicate];
+        if (usedClauses == null) {
+            usedClauses = new ArrayList<>();
+            usedClausesArray[predicate] = usedClauses;}
+        else usedClauses.clear();
+        return usedClauses;}
 
-    /**Joins the dependencies of a given clause to the provided IntArrayList.
+    /**Joins the dependencies and the usedClauses (if trackReasoning == true) of a given clause.
      * <br>
+     * truePredicate is either a newly derived predicate from the given clause,
+     * or a selected predicate which caused the clause to be locally false.
+     * <br>
+     * The dependencies are put into dependentSelections[truePredicate] and
+     * the usedClauses are put into usedClauses[truePredicate]<br>
      * Predicates which are globally true/false are ignored.<br>
-     * If trackReasing = true then all clauses used to derive truePredicate are joined and put into usedClauseArray[truePredicate]
      *
      * @param clause The clause whose dependencies will be joined.
-     * @param truePredicate the predicate which is to be made locally true/false (0 if a false clause was found)
-     * @param joinedDependencies The IntArrayList to which the dependencies will be joined.
+     * @param truePredicate the predicate which is to be made locally true
      * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
-    protected IntArrayList joinDependencies(Clause clause, int truePredicate, IntArrayList joinedDependencies) {
-        joinedDependencies.clear();
+    protected IntArrayList joinDependencies(Clause clause, int truePredicate) {
+       IntArrayList joinedDependencies = clearDependencies(truePredicate);
         ArrayList<Clause> usedClauses = null;
-        if(trackReasoning && truePredicate != 0) {
-            usedClauses = usedClausesArray[truePredicate];
-            if(usedClauses == null) {usedClauses = new ArrayList<>(); usedClausesArray[truePredicate] = usedClauses;}
-            else usedClauses.clear();
-            usedClauses.add(clause);}
+        if(trackReasoning) {usedClauses = clearUsedClauses(truePredicate); usedClauses.add(clause);}
         for(Literal literalObject : clause.literals) {
             int predicate = Math.abs(literalObject.literal);
             if(predicate != truePredicate && model.status(predicate) == 0 && localStatus(predicate) != 0){
                 addIfNotContained(joinedDependencies,dependentSelections[predicate]);
-                if(trackReasoning && truePredicate != 0) {addIfNotContained(usedClauses,usedClausesArray[predicate]);}}}
+                if(trackReasoning) {addIfNotContained(usedClauses,usedClausesArray[predicate]);}}}
         return joinedDependencies;}
 
     /** joins all the clauses used to derive the falseClause and puts them into usedClauseArray[predicate]

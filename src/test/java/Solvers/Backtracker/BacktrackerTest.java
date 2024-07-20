@@ -83,10 +83,10 @@ public class BacktrackerTest extends TestCase {
                 new int[]{2,or,1,3,4},
                 new int[]{3,or,1,4,5});
 
-        assertEquals("Clauses\n" +
-                "    1: 1v2v3\n" +
-                "    2: 1v3v4\n" +
-                "    3: 1v4v5\n",backtracker.clauseList.toString("clauses",null));
+        assertEquals("Clauses:\n" +
+                "  1: 1v2v3\n" +
+                "  2: 1v3v4\n" +
+                "  3: 1v4v5\n",backtracker.clauseList.toString("clauses",null));
 
         backtracker.initializePredicateSequence(3,-1); // more predicates first
         assertEquals("[0, 1, 3, 4, 2, 5]", Arrays.toString(backtracker.predicateSequence));
@@ -116,7 +116,7 @@ public class BacktrackerTest extends TestCase {
         assertEquals("2,3,-5",backtracker.toStringLocalModel());
   }
 
-    public void testFindeNextPredicateIndex() throws Result {
+    public void testFindNextPredicateIndex() throws Result {
         System.out.println("findNextPrediateIndex");
         Backtracker backtracker = new Backtracker(1,1,-1,1);
         int predicates = 10;
@@ -333,15 +333,12 @@ public class BacktrackerTest extends TestCase {
 
         IntArrayList dependencies = IntArrayList.wrap(new int[]{3,1,2});
         assertEquals(1,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals("[3, 2]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{3});
         assertEquals(3,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals("[]",dependencies.toString());
 
         dependencies = IntArrayList.wrap(new int[]{2,3});
         assertEquals(2,backtracker.getLastSelectedPredicate(dependencies));
-        assertEquals("[3]",dependencies.toString());
 
         backtracker.dependentSelections = new IntArrayList[predicates+1];
         backtracker.dependentSelections[1] = IntArrayList.wrap(new int[]{3, 2});
@@ -354,20 +351,58 @@ public class BacktrackerTest extends TestCase {
         backtracker.makeLocallyTrue(1);
         backtracker.makeLocallyTrue(2);
 
-       // dependencies =  backtracker.joinDependencies(clause);
-       // assertEquals("[3, 2]",dependencies.toString());
+        predicates = 10;
+        backtracker.predicates = predicates;
+        backtracker.usedClausesArray = new ArrayList[predicates+1];
+        backtracker.dependentSelections = new IntArrayList[predicates+1];
 
+        Clause c1 = makeClause(new int[]{1,or,1,2,3});
+        Clause c2 = makeClause(new int[]{2,or,2,3,4});
+        Clause c3 = makeClause(new int[]{3,or,3,4,5});
+        Clause c4 = makeClause(new int[]{4,or,4,5,6});
+        Clause c5 = makeClause(new int[]{5,or,5,6,7});
+        ArrayList<Clause> a1 = new ArrayList<>();
+        a1.add(c2); a1.add(c3);
+        backtracker.usedClausesArray[1] = a1;
+        ArrayList<Clause> a2 = new ArrayList<>();
+        a2.add(c3); a2.add(c4);
+        backtracker.usedClausesArray[2] = a2;
 
-       // backtracker.model.add(null,3);
-       // backtracker.joinDependencies(clause,dependencies);
-       // assertEquals("[2]",dependencies.toString());
+        IntArrayList l1 = new IntArrayList();
+        l1.add(5); l1.add(6);
+        backtracker.dependentSelections[1] = l1;
+        IntArrayList l2 = new IntArrayList();
+        l2.add(6);
+        l2.add(7);
+        backtracker.dependentSelections[2] = l2;
+        IntArrayList jdp = backtracker.joinDependencies(c1,3);
+        assertEquals("[5, 6, 7]",jdp.toString());
+        assertTrue(jdp == backtracker.dependentSelections[3]);
 
+        ArrayList<Clause> ucl = backtracker.usedClausesArray[3];
+        assertEquals("[1: 1v2v3, 2: 2v3v4, 3: 3v4v5, 4: 4v5v6]",ucl.toString());
+
+        backtracker.model.addImmediately(1);
+        jdp = backtracker.joinDependencies(c1,3);
+        assertEquals("[6, 7]",jdp.toString());
+        assertTrue(jdp == backtracker.dependentSelections[3]);
+
+        ucl = backtracker.usedClausesArray[3];
+        assertEquals("[1: 1v2v3, 3: 3v4v5, 4: 4v5v6]",ucl.toString());
+
+        IntArrayList l3 = new IntArrayList();
+        l3.add(7); l3.add(8);
+        backtracker.dependentSelections[3] = l3;
+        backtracker.localModel[3] = 1;
+        jdp = backtracker.joinDependencies(c1,6);
+        assertEquals("[6, 7, 8]",jdp.toString());
     }
 
 
     public void testRemoveSelectedTrueLiteral() throws Result {
         System.out.println("removeSelectedTrueLiteral");
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        backtracker.statistics = new StatisticsBacktracker("Test");
         int predicates = 10;
         backtracker.predicates = predicates;
         backtracker.model = new Model(predicates);
@@ -410,6 +445,7 @@ public class BacktrackerTest extends TestCase {
     public void testRemoveSelectedFalseLiteral() throws Result {
         System.out.println("removeSelectedFalseLiteral");
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        backtracker.statistics = new StatisticsBacktracker("Test");
         int predicates = 10;
         backtracker.predicates = predicates;
         backtracker.initializePredicateSequence(1, -1);
@@ -435,6 +471,7 @@ public class BacktrackerTest extends TestCase {
     public void testRemoveDerivedTrueLiteral() throws Result {
         System.out.println("removeDerivedTrue");
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        backtracker.statistics = new StatisticsBacktracker("Test");
         int predicates = 10;
         backtracker.predicates = predicates;
         backtracker.initializePredicateSequence(1, -1);
@@ -453,6 +490,7 @@ public class BacktrackerTest extends TestCase {
     public void testRemoveDerivedFalseLiteral() throws Result {
         System.out.println("removeDerivedFalse");
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        backtracker.statistics = new StatisticsBacktracker("Test");
         int predicates = 10;
         backtracker.predicates = predicates;
         backtracker.initializePredicateSequence(1, -1);

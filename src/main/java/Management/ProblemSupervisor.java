@@ -107,7 +107,7 @@ public class ProblemSupervisor {
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
                 threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem()));
-                solvers.get(i).initialize(threads[i],this);}
+                solvers.get(i).initialize(this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch(Result result) {System.out.println(result.toString(inputClauses.symboltable));}
