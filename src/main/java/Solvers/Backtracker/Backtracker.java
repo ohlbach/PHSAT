@@ -107,30 +107,30 @@ public class Backtracker extends Solver {
      */
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Backtracker");
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,"false",false,
                 "Select the Backtracker");
         parameters.add(selected);
         boolean arrangement = arrangementDefault == 1;
-        parameters.add(new Parameter("Up-sequence",Parameter.Type.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Up-sequence", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
                 "Predicates in ascending order (1,2,3,...)"));
         arrangement = arrangementDefault == 2;
-        parameters.add(new Parameter("Down-sequence",Parameter.Type.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Down-sequence", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
                 "Predicates in decending order (...3,2,1)"));
         arrangement = arrangementDefault == 3;
-        parameters.add(new Parameter("More-first",Parameter.Type.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("More-first", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
                 "Predicates: more predicates first"));
         arrangement = arrangementDefault == 4;
-        parameters.add(new Parameter("Less-first",Parameter.Type.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Less-first", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
                 "Predicates: less predicates first"));
-        Parameter seed = new Parameter("Seed", Parameter.Type.String, ""+seedDefault,
+        Parameter seed = new Parameter("Seed", Parameter.DisplayType.String, ""+seedDefault,
                 IntArrayList.wrap(new int[]{seedDefault}),
                 "Seed for random number generator (integer >= -1)");
         seed.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, -1, errors));
         parameters.add(seed);
-        parameters.add(new Parameter("PositiveFirst",Parameter.Type.Boolean,
+        parameters.add(new Parameter("PositiveFirst", Parameter.DisplayType.Boolean,
                 ""+(firstSignDefault==1),firstSignDefault==1,
                 "Try positive predicates first"));
-        parameters.add(new Parameter("NegativeFirst",Parameter.Type.Boolean,
+        parameters.add(new Parameter("NegativeFirst", Parameter.DisplayType.Boolean,
                 ""+(firstSignDefault==-1),firstSignDefault==-1,
                 "Try negative predicates first"));
         parameters.setDescription("Backtracking search (kind of Davis-Putnam Procedure)");

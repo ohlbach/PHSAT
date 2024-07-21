@@ -1,5 +1,6 @@
 package Management;
 
+import Management.GIU.OutputType;
 import Management.GIU.ScrollableFrame;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorFrame;
@@ -176,19 +177,21 @@ public class GlobalParameters {
      * @return The Parameters object containing the global parameters.
      */
     public static Parameters makeGlobalParameters() {
+        StringBuilder errors = new StringBuilder();
         Parameters parameters = new Parameters("Global Parameters");
-        Parameter jobName = new Parameter("jobname",Parameter.Type.String, jobNameDefault,jobNameDefault,
-                "Identifier for the job.");
+        Parameter jobName = new Parameter("jobname", Parameter.DisplayType.String, new ValueType.Strings(),
+                jobNameDefault, errors,"Identifier for the job.");
         parameters.add(jobName);
-        Parameter jobDirectory = new Parameter("jobdirectory",Parameter.Type.Directory, homeDirectory.toString(),homeDirectory,
+        Parameter jobDirectory = new Parameter("jobdirectory", Parameter.DisplayType.Directory,
+                new ValueType.Paths(),homeDirectory.toString(),errors,
                 """
                         Directory where to place a subdirectory to contain the produced files.
                         The actual subdirectoy is then <jobdirectory>/<jobname>_<version>, the version counting from 0.
                         The jobdirectory must exists, whereas the subdirectory will be created.""");
-        jobDirectory.parser = (text,ignore) -> new File(text).getAbsolutePath();
         parameters.add(jobDirectory);
 
-        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf, monitorTypeDefault,
+        ValueType outputType = new ValueType.Enums(OutputType.class);
+        Parameter monitor = new Parameter("monitor", Parameter.DisplayType.OneOf,outputType,monitorTypeDefault, errors,
                 """
                         Specifies the target for monitoring.
                          None:  No monitoring.
@@ -196,16 +199,17 @@ public class GlobalParameters {
                          File:  Print the monitor text to a File.
                          Frame: Print the monitor text into a frame.""");
         monitor.parameters = new Parameters("monitor");
-        monitor.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
-        monitor.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
-        monitor.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
-        monitor.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        monitor.parameters.add(new Parameter("None", Parameter.DisplayType.Label,outputType, null, errors,null));
+        monitor.parameters.add(new Parameter("Life", Parameter.DisplayType.Label,outputType, null, errors,null));
+        monitor.parameters.add(new Parameter("File", Parameter.DisplayType.File,outputType, null, errors,null));
+        monitor.parameters.add(new Parameter("Frame", Parameter.DisplayType.Frame,outputType, null, errors,null));
         parameters.add(monitor);
 
-        parameters.add(new Parameter("monitorSeparate",Parameter.Type.Boolean,""+monitorSeparateDefault,monitorSeparateDefault,
+        parameters.add(new Parameter("monitorSeparate", Parameter.DisplayType.Boolean,
+                new ValueType.Booleans(),""+monitorSeparateDefault,errors,
                 "If true then a separate monitor is opened for each problem."));
         
-        Parameter logging = new Parameter("logging",Parameter.Type.OneOf,loggingDefault,
+        Parameter logging = new Parameter("logging", Parameter.DisplayType.OneOf,outputType, loggingDefault, errors,
                 """
                         Specifies the target for logging.
                          None:  No logging.
@@ -213,25 +217,26 @@ public class GlobalParameters {
                          File:  Print the logging text to a File.
                          Frame: Print the logging text into a frame.""");
         logging.parameters = new Parameters("logging");
-        logging.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
-        logging.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
-        logging.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
-        logging.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        logging.parameters.add(new Parameter("None", Parameter.DisplayType.Label,outputType,null, errors,null));
+        logging.parameters.add(new Parameter("Life", Parameter.DisplayType.Label,outputType,null, errors, null));
+        logging.parameters.add(new Parameter("File", Parameter.DisplayType.File,outputType,null, errors, null));
+        logging.parameters.add(new Parameter("Frame", Parameter.DisplayType.Frame,outputType,null, errors, null));
         parameters.add(logging);
 
-        Parameter cnfFileSymbols = new Parameter("CNFFile",Parameter.Type.OneOf,"none",
+        ValueType cnfType = new ValueType.Strings("None","Symboltable","Numbers");
+        Parameter cnfFileSymbols = new Parameter("CNFFile", Parameter.DisplayType.OneOf,cnfType,"None", errors,
                 """
                         Specifies the form of the CNFFile for the clauses.
                          None:         No output to a CNFFile.
                          Symboltable:  Output using a symboltable, if available.
                          Numbers:      Output using numbers for the predicates.""");
         cnfFileSymbols.parameters = new Parameters("CNFFile");
-        cnfFileSymbols.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
-        cnfFileSymbols.parameters.add(new Parameter("Symboltable",Parameter.Type.Label,null, null));
-        cnfFileSymbols.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
+        cnfFileSymbols.parameters.add(new Parameter("None", Parameter.DisplayType.Label,cnfType,null, errors,null));
+        cnfFileSymbols.parameters.add(new Parameter("Symboltable", Parameter.DisplayType.Label,cnfType,null, errors,null));
+        cnfFileSymbols.parameters.add(new Parameter("Numbers", Parameter.DisplayType.File,cnfType,null, errors,null));
         parameters.add(cnfFileSymbols);
 
-        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf, statisticPrintTypeDefault,
+        Parameter statistics = new Parameter("statistics", Parameter.DisplayType.OneOf, outputType, statisticPrintTypeDefault,errors,
                 """
                         Specifies the target for statistics.
                          None:  No statistics.
@@ -239,16 +244,22 @@ public class GlobalParameters {
                          File:  Print the statistics text to a File.
                          Frame: Print the statistics text into a frame.""");
         statistics.parameters = new Parameters("statistics");
-        statistics.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
-        statistics.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
-        statistics.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
-        statistics.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        statistics.parameters.add(new Parameter("None", Parameter.DisplayType.Label,outputType,null, errors, null));
+        statistics.parameters.add(new Parameter("Life", Parameter.DisplayType.Label,outputType,null, errors, null));
+        statistics.parameters.add(new Parameter("File", Parameter.DisplayType.File,outputType,null, errors,null));
+        statistics.parameters.add(new Parameter("Frame", Parameter.DisplayType.Frame,outputType,null, errors,null));
         parameters.add(statistics);
 
-        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,""+trackReasoningDefault,trackReasoningDefault,
+        ValueType choiceType = new ValueType.Booleans();
+
+        parameters.add(new Parameter("TrackReasoning", Parameter.DisplayType.Boolean,choiceType,""+trackReasoningDefault,errors,
                 "If true then the inference steps are tracked."));
-        parameters.add(new Parameter("Verify",Parameter.Type.Boolean,""+verifyDefault,verifyDefault,
+        parameters.add(new Parameter("Verify", Parameter.DisplayType.Boolean,choiceType,""+verifyDefault,errors,
                 "If true then the inference steps are verified."));
+
+        if(!errors.isEmpty()) {
+            System.err.println("GlobalParameters: Errors in makeGlobalParameters:\n"+errors.toString());
+            System.exit(1);}
         return parameters;}
 
     /** creates an instance of GlobalParameters based on the parameters provided by the GUI.
@@ -258,7 +269,7 @@ public class GlobalParameters {
     public GlobalParameters(Parameters globalParams) {
         int index = -1;
         jobName            = (String) (globalParams.parameters.get(++index).value);
-        jobDirectory       = (Path)   (globalParams.parameters.get(++index).value);
+        jobDirectory       = (Path)(globalParams.parameters.get(++index).value);
         extendJobDirectory();
         String monitorType = (String) (globalParams.parameters.get(++index).value);
         monitorSeparate    = (Boolean)(globalParams.parameters.get(++index).value);

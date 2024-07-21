@@ -3,6 +3,7 @@ package ProblemGenerators;
 import Datastructures.Clauses.InputClauses;
 import Management.Parameter;
 import Management.Parameters;
+import Management.ValueType;
 import Utilities.FileIterator;
 
 import java.io.File;
@@ -44,7 +45,9 @@ public final class CNFReader extends ProblemGenerator {
      * @return the created Parameters object
      */
     public static Parameters makeParameter() {
-        Parameter file = new Parameter("CNF-File", Parameter.Type.File, null,null,
+        StringBuilder errors = new StringBuilder();
+        Parameter file = new Parameter("CNF-File", Parameter.DisplayType.File,
+                new ValueType.Paths(),null,errors,
                 """
                 CNFReader for reading CNF-Files.
                 The parameters are:
@@ -72,19 +75,22 @@ public final class CNFReader extends ProblemGenerator {
                  '=':  means exactly:      '= 2 p q r'   means exactly two of p,q,r are true.
                 No special symbol means 'or': 'p,q,r' means p or q or r""");
         Parameters parameters = new Parameters("CNF-Reader");
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
+                new ValueType.Booleans(),"false",errors,
                 "Select the Clause File Generator");
         parameters.add(selected);
         parameters.add(file);
-        parameters.setOperation((Parameters params, StringBuilder errors) -> {
+        parameters.setOperation((Parameters params, StringBuilder errorss) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
             makeProblemGenerators(params, generators);
             ArrayList<InputClauses> clauses = new ArrayList<>();
             for(ProblemGenerator generator : generators) {
-                clauses.add(generator.generateProblem(errors));}
+                clauses.add(generator.generateProblem(errorss));}
             return clauses;});
         parameters.setDescription("Loads a single file or all files in a directory.");
-
+        if(!errors.isEmpty()) {
+            System.err.println("CNFReader: Errors in makeGlobalParameters:\n"+errors.toString());
+            System.exit(1);}
         return parameters;
     }
         /** creates a CNFReader for the given file

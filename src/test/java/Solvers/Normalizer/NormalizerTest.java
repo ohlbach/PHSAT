@@ -35,7 +35,7 @@ public class NormalizerTest extends TestCase {
         int predicates = 5;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses, clauseList, model);
         int[] c1 = {1, nand, 1, 2, -3};
         nom.transformConjunction(c1);
         assertEquals("1,2,-3", model.toString(null));
@@ -50,7 +50,7 @@ public class NormalizerTest extends TestCase {
         int predicates = 5;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses, clauseList,model);
         int[] c1 = {1, neq, 1, 2, -3};
         nom.transformEquivalence(c1);
         assertEquals("1: 1 = 2 = -3",nom.equivalences.get(0).toString(null));
@@ -73,7 +73,7 @@ public class NormalizerTest extends TestCase {
         int predicates = 10;
         InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
         Model model = new Model(predicates);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses,clauseList, model);
         int[] c1 = {1, nor, 1, 2, -3};
         nom.transformAndSimplify(c1);
         assertEquals("  1: 1v2v-3\n",nom.clauseList.toString("clauses", null));
@@ -105,7 +105,7 @@ public class NormalizerTest extends TestCase {
         PythagoraenTriples ptr = new PythagoraenTriples(3, max);
         InputClauses inputClauses = ptr.generateProblem(errors);
         Model model = new Model(max);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses,clauseList, model);
 
         try{nom.normalizeClauses();}
         catch(Result result) {assertTrue(result instanceof Satisfiable);}
@@ -137,7 +137,7 @@ public class NormalizerTest extends TestCase {
         InputClauses inputClauses = rpg.generateProblem(errors);
         System.out.println(inputClauses);
         Model model = new Model(predicates);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses,clauseList, model);
 
         try{nom.normalizeClauses();}
         catch(Result result) {System.out.println(result);}
@@ -165,7 +165,7 @@ public class NormalizerTest extends TestCase {
         InputClauses inputClauses = rpg.generateProblem(errors);
         System.out.println(inputClauses);
         Model model = new Model(predicates);
-        nom.initialize(inputClauses, model);
+        nom.initialize(inputClauses,clauseList, model);
 
         clauseList = null;
         try{clauseList = nom.normalizeClauses();}

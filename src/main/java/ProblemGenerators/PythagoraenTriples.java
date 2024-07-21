@@ -82,14 +82,14 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @return a Parameters object containing the required parameters and their configurations.
      */
     public static Parameters makeParameter() {
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,"false",false,
                 "Select the Pythagoraen Set Generator");
 
-        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String,
+        Parameter minimum = new Parameter("Smallest Number", Parameter.DisplayType.String,
                 Integer.toString(minimumDefault.getInt(0)),minimumDefault,
                 "smallest z with x^2 + y^2 = z^2");
         minimum.setParser((String min, StringBuilder errors) ->  parseIntRange(min,5,errors));
-        Parameter maximum = new Parameter("Largest Number",Parameter.Type.String,
+        Parameter maximum = new Parameter("Largest Number", Parameter.DisplayType.String,
                 Integer.toString(maximumDefault.get(0)),maximumDefault,
                 "largest z with x^2 + y^2 = z^2");
         maximum.setParser((String max, StringBuilder errors) ->  parseIntRange(max,5,errors));

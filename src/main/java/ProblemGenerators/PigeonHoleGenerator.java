@@ -5,6 +5,7 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import Management.Parameter;
 import Management.Parameters;
+import Management.ValueType;
 import Utilities.Interval;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -40,6 +41,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
 
     /** the default value for the capacity, to be overwritten by setDefaults */
     private static ArrayList<Object[]> capacityDefault = new ArrayList<>();
+
     static {capacityDefault.add(new Object[]{Quantifier.EXACTLY,1});}
     /** the capacity of the holes [connective,amount] */
     private final Object[] capacity;
@@ -66,8 +68,8 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 String value = parts[1];
                 switch(variable.toLowerCase()) {
                     case "pigeons":  pigeonsDefault  = Integer.parseInt(value); break;
-                    case "holes":    holesDefault    = Integer.parseInt(value) ; break;
-                    case "capacity": capacityDefault = parseCapacity(value,errors);
+                    case "holes":    holesDefault    = Integer.parseInt(value) ; break; // nicht optimal
+                    case "capacity": capacityDefault = (ArrayList<Object[]>)new ValueType.IntRanges(true,1,Integer.MAX_VALUE).parseValue(value,errors);
                         if(!errors.isEmpty()) {
                             System.err.println("Default Parameters for PigeonHoleGenerator");
                             System.err.println(errors.toString());
@@ -95,25 +97,24 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @return the created Parameters object
      */
     public static Parameters makeParameter() {
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        StringBuilder errors = new StringBuilder();
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
+                new ValueType.Booleans(),"false",errors,
                 "Select the Pigeon Hole Clause Set Generator");
 
-        Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, Integer.toString(pigeonsDefault),
-                IntArrayList.wrap(new int[]{3}),
+        Parameter pigeons = new Parameter("Pigeons", Parameter.DisplayType.String,
+                new ValueType.Integers(3,Integer.MAX_VALUE,true),Integer.toString(pigeonsDefault), errors,
                 "Number of pigeons (atleast 3)");
-        pigeons.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,3,errors));
 
-        Parameter holes = new Parameter("Holes",Parameter.Type.String, Integer.toString(holesDefault),
-                IntArrayList.wrap(new int[]{2}),
+        Parameter holes = new Parameter("Holes", Parameter.DisplayType.String,
+                new ValueType.Integers(3,Integer.MAX_VALUE,true),Integer.toString(holesDefault),errors,
                 "Number of holes (atleast 2)");
-        holes.setParser((String numbers, StringBuilder errors) ->  Utilities.parseIntRange(numbers,2,errors));
-        Parameter capacity = new Parameter("Capacity",Parameter.Type.String,
-                capacityString(capacityDefault.get(0)),capacityDefault,
+        Parameter capacity = new Parameter("Capacity", Parameter.DisplayType.String,
+                new ValueType.IntRanges(true,1,Integer.MAX_VALUE),capacityDefault.toString(), errors,
                 "HoleCapacity, i.e. number of pigeons per hole.\n" +
                         "Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount\n"+
                         "Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)\n"+
                         "Each alternative generates a new clause set.");
-        capacity.setParser((String cap, StringBuilder errors) ->  {return parseCapacity(cap,errors);});
 
         Parameters parameters = new Parameters("Pigeon Hole Generator");
         parameters.add(selected);
@@ -131,79 +132,17 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 "capacities:  comma separated: either [min,max] or < or <= amout or > or >= amount or just amount.\n"+
                 "             Example: 2,[1,2],>3,<= 5");
 
-        parameters.setOperation((Parameters params, StringBuilder errors) -> {
+        parameters.setOperation((Parameters params, StringBuilder errorss) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
             makeProblemGenerators(params, generators);
             ArrayList<InputClauses> clauses = new ArrayList<>();
             for(ProblemGenerator generator : generators) {
-                clauses.add(generator.generateProblem(errors));}
+                clauses.add(generator.generateProblem(errorss));}
             return clauses;});
+        if(!errors.isEmpty()) {
+            System.err.println("PigeonHoleGenerator: Errors in makeParameter:\n"+errors.toString());
+            System.exit(1);}
         return parameters;}
-
-    /**
-     * Parses the capacity string and returns an ArrayList of Object arrays representing the parsed capacities.
-     * If there are any errors during parsing, they are appended to the provided StringBuilder.
-     *
-     * @param capacity the capacity string to parse
-     * @param errors a StringBuilder to append any errors encountered during parsing
-     * @return an ArrayList of Object arrays representing the parsed capacities
-     */
-    public static ArrayList<Object[]> parseCapacity(String capacity, StringBuilder errors) {
-        ArrayList<Object[]> capacities = new ArrayList<>();
-        capacity = capacity.trim();
-        try{
-            int cap = Integer.parseInt(capacity);
-            capacities.add(new Object[]{Quantifier.EXACTLY, cap});
-            return capacities;}
-        catch(NumberFormatException ignore) {}
-
-        String[] parts = capacity.split("\\s*,\\s*");
-        int length = parts.length;
-        boolean erraneous = false;
-        for(int i = 0; i < length; i++) {
-            String part = parts[i];
-            try{int cap = Integer.parseInt(part);
-                capacities.add(new Object[]{Quantifier.EXACTLY, cap});
-                continue;}
-            catch(NumberFormatException ignored) {}
-            if(part.charAt(0) == '[') {
-                if(i == length-1) {errors.append("malformed interval in " + capacity); return null;}
-                if (!parts[i+1].endsWith("]")) {errors.append("malformed interval in " + capacity);
-                    erraneous = true; i +=2; continue;}
-                try{
-                    int minCapacity = Integer.parseInt(part.substring(1));
-                    int maxCapacity = Integer.parseInt(parts[i+1].substring(0, parts[i+1].length() - 1));
-                        capacities.add(new Object[]{Quantifier.INTERVAL, new Interval(minCapacity, maxCapacity)});}
-                catch(NumberFormatException ex) {
-                    errors.append("malformed interval in " + capacity); erraneous = true; i +=2; continue;}
-                ++i;
-                continue;}
-            try{
-                int limit;
-                switch(part.charAt(0)) {
-                    case '<':
-                        if(part.charAt(1) == '=') {limit = Integer.parseInt(part.substring(2).trim());}
-                        else {limit = Integer.parseInt(part.substring(1).trim())-1;}
-                        if(limit < 1) {
-                            errors.append("malformed interval in " + capacity); erraneous = true; continue;}
-                        capacities.add(new Object[]{Quantifier.ATMOST,limit});
-                        break;
-
-                    case '>':
-                        if(part.charAt(1) == '=') {limit = Integer.parseInt(part.substring(2).trim());}
-                        else {limit = Integer.parseInt(part.substring(1).trim())+1;}
-                        if(limit < 1) {
-                            errors.append("malformed interval in " + capacity); erraneous = true; continue;}
-                        capacities.add(new Object[]{Quantifier.ATLEAST,limit});
-                        break;
-
-                    default: errors.append("malformed interval in " + capacity); erraneous = true;
-                }}
-            catch(Exception ex) {
-                errors.append("malformed capacity in " + capacity); erraneous = true; i +=2;
-            }}
-        return erraneous ? null : capacities;
-    }
 
     /**
      * Generates and adds new problem generators based on the provided parameters.

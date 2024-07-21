@@ -118,11 +118,11 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      */
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Random Clause Set Generator");
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,"false",false,
                 "Select the Random Clause Set Generator");
         parameters.add(selected);
 
-        Parameter predicates = new Parameter("Predicates",Parameter.Type.String, Integer.toString(predicatesDefault),
+        Parameter predicates = new Parameter("Predicates", Parameter.DisplayType.String, Integer.toString(predicatesDefault),
                 IntArrayList.wrap(new int[]{predicatesDefault}),
                 """
                         Number of predicates (atleast 1)
@@ -139,68 +139,68 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
         String lengthStrings = Parameter.valueString(lengthDefault);
         ArrayList<int[]> le = new ArrayList<>(); le.add(lengthDefault);
-        Parameter length = new Parameter("Length", Parameter.Type.String, lengthStrings,le,
+        Parameter length = new Parameter("Length", Parameter.DisplayType.String, lengthStrings,le,
                 "Length of clauses: length or min-max (atleast 1)\n"+
                 "Examples: 3 (3 predicates in a clause), 2-3 (2 or 3 predicates in a clause). ");
         length.setParser((String lengthString, StringBuilder errors) -> parseLength(lengthString,errors));
         parameters.add(length);
 
-        Parameter redundant = new Parameter("Redundant", Parameter.Type.Boolean, ""+redundantDefault,
+        Parameter redundant = new Parameter("Redundant", Parameter.DisplayType.Boolean, ""+redundantDefault,
                 redundantDefault,
                 "Generate redundant clauses\n"+
                 "If false then multiple and complementary occurrences of predicates are avoided.");
         parameters.add(redundant);
 
-        Parameter ors = new Parameter("Ors", Parameter.Type.String, Integer.toString(orsDefault),
+        Parameter ors = new Parameter("Ors", Parameter.DisplayType.String, Integer.toString(orsDefault),
                 IntArrayList.wrap(new int[]{orsDefault}),
                 "Number of OR clauses (disjunctions)\n"+
                 "Atleast 1 literal must be true to make the clause true.");
         ors.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(ors);
 
-        Parameter ands = new Parameter("Ands", Parameter.Type.String, Integer.toString(andsDefault),
+        Parameter ands = new Parameter("Ands", Parameter.DisplayType.String, Integer.toString(andsDefault),
                 IntArrayList.wrap(new int[]{andsDefault}),
                 "Number of AND clauses (conjunction)\n"+
                 "All predicates must be true to make the clause true.");
         ands.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(ands);
 
-        Parameter equivs = new Parameter("Equivs", Parameter.Type.String, Integer.toString(equivsDefault),
+        Parameter equivs = new Parameter("Equivs", Parameter.DisplayType.String, Integer.toString(equivsDefault),
                 IntArrayList.wrap(new int[]{equivsDefault}),
                 "Number of EQUIV clauses\n"+
                 "The predicates of an equivalence must either all be true or all be false.");
         equivs.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(equivs);
 
-        Parameter atleasts = new Parameter("Atleasts", Parameter.Type.String, Integer.toString(atleastsDefault),
+        Parameter atleasts = new Parameter("Atleasts", Parameter.DisplayType.String, Integer.toString(atleastsDefault),
                 IntArrayList.wrap(new int[]{atleastsDefault}),
                 "Number of ATLEAST clauses\n"+
                 "A clause 'atleast n p_1,...' is true if atleast n of the predicates are true.");
         atleasts.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(atleasts);
 
-        Parameter atmosts = new Parameter("Atmosts", Parameter.Type.String, Integer.toString(atmostsDefault),
+        Parameter atmosts = new Parameter("Atmosts", Parameter.DisplayType.String, Integer.toString(atmostsDefault),
                 IntArrayList.wrap(new int[]{atmostsDefault}),
                 "Number of ATMOST clauses\n"+
                         "A clause 'atmost n p_1,...' is true if atmost n of the predicates are true.");
         atmosts.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(atmosts);
 
-        Parameter exactlies = new Parameter("Exactlies", Parameter.Type.String, Integer.toString(exactliesDefault),
+        Parameter exactlies = new Parameter("Exactlies", Parameter.DisplayType.String, Integer.toString(exactliesDefault),
                 IntArrayList.wrap(new int[]{exactliesDefault}),
                 "Number of EXACTLY clauses\n"+
                 "A clause '= n p_1,...' is true if exactly n predicates in the clause is true.");
         exactlies.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(exactlies);
 
-        Parameter intervals = new Parameter("Intervals", Parameter.Type.String, Integer.toString(intervalsDefault),
+        Parameter intervals = new Parameter("Intervals", Parameter.DisplayType.String, Integer.toString(intervalsDefault),
                 IntArrayList.wrap(new int[]{intervalsDefault}),
                 "Number of INTERVAL clauses\n"+
                 "An interval clause '[n,m] p_1,...' is true if between n and m predicates are true.");
         intervals.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(intervals);
 
-        Parameter seed = new Parameter("Seed", Parameter.Type.String, Integer.toString(seedDefault),
+        Parameter seed = new Parameter("Seed", Parameter.DisplayType.String, Integer.toString(seedDefault),
                 IntArrayList.wrap(new int[]{seedDefault}),
                 "Seed for random number generator (non-negative integer)");
         seed.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0, errors));

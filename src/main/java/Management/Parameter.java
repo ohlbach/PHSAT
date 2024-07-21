@@ -22,11 +22,13 @@ public class Parameter {
      *  - Frame:  one of the choices in oneOf parameters: print output into a frame<br>
      *  - Boolean: a boolean choice.
      */
-    public enum Type {String,OneOf,Label,Button,File,Directory,Frame,Boolean}
+    public enum DisplayType {String,OneOf,Label,Button,File,Directory,Frame,Boolean}
     /** name of the parameter (displayed in the GUI)*/
     public String name;
     /** type of the parameter */
-    public Type type;
+    public DisplayType displayType;
+    /** the type of the parameter values */
+    public ValueType valueType;
     /** the value as a String */
     public String valueString;
     /** the parsed valueString. It may be any object */
@@ -45,33 +47,21 @@ public class Parameter {
      * Parameter represents a parameter with its name, type, value, valueString, and description.
      *
      * @param name         the name of the parameter
-     * @param type         the type of the parameter (String, OneOf, Label, File, Directory, Frame, Boolean)
+     * @param displayType  the type of the parameter (String, OneOf, Label, File, Directory, Frame, Boolean)
      * @param valueString  the string representation of the parameter value
-     * @param value        the actual value of the parameter
+     * @param errors       for adding error messages
      * @param description  the description of the parameter
      */
-    public Parameter(String name, Type type, String valueString, Object value, String description) {
+    public Parameter(String name, DisplayType displayType, ValueType valueType, String valueString,
+                     StringBuilder errors,
+                     String description) {
         this.name = name;
-        this.type = type;
+        this.displayType = displayType;
+        this.valueType = valueType;
         this.valueString = valueString == null ? name : valueString;
-        this.value = value;
+        this.value = valueString == null ? null: valueType.parseValue(valueString,errors);
         this.description = description;
     }
-    /**Parameter represents a parameter with its name, type, value, valueString, and description.
-     *
-     * @param name         the name of the parameter
-     * @param type         the type of the parameter (String, OneOf, Label, File, Directory, Frame, Boolean)
-     * @param valueString  the string representation of the parameter value. value is set to valueString
-     * @param description  the description of the parameter
-     */
-    public Parameter(String name, Type type, String valueString, String description) {
-        this.name = name;
-        this.type = type;
-        this.valueString = valueString == null ? name : valueString;
-        this.value = valueString;
-        this.description = description;
-    }
-
 
     /** Sets the parser for this instance of the Parameter class.
      *
@@ -91,7 +81,7 @@ public class Parameter {
      * @return A new Parameter object that is an exact copy of the current Parameter object.
      */
     public Parameter clone() {
-        Parameter cloned = new Parameter(name, type, valueString, value, description);
+        Parameter cloned = new Parameter(name, displayType, valueType, valueString, null, description);
         cloned.updater = updater;
         cloned.parser = parser;
         if(parameters != null) {cloned.parameters = parameters.clone();}

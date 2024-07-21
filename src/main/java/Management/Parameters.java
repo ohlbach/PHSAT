@@ -115,8 +115,11 @@ public class Parameters {
             for(Parameter parameter : parameters) {
                 if(parameter.name.equals(name)) {
                     parameter.valueString = parts[1];
-                    parameter.value = (parameter.parser == null) ?
-                            parts[1] : parameter.parser.apply(parts[1],errors);
+                    if (parameter.displayType == Parameter.DisplayType.Boolean) {
+                        parameter.value = Boolean.parseBoolean(parts[1]);}
+                    else
+                        parameter.value = (parameter.parser == null) ?
+                                parts[1] : parameter.parser.apply(parts[1],errors);
                     if(parameter.updater != null) parameter.updater.accept(parts[1]);}}
             line = reader.readLine();}}
 

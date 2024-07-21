@@ -40,11 +40,11 @@ public enum Quantifier {
 
     /** returns for the given number the corresponding connective.
      *
-     * @param ordninal any number
+     * @param ordinal any number
      * @return null or the corresponding type
      */
-    public static Quantifier getQuantifier(int ordninal) {
-        switch(ordninal) {
+    public static Quantifier getQuantifier(int ordinal) {
+        switch(ordinal) {
             case 0: return OR;
             case 1: return AND;
             case 2: return EQUIV;

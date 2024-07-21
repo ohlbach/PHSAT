@@ -26,6 +26,8 @@ import java.util.function.BiFunction;
 
 public class Frame {
 
+
+
     static JFrame frame;
     static BlockingQueue<Object> queue = new LinkedBlockingQueue();
     public static Parameters globalParams = GlobalParameters.makeGlobalParameters();
@@ -101,7 +103,7 @@ public class Frame {
                         String projectName = recentProjects.get(i)[0];
                         String projectFile = recentProjects.get(i)[1];
                         JMenuItem menuItem = new JMenuItem(projectName);
-                        menuItem.addActionListener(e1 -> loadParameters(new File(projectFile)));
+                        menuItem.addActionListener(e1 -> loadParameters(new File(projectFile),false));
                         menu.add(menuItem);}
                     menu.show(e.getComponent(), e.getX(), e.getY());}});}
         westPane.add(recentLabel);
@@ -203,9 +205,9 @@ public class Frame {
         chooser.setDialogTitle("Select a file with the parameters");
         int result = chooser.showOpenDialog(null);
         if(result == JFileChooser.APPROVE_OPTION) {
-            loadParameters(chooser.getSelectedFile());}}
+            loadParameters(chooser.getSelectedFile(),false);}}
 
-    private static void loadParameters(File file) {
+    private static void loadParameters(File file, boolean life) {
         try{
             StringBuilder errors = new StringBuilder();
             InputStream input = new FileInputStream(file);
@@ -229,15 +231,20 @@ public class Frame {
                         if(line.startsWith(p.name)) {found = true; p.loadParameters(bufferedReader,errors);}}
                     if(!found) errors.append("unknown solver " + line);}}
             if(!errors.toString().isEmpty()) {
-                JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
+                if(life) System.out.println(errors.toString());
+                else JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
             input.close();
         }
         catch(Exception e) {
-            JOptionPane.showMessageDialog(null, e, "Error", JOptionPane.INFORMATION_MESSAGE);
+            if(life) System.out.println(e.toString());
+            else JOptionPane.showMessageDialog(null, e, "Error", JOptionPane.INFORMATION_MESSAGE);
             loadParameters();}
+        if(life) {
+            System.out.println("Parameters loaded from " + file.getAbsolutePath());}
+        else {
         frame.repaint();
-        JOptionPane.showMessageDialog(null, "Parameters loaded from " +
-                file.getAbsolutePath() , "Loaded", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Parameters loaded from " +
+                    file.getAbsolutePath() , "Loaded", JOptionPane.INFORMATION_MESSAGE);}
     }
 
 
@@ -283,7 +290,7 @@ public class Frame {
             solverPane.add(solverName);
             for(Parameter parameter : p.parameters) {
                 JPanel panel = null;
-                switch(parameter.type) {
+                switch(parameter.displayType) {
                     case String: panel = textField(parameter,p);
                         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                         solverPane.add(panel);
@@ -399,7 +406,7 @@ public class Frame {
             parametersPanel.add(textArea);}
         for (Parameter parameter : parameters.parameters) {
             JPanel panel = null;
-            switch(parameter.type) {
+            switch(parameter.displayType) {
                 case String: panel = textField(parameter,parameters);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel);
@@ -620,13 +627,10 @@ public class Frame {
     }
 
     public static void main(String[] args)  {
-
         Locale.setDefault(Locale.US);
-        System.out.println("START");
-        openFrame();
-        while(queue.isEmpty()) {}
-        queue.clear();
-        System.out.println( globalParams.parameters.toString());
+        File file = new File(System.getProperty("user.home")+"\\QuSat\\TestDir\\Test.txt");
+        loadParameters(file,true);
+        runQuSatSolver();
     }
 
 

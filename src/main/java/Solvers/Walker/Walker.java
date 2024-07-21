@@ -11,6 +11,7 @@ import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
+import Management.ValueType;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -97,28 +98,34 @@ public class Walker extends Solver {
             errors.append("Walker: " + e.getMessage());}}
 
     public static Parameters makeParameter() {
+        StringBuilder errors = new StringBuilder();
         Parameters parameters = new Parameters("Walker");
-        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
+                new ValueType.Booleans(),
+                "false",errors,
                 "Select the Walker Solver");
         parameters.add(selected);
-        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(maxFlipsDefault),
-                IntArrayList.wrap(new int[]{maxFlipsDefault}),
+        Parameter maxFlips = new Parameter("MaxFlips", Parameter.DisplayType.String,
+                new ValueType.Integers(1,maxFlipsDefault,true),
+                Integer.toString(maxFlipsDefault),errors,
                 "The maximum number of flips at which the search is stopped.");
-        maxFlips.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,1,errors));
-        parameters.add(maxFlips);
+       parameters.add(maxFlips);
 
-        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, Integer.toString(jumpFrequencyDefault),
-                IntArrayList.wrap(new int[]{jumpFrequencyDefault}),
+        Parameter jumps = new Parameter("Jump Frequency", Parameter.DisplayType.String,
+                new ValueType.Integers(2,Integer.MAX_VALUE,true),
+                Integer.toString(jumpFrequencyDefault),errors,
                 "Random flips are performed in this frequency");
-        jumps.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,2,errors));
         parameters.add(jumps);
 
-        Parameter seed = new Parameter("Seed", Parameter.Type.String, Integer.toString(seedDefault),
-                IntArrayList.wrap(new int[]{seedDefault}),
+        Parameter seed = new Parameter("Seed", Parameter.DisplayType.String,
+                new ValueType.Integers(0,Integer.MAX_VALUE,true),
+                Integer.toString(seedDefault),errors,
                 "The seed for the random number generator");
-        seed.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,0,errors));
         parameters.add(seed);
         parameters.setDescription("Random search for a model (is incomplete for unsatisfiable clauses)");
+        if(!errors.isEmpty()) {
+            System.err.println("Walker: Errors in makeGlobalParameters:\n"+errors.toString());
+            System.exit(1);}
         return parameters;
     }
 
