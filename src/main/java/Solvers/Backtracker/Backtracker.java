@@ -14,9 +14,9 @@ import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
+import Datastructures.ValueType;
 import Solvers.InterruptReason;
 import Solvers.Solver;
-import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -107,31 +107,31 @@ public class Backtracker extends Solver {
      */
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Backtracker");
-        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,new ValueType.Booleans(),false,
                 "Select the Backtracker");
         parameters.add(selected);
+        ValueType boolType = new ValueType.Booleans(false);
         boolean arrangement = arrangementDefault == 1;
-        parameters.add(new Parameter("Up-sequence", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Up-sequence", Parameter.DisplayType.Boolean,boolType, arrangement,
                 "Predicates in ascending order (1,2,3,...)"));
         arrangement = arrangementDefault == 2;
-        parameters.add(new Parameter("Down-sequence", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Down-sequence", Parameter.DisplayType.Boolean,boolType, arrangement,
                 "Predicates in decending order (...3,2,1)"));
         arrangement = arrangementDefault == 3;
-        parameters.add(new Parameter("More-first", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("More-first", Parameter.DisplayType.Boolean,boolType, arrangement,
                 "Predicates: more predicates first"));
         arrangement = arrangementDefault == 4;
-        parameters.add(new Parameter("Less-first", Parameter.DisplayType.Boolean,""+arrangement, arrangement,
+        parameters.add(new Parameter("Less-first", Parameter.DisplayType.Boolean,boolType, arrangement,
                 "Predicates: less predicates first"));
-        Parameter seed = new Parameter("Seed", Parameter.DisplayType.String, ""+seedDefault,
-                IntArrayList.wrap(new int[]{seedDefault}),
+        Parameter seed = new Parameter("Seed", Parameter.DisplayType.String,
+                new ValueType.Integers(0,true),seedDefault,
                 "Seed for random number generator (integer >= -1)");
-        seed.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, -1, errors));
         parameters.add(seed);
         parameters.add(new Parameter("PositiveFirst", Parameter.DisplayType.Boolean,
-                ""+(firstSignDefault==1),firstSignDefault==1,
+                boolType,firstSignDefault==1,
                 "Try positive predicates first"));
         parameters.add(new Parameter("NegativeFirst", Parameter.DisplayType.Boolean,
-                ""+(firstSignDefault==-1),firstSignDefault==-1,
+                boolType,firstSignDefault==-1,
                 "Try negative predicates first"));
         parameters.setDescription("Backtracking search (kind of Davis-Putnam Procedure)");
         return parameters;

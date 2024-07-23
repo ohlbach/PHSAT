@@ -1,5 +1,7 @@
 package Management.Monitor;
 
+import Management.GIU.OutputType;
+
 import java.nio.file.Path;
 
 /** This is an abstract class for implementing monitors.
@@ -44,13 +46,13 @@ public abstract class Monitor {
      * @param startTime in Nanoseconds
      * @return a monitor.
      */
-    public static Monitor getMonitor(String title, String type, boolean separate, Path directory,  long startTime) {
+    public static Monitor getMonitor(String title, OutputType type, boolean separate, Path directory, long startTime) {
         Monitor monitor = null;
         switch (type) {
-            case "none":    return null;
-            case "life":    monitor = new MonitorLife(title, startTime); break;
-            case "file":    monitor = new MonitorFile(title, separate,startTime, directory); break;
-            case "frame":   monitor = new MonitorFrame("Monitor for "+title, separate,startTime);}
+            case NONE:    return null;
+            case LIFE:    monitor = new MonitorLife(title, startTime); break;
+            case FILE:    monitor = new MonitorFile(title, separate,startTime, directory); break;
+            case FRAME:   monitor = new MonitorFrame("Monitor for "+title, separate,startTime);}
        return monitor;}
 
     /** initializes the monitor for a new problem.

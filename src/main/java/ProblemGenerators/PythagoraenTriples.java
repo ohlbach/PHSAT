@@ -4,6 +4,7 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Management.Parameter;
 import Management.Parameters;
+import Datastructures.ValueType;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -14,7 +15,7 @@ import java.util.HashSet;
 import static Utilities.Utilities.*;
 
 /** Generates the Coloring Problem for Pythagoraen Triples.
- *
+ * <p>
  * A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2. <br>
  "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2 <br>
  "The problem is: is it possible to colour the numbers of all triples up to a given number
@@ -46,7 +47,6 @@ public class PythagoraenTriples extends ProblemGenerator{
      * The method is called in ProblemGenerator
      *
      * @param defaults the list of default values
-     * @return void
      */
     public static void setDefaults(ArrayList<String> defaults) {
         if(defaults == null) {return;}
@@ -62,7 +62,7 @@ public class PythagoraenTriples extends ProblemGenerator{
                     case "maximum":  maximumDefault  = parseIntRange(value,5,errors); break;
                     }}
             if(!errors.isEmpty()) {
-                System.err.println("Error in Pythagoraen Triples Defaults:\n"+  errors.toString());
+                System.err.println("Error in Pythagoraen Triples Defaults:\n"+ errors);
                 System.exit(1);}
         }
         catch(NumberFormatException e) {
@@ -71,7 +71,7 @@ public class PythagoraenTriples extends ProblemGenerator{
     }
 
     /**Creates and returns a Parameters object for the makeParameter method.
-     *
+     *<p>
      * Two parameters are created: <br>
      * - minimum, a single integer &ge; 3<br>
      * - maximum, a range of integers. Each individual integer causes a separate set of clauses to be generated.<br>
@@ -82,17 +82,15 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @return a Parameters object containing the required parameters and their configurations.
      */
     public static Parameters makeParameter() {
-        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,"false",false,
+        Parameter selected = new Parameter("Select", Parameter.DisplayType.Button, new ValueType.Booleans(),false,
                 "Select the Pythagoraen Set Generator");
 
         Parameter minimum = new Parameter("Smallest Number", Parameter.DisplayType.String,
-                Integer.toString(minimumDefault.getInt(0)),minimumDefault,
+                new ValueType.Integers(5,10000,false),minimumDefault,
                 "smallest z with x^2 + y^2 = z^2");
-        minimum.setParser((String min, StringBuilder errors) ->  parseIntRange(min,5,errors));
         Parameter maximum = new Parameter("Largest Number", Parameter.DisplayType.String,
-                Integer.toString(maximumDefault.get(0)),maximumDefault,
+                new ValueType.Integers(5,10000,false),maximumDefault,
                 "largest z with x^2 + y^2 = z^2");
-        maximum.setParser((String max, StringBuilder errors) ->  parseIntRange(max,5,errors));
         Parameters parameters = new Parameters("Pythagoraen Triples");
         parameters.add(selected);
         parameters.add(minimum);
@@ -158,14 +156,14 @@ public class PythagoraenTriples extends ProblemGenerator{
         assert parameters != null;
         IntArrayList smallest = (IntArrayList) parameters.parameters.get(1).value;
         IntArrayList largest = (IntArrayList) parameters.parameters.get(2).value;
-        for (ArrayList<Object> p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(smallest), toArrayList(largest))) {
+        for (ArrayList p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(smallest), toArrayList(largest))) {
             int min = (int) p.get(0);
             int max = (int) p.get(1);
             generators.add(new PythagoraenTriples(min,max));}}
 
 
     /** generates the clauses for the problem.
-     *
+     * <p>
      * Example for maximum = 17:<br>
      * [1,2] 3,4,5   <br>
      * [1,2] 6,8,10  <br>

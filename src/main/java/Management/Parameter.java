@@ -1,5 +1,7 @@
 package Management;
 
+import Datastructures.ValueType;
+
 import java.util.ArrayList;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -48,29 +50,17 @@ public class Parameter {
      *
      * @param name         the name of the parameter
      * @param displayType  the type of the parameter (String, OneOf, Label, File, Directory, Frame, Boolean)
-     * @param valueString  the string representation of the parameter value
-     * @param errors       for adding error messages
      * @param description  the description of the parameter
      */
-    public Parameter(String name, DisplayType displayType, ValueType valueType, String valueString,
-                     StringBuilder errors,
-                     String description) {
+    public Parameter(String name, DisplayType displayType, ValueType valueType, Object value, String description) {
         this.name = name;
         this.displayType = displayType;
         this.valueType = valueType;
-        this.valueString = valueString == null ? name : valueString;
-        this.value = valueString == null ? null: valueType.parseValue(valueString,errors);
+        this.value = value;
+        this.valueString = value == null ? null : valueType.toString(value);
         this.description = description;
     }
 
-    /** Sets the parser for this instance of the Parameter class.
-     *
-     * @param parser the parser to be set. It should be a BiFunction that takes a String and a StringBuilder as input parameters, and returns an Object.
-     *               The parser is responsible for parsing the String representation of a value and converting it to the corresponding Object representation.
-     *               The StringBuilder parameter can be used to append any error messages during parsing.
-     */
-    public void setParser(BiFunction<String,StringBuilder,Object> parser) {
-        this.parser = parser;}
 
 
     /**
@@ -81,7 +71,7 @@ public class Parameter {
      * @return A new Parameter object that is an exact copy of the current Parameter object.
      */
     public Parameter clone() {
-        Parameter cloned = new Parameter(name, displayType, valueType, valueString, null, description);
+        Parameter cloned = new Parameter(name, displayType, valueType, value, description);
         cloned.updater = updater;
         cloned.parser = parser;
         if(parameters != null) {cloned.parameters = parameters.clone();}

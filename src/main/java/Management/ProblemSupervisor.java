@@ -7,6 +7,7 @@ import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
+import Management.GIU.OutputType;
 import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Backtracker.PropagatorPool;
@@ -182,7 +183,7 @@ public class ProblemSupervisor {
      * @return the array of Statistics objects.
      */
     public static void printStatistics(GlobalParameters globalParameters, ArrayList<ProblemSupervisor> problemSupervisors) {
-       String statistics = globalParameters.statisticPrintType;
+       OutputType statistics = globalParameters.statisticPrintType;
 
     }
 

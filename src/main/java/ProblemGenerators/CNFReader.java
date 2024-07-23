@@ -3,7 +3,7 @@ package ProblemGenerators;
 import Datastructures.Clauses.InputClauses;
 import Management.Parameter;
 import Management.Parameters;
-import Management.ValueType;
+import Datastructures.ValueType;
 import Utilities.FileIterator;
 
 import java.io.File;
@@ -47,7 +47,7 @@ public final class CNFReader extends ProblemGenerator {
     public static Parameters makeParameter() {
         StringBuilder errors = new StringBuilder();
         Parameter file = new Parameter("CNF-File", Parameter.DisplayType.File,
-                new ValueType.Paths(),null,errors,
+                new ValueType.Paths(),null,
                 """
                 CNFReader for reading CNF-Files.
                 The parameters are:
@@ -76,7 +76,7 @@ public final class CNFReader extends ProblemGenerator {
                 No special symbol means 'or': 'p,q,r' means p or q or r""");
         Parameters parameters = new Parameters("CNF-Reader");
         Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
-                new ValueType.Booleans(),"false",errors,
+                new ValueType.Booleans(),false,
                 "Select the Clause File Generator");
         parameters.add(selected);
         parameters.add(file);

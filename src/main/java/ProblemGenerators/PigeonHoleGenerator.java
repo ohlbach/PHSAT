@@ -5,7 +5,7 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import Management.Parameter;
 import Management.Parameters;
-import Management.ValueType;
+import Datastructures.ValueType;
 import Utilities.Interval;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -69,7 +69,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 switch(variable.toLowerCase()) {
                     case "pigeons":  pigeonsDefault  = Integer.parseInt(value); break;
                     case "holes":    holesDefault    = Integer.parseInt(value) ; break; // nicht optimal
-                    case "capacity": capacityDefault = (ArrayList<Object[]>)new ValueType.IntRanges(true,1,Integer.MAX_VALUE).parseValue(value,errors);
+                    case "capacity": capacityDefault = (ArrayList<Object[]>)new ValueType.Quantifications(true,1,Integer.MAX_VALUE).parseValue(value,errors);
                         if(!errors.isEmpty()) {
                             System.err.println("Default Parameters for PigeonHoleGenerator");
                             System.err.println(errors.toString());
@@ -99,38 +99,40 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
     public static Parameters makeParameter() {
         StringBuilder errors = new StringBuilder();
         Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
-                new ValueType.Booleans(),"false",errors,
+                new ValueType.Booleans(),false,
                 "Select the Pigeon Hole Clause Set Generator");
 
         Parameter pigeons = new Parameter("Pigeons", Parameter.DisplayType.String,
-                new ValueType.Integers(3,Integer.MAX_VALUE,true),Integer.toString(pigeonsDefault), errors,
+                new ValueType.Integers(3,Integer.MAX_VALUE,true),pigeonsDefault,
                 "Number of pigeons (atleast 3)");
 
         Parameter holes = new Parameter("Holes", Parameter.DisplayType.String,
-                new ValueType.Integers(3,Integer.MAX_VALUE,true),Integer.toString(holesDefault),errors,
+                new ValueType.Integers(3,Integer.MAX_VALUE,true),holesDefault,
                 "Number of holes (atleast 2)");
         Parameter capacity = new Parameter("Capacity", Parameter.DisplayType.String,
-                new ValueType.IntRanges(true,1,Integer.MAX_VALUE),capacityDefault.toString(), errors,
-                "HoleCapacity, i.e. number of pigeons per hole.\n" +
-                        "Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount\n"+
-                        "Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)\n"+
-                        "Each alternative generates a new clause set.");
+                new ValueType.Quantifications(true,1,Integer.MAX_VALUE),capacityDefault,
+                """
+                        HoleCapacity, i.e. number of pigeons per hole.
+                        Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount
+                        Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)
+                        Each alternative generates a new clause set.""");
 
         Parameters parameters = new Parameters("Pigeon Hole Generator");
         parameters.add(selected);
         parameters.add(pigeons);
         parameters.add(holes);
         parameters.add(capacity);
-        parameters.setDescription("Pigeon Hole Problem:\n" +
-                "Can one put a number of pigeons into a given number or holes?\n" +
-                "Each pigeon must be put into exactly one hole.\n"+
-                "Each hole has a certain capacity for taking pigeons.\n"+
-                "The parameters are:\n"+
-                "pigeons:    range of pigeons\n" +
-                "holes:      range of holes.\n" +
-                "The ranges may be like '4,5,6' or '5 to 10' or '5 to 11 step 2'.\n" +
-                "capacities:  comma separated: either [min,max] or < or <= amout or > or >= amount or just amount.\n"+
-                "             Example: 2,[1,2],>3,<= 5");
+        parameters.setDescription("""
+                Pigeon Hole Problem:
+                Can one put a number of pigeons into a given number or holes?
+                Each pigeon must be put into exactly one hole.
+                Each hole has a certain capacity for taking pigeons.
+                The parameters are:
+                pigeons:    range of pigeons
+                holes:      range of holes.
+                The ranges may be like '4,5,6' or '5 to 10' or '5 to 11 step 2'.
+                capacities:  comma separated: either [min,max] or < or <= amout or > or >= amount or just amount.
+                             Example: 2,[1,2],>3,<= 5""");
 
         parameters.setOperation((Parameters params, StringBuilder errorss) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
@@ -140,7 +142,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 clauses.add(generator.generateProblem(errorss));}
             return clauses;});
         if(!errors.isEmpty()) {
-            System.err.println("PigeonHoleGenerator: Errors in makeParameter:\n"+errors.toString());
+            System.err.println("PigeonHoleGenerator: Errors in makeParameter:\n"+ errors);
             System.exit(1);}
         return parameters;}
 
@@ -155,7 +157,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         IntArrayList pigeons = (IntArrayList) parameters.parameters.get(++i).value;
         IntArrayList holes = (IntArrayList) parameters.parameters.get(++i).value;
         ArrayList capacities = (ArrayList) parameters.parameters.get(++i).value;
-        for (ArrayList<Object> p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(holes), toArrayList(pigeons), capacities)) {
+        for (ArrayList p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(holes), toArrayList(pigeons), capacities)) {
             int holesv = (int) p.get(0);
             int pigeonsv = (int) p.get(1);
             Object[] capacityv = (Object[]) p.get(2);
@@ -243,7 +245,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         if(quantifier == Quantifier.INTERVAL) {
             Interval interval = (Interval)capacity[1];
             return "i" + interval.min + "_" + interval.max;}
-        else return quantifier.asciiName(quantifier)+(int)capacity[1];}
+        else return Quantifier.asciiName(quantifier)+(int)capacity[1];}
 
     /** turns the capacity into a string */
     private static String capacityString(Object[] capacity) {

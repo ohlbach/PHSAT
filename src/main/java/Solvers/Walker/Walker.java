@@ -11,7 +11,7 @@ import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
-import Management.ValueType;
+import Datastructures.ValueType;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -101,25 +101,21 @@ public class Walker extends Solver {
         StringBuilder errors = new StringBuilder();
         Parameters parameters = new Parameters("Walker");
         Parameter selected = new Parameter("Select", Parameter.DisplayType.Button,
-                new ValueType.Booleans(),
-                "false",errors,
+                new ValueType.Booleans(),false,
                 "Select the Walker Solver");
         parameters.add(selected);
         Parameter maxFlips = new Parameter("MaxFlips", Parameter.DisplayType.String,
-                new ValueType.Integers(1,maxFlipsDefault,true),
-                Integer.toString(maxFlipsDefault),errors,
+                new ValueType.Integers(1,maxFlipsDefault,true),maxFlipsDefault,
                 "The maximum number of flips at which the search is stopped.");
        parameters.add(maxFlips);
 
         Parameter jumps = new Parameter("Jump Frequency", Parameter.DisplayType.String,
-                new ValueType.Integers(2,Integer.MAX_VALUE,true),
-                Integer.toString(jumpFrequencyDefault),errors,
+                new ValueType.Integers(2,Integer.MAX_VALUE,true),jumpFrequencyDefault,
                 "Random flips are performed in this frequency");
         parameters.add(jumps);
 
         Parameter seed = new Parameter("Seed", Parameter.DisplayType.String,
-                new ValueType.Integers(0,Integer.MAX_VALUE,true),
-                Integer.toString(seedDefault),errors,
+                new ValueType.Integers(0,Integer.MAX_VALUE,true),seedDefault,
                 "The seed for the random number generator");
         parameters.add(seed);
         parameters.setDescription("Random search for a model (is incomplete for unsatisfiable clauses)");

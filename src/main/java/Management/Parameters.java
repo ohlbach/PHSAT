@@ -69,6 +69,18 @@ public class Parameters {
      */
     public void setFinalCheck(BiFunction<Parameters, StringBuilder, Boolean> finalCheck) {this.finalCheck = finalCheck;}
 
+    /** Finds the parameter with the given name.
+     * <br>
+     * The lowercase names are compared.
+     *
+     * @param name any parameter name
+     * @return null or the parameter with this name.
+     */
+    public Parameter getParameter(String name) {
+        name = name.toLowerCase();
+        for(Parameter parameter : parameters) {
+            if(name.equals(parameter.name.toLowerCase())) { return parameter;}}
+        return null;}
 
     /**Creates a deep copy of the current Parameters object.
      *
