@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class ValueTypeTest extends TestCase {
 
@@ -24,6 +25,8 @@ public class ValueTypeTest extends TestCase {
         assertEquals("test1", parts[0]);
         assertEquals("test2", parts[1]);
         assertEquals("test3", parts[2]);
+        System.out.println(type.toString(parts));
+        assertEquals(Arrays.toString(parts),  Arrays.toString((String[])type.parseValue(type.toString(parts),errors)));
 
         type = new ValueType.Strings(2);
         type.parseValue("test1 test2,test3",errors);
@@ -42,6 +45,7 @@ public class ValueTypeTest extends TestCase {
         assertFalse(b);
         assertEquals("true", type.toString(true));
         assertEquals("false", type.toString(false));
+        System.out.println(type.toString(b));
         type.parseValue(" Flase ", errors);
         System.out.println(errors.toString());
 
@@ -50,7 +54,7 @@ public class ValueTypeTest extends TestCase {
         assertEquals(2, bool.length);
         assertTrue(bool[1]);
         assertFalse(bool[0]);
-
+        assertEquals(Arrays.toString(bool),  Arrays.toString((boolean[])type.parseValue(type.toString(bool),errors)));
         errors = new StringBuilder();
         type.parseValue(" false,  true, false ", errors);
         System.out.println(errors.toString());
@@ -69,7 +73,7 @@ public class ValueTypeTest extends TestCase {
 
         type = new ValueType.Integers(true);
         IntArrayList nums = (IntArrayList) type.parseValue("1, 2, 3,4, 5", errors);
-
+        assertEquals(nums.toString(),  ((IntArrayList)type.parseValue(type.toString(nums),errors)).toString());
         assertEquals("1, 2, 3, 4, 5", type.toString(nums));
 
         errors = new StringBuilder();
@@ -134,14 +138,15 @@ public class ValueTypeTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         ValueType type = new ValueType.Quantifications();
         Object[] quantification = (Object[]) type.parseValue("1", errors);
-        assertEquals("[=, 1]",type.toString(quantification));
+        assertEquals("1",type.toString(quantification));
         quantification = (Object[]) type.parseValue("< 2", errors);
-        assertEquals("[<=, 1]",type.toString(quantification));
+        assertEquals("<= 1",type.toString(quantification));
 
         type = new ValueType.Quantifications(true);
         ArrayList <Object[]> quantifications = (ArrayList<Object[]>) type.parseValue("1,2,[3,4],< 5, <= 6, > 7, >= 8, 9 10", errors);
         System.out.println(errors);
-        assertEquals("[=, 1],[=, 2],[, 3, 4],[<=, 4],[<=, 6],[>=, 8],[>=, 8],[i, 9, 10]",type.toString(quantifications));
+        assertEquals("1,2,[3,4],<= 4,<= 6,>= 8,>= 8,9 10",type.toString(quantifications));
+        assertEquals(type.toString(quantifications), type.toString(type.parseValue(type.toString(quantifications),errors)));
 
         type = new ValueType.Quantifications(true,1,3);
         quantifications = (ArrayList<Object[]>) type.parseValue("1,2,[3,4],", errors);

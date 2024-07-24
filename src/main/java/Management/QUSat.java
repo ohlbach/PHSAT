@@ -1,7 +1,6 @@
 package Management;
 
 import Management.GIU.Frame;
-import Management.Monitor.MonitorFrame;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -42,11 +41,11 @@ public class QUSat {
      */
     public static void  main(String[] args)  {
         StringBuilder errors = new StringBuilder();
-        HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
+        /*HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
         MonitorFrame.setDefaults(moduleValues.get("window"),errors);
         GlobalParameters.setDefaults(moduleValues.get("global"),errors);
         ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
-        Solvers.Solver.setDefaults(moduleValues);
+        Solvers.Solver.setDefaults(moduleValues);*/
         if(!errors.isEmpty()) {
             System.err.println("Errors while parsing the default values:\n" + errors.toString());}
         else Frame.openFrame();

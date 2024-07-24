@@ -42,7 +42,9 @@ public abstract class ValueType {
         if(object instanceof IntArrayList) {
             String st = object.toString();
             return st.substring(1,st.length()-1);}
-        if(object.getClass().isArray()) return Arrays.toString((Object[])object);
+        if(object.getClass().isArray()) {
+            String st = Arrays.toString((Object[])object);
+            return st.substring(1,st.length()-1);}
         return object.toString();}
 
     /** This class represents string parameters, a single string or a list of strings.*/
@@ -137,7 +139,22 @@ public abstract class ValueType {
             if (parts[0].equalsIgnoreCase("true")) {return true;}
             if (parts[0].equalsIgnoreCase("false")) {return false;}
             errors.append("Type Booleans: unknown boolean value: " + parts[0] + "\n");
-            return null;}}
+            return null;}
+
+        /** turns the parameter value into a string
+         *
+         * @param object a parameter value
+         * @return the value as a string.
+         */
+        @Override
+        public String toString(Object object) {
+            if(object == null) return "";
+            if(object instanceof Boolean) {return object.toString();}
+            if(object.getClass().isArray()) {
+                String st = Arrays.toString((boolean[])object);
+                return st.substring(1,st.length()-1);}
+            return object.toString();}
+    }
 
     /** This class represents either a single integer value or a list of int-values.
      * The values may be constrained by minimum and maximum values, or by checkong the allowed values.
@@ -508,18 +525,39 @@ public abstract class ValueType {
         /** returns a String representation of the Quantification
          *
          * @param object a quantification
-         * @return a String representation of the Quantification
+         * @return a String representation of the Quantification. The result can be parsed again.
          */
         @Override
         public String toString(Object object) {
             if(object == null) return "";
             if(object.getClass().isArray()) {
-                return Arrays.deepToString((Object[]) object);}
+                return toStringQuantification((Object[])object);}
             if(object instanceof ArrayList) {
+                ArrayList<Object[]> obj = (ArrayList<Object[]>)object;
                 StringBuilder st = new StringBuilder();
-                for(Object o : (ArrayList) object) {
-                    st.append(Arrays.deepToString((Object[]) o)).append(",");}
-                String str = st.toString();
-                return str.substring(0, str.length()-1);}
-            return object.toString();}}
-    }
+                st.append(toStringQuantification(obj.get(0)));
+                for(int i = 1; i < obj.size(); i++) {
+                    st.append(",").append(toStringQuantification(obj.get(i)));}
+                return st.toString();}
+            return object.toString();}
+
+        /** turns a single quantification to a string
+         *
+         * @param quantification a single quantification
+         * @return the quantification as a string.
+         */
+        private String toStringQuantification(Object[] quantification) {
+            Quantifier quantifier = (Quantifier) quantification[0];
+            StringBuilder st = new StringBuilder();
+            switch(quantifier) {
+                case OR:
+                    st.append("[").append(quantification[1]);
+                    for(int i = 2; i < quantification.length; i++) st.append(",").append(quantification[i]);
+                    st.append("]");
+                    return st.toString();
+                case EXACTLY: return ""+quantification[1];
+                case ATMOST: return "<= "+quantification[1];
+                case ATLEAST: return ">= "+quantification[1];
+                case INTERVAL: return ""+quantification[1] + " " + quantification[2];}
+        return "";}
+    }}

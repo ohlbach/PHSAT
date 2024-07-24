@@ -97,7 +97,7 @@ public class Backtracker extends Solver {
                     firstSignDefault = parseIntRange(value,-1,1,errors);
                     if(firstSignDefault == 0) errors.append("firstSign " + value + " must not be 0");
                     break;
-                default: errors.append("Unknown parameter: ").append(variable);}
+                default: errors.append("Backtracker: unknown parameter: ").append(variable).append("\n");}
         }}
 
 

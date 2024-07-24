@@ -57,7 +57,7 @@ public class Parameter {
         this.displayType = displayType;
         this.valueType = valueType;
         this.value = value;
-        this.valueString = value == null ? null : valueType.toString(value);
+        this.valueString = value == null ? name : valueType.toString(value);
         this.description = description;
     }
 
