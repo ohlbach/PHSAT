@@ -137,8 +137,9 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                         The number of clause sets is the product of all the lengths of the ranges.""");
         parameters.add(predicates);
 
+
         Parameter length = new Parameter("Length", Parameter.DisplayType.String,
-                new ValueType.Integers(1,true),lengthDefault,
+                new ValueType.Integers(1,true),3,
                 "Length of clauses: length or min-max (atleast 1)\n" +
                         "Examples: 3 (3 predicates in a clause), 2 to 4 (2 or 3 or 4 predicates in a clause). ");
         parameters.add(length);

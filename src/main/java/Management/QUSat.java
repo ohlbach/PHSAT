@@ -2,10 +2,8 @@ package Management;
 
 import Management.GIU.Frame;
 
-import java.io.*;
+import java.io.File;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 /** This is the class with the main method for the QUSat system. <br>
  * QUSat solves SAT-problems for quantified propositional logic. <br>
@@ -32,7 +30,9 @@ import java.util.HashMap;
 public class QUSat {
 
     /** the name of the Default-file */
-    private static String defaultFile = "DefaultParameters.phs";
+    private static String defaultFileName = "DefaultParameters.txt";
+
+    public static File defaultFile = Paths.get(System.getProperty("user.dir"), "src","main","resources",defaultFileName).toFile();
 
     /** loads the default values and the starts a JFrame which allows one to set all the parameters and
      * start the QSat solvers.
@@ -41,46 +41,12 @@ public class QUSat {
      */
     public static void  main(String[] args)  {
         StringBuilder errors = new StringBuilder();
-        /*HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
-        MonitorFrame.setDefaults(moduleValues.get("window"),errors);
-        GlobalParameters.setDefaults(moduleValues.get("global"),errors);
-        ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
-        Solvers.Solver.setDefaults(moduleValues);*/
+        Frame.loadParameters(defaultFile, true);
         if(!errors.isEmpty()) {
             System.err.println("Errors while parsing the default values:\n" + errors.toString());}
         else Frame.openFrame();
     }
 
-    /** This method is used to load the default parameters from the default file into a HashMap.
-     *
-     * The file may contain groups of lines with strings parameter = value<br>
-     * The groups are indicated by module names like 'global', 'logFrame' etc.<br>
-     * The module names may have upper- and lower-case letters and blanks.<br>
-     * The module names are normalized to lower-case letters and blanks are removed.
-     *
-     * @return A HashMap containing the default module values.
-     */
-    public static HashMap<String, ArrayList<String>> loadDefaults() {
-        HashMap<String, ArrayList<String>> moduleValues = new HashMap<>();
-        File file = Paths.get(System.getProperty("user.dir"), "src","main","resources",defaultFile).toFile();
-        try {
-            InputStream input = new FileInputStream(file);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(input));
-            String line;
-            ArrayList<String> values = null;
-            while( (line = bufferedReader.readLine()) != null ) {
-                if(line.contains("%"))line = line.substring(0,line.indexOf('%'));
-                line = line.trim();
-                if(line.isEmpty())  continue;
-                if(!line.contains("=")) {
-                    values = new ArrayList<>();
-                    moduleValues.put(line.toLowerCase().replaceAll("\\s+", ""), values);}
-                else values.add(line);}}
-        catch(Exception e) {
-            System.out.println(e.getMessage());
-            System.exit(1);}
-        return moduleValues;
-    }
 
 
 

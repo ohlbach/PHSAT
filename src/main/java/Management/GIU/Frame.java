@@ -1,10 +1,7 @@
 package Management.GIU;
 
 import Datastructures.Clauses.InputClauses;
-import Management.GlobalParameters;
-import Management.Parameter;
-import Management.Parameters;
-import Management.QuSatJob;
+import Management.*;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 
@@ -83,10 +80,11 @@ public class Frame {
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 JOptionPane.showMessageDialog(null,
-                        "Recent: load recent parameter configurations\n"+
-                                "Load:   load parameter configuration\n"+
-                                 "Save:  save parameter configuration\n"+
-                                 "Run:   run QuSat solver.",
+                        "Recent:        load recent parameter configurations\n"+
+                                "Load:          load parameter configuration\n"+
+                                 "Save:         save parameter configuration\n"+
+                                "Save Default:  save parameter configuration as default configuration\n"+
+                                 "Run:          run QuSat solver.",
                          "Info", JOptionPane.INFORMATION_MESSAGE);}});
         westPane.add(infoLabel);
         westPane.add(Box.createVerticalStrut(50));
@@ -129,6 +127,18 @@ public class Frame {
                 saveParameters();}});
         westPane.add(saveLabel);
 
+        JLabel defaultLabel = new JLabel("Save Default");
+        defaultLabel.setFont(saveLabel.getFont().deriveFont(Font.BOLD, 16));
+        defaultLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        defaultLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                saveDefaultParameters();}});
+        westPane.add(defaultLabel);
+
+
+
         JLabel runLabel = new JLabel("Run");
         runLabel.setFont(runLabel.getFont().deriveFont(Font.BOLD, 16));
         runLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -157,28 +167,33 @@ public class Frame {
         solverParams = paramsList;
         thread.start();}
 
-
-    /** Saves the parameters to a file.
-     *
-     * The file is chosen in a dialogue.<br>
-     * The format is as follows:<br>
-     * Global Parameters<br>
-     * parameters<br>
-     * <br>
-     * Generator<br>
-     * parameters<br>
-     * ...<br>
-     * Solver<br>
-     * parameters<br>
-     * ...<br>
-     * <br>
-     * The parameters start with the parameter group name and then lines with<br>
-     * name: text representation: value string.<br>
-     */
     private static void saveParameters() {
         File homeDirectory = GlobalParameters.homeDirectory.toFile();
-        File file = chooseFile(homeDirectory,".txt");
-        if(file == null) return;
+        File file = chooseFile(homeDirectory, ".txt");
+        if (file == null) return;
+        saveParameters(file);}
+
+    private static void saveDefaultParameters() {
+        saveParameters(QUSat.defaultFile);}
+
+        /** Saves the parameters to a file.
+         *
+         * The file is chosen in a dialogue.<br>
+         * The format is as follows:<br>
+         * Global Parameters<br>
+         * parameters<br>
+         * <br>
+         * Generator<br>
+         * parameters<br>
+         * ...<br>
+         * Solver<br>
+         * parameters<br>
+         * ...<br>
+         * <br>
+         * The parameters start with the parameter group name and then lines with<br>
+         * name: text representation: value string.<br>
+         */
+    private static void saveParameters(File file) {
         try {PrintStream stream = new PrintStream(file);
             stream.println(globalParams.toString());
             for(Parameters p: generatorParams) {
@@ -207,7 +222,7 @@ public class Frame {
         if(result == JFileChooser.APPROVE_OPTION) {
             loadParameters(chooser.getSelectedFile(),false);}}
 
-    private static void loadParameters(File file, boolean life) {
+    public static void loadParameters(File file, boolean life) {
         try{
             StringBuilder errors = new StringBuilder();
             InputStream input = new FileInputStream(file);
@@ -545,6 +560,7 @@ public class Frame {
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
                 String pathString = textField.getText();
+                if(pathString.isEmpty()) return;
                 File directory = new File(pathString);
                 if(!directory.isDirectory() || !directory.exists()) {
                     JOptionPane.showMessageDialog(frame,"'"+pathString+"' is no such directory",

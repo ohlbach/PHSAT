@@ -70,37 +70,6 @@ public class Backtracker extends Solver {
     private static int seedDefault = 1;
     private static int firstSignDefault = 1;
 
-    /** This method can be used to change the default values for various global parameters.
-     * <br>
-     * - jobname: any name without ending _&lt;number&gt;<br>
-     * - logging: none,life,file,frame<br>
-     * - monitor: none,life,file,frame<br>
-     * - monitorSeparate: true,false<br>
-     * - statistic: none,life,file,frame<br>
-     * - tracking: true,false<br>
-     * - verify: true,false<br>
-     * - directory: either a full pathname, or a pathname starting with home/
-     *
-     * @param solverDefaults an ArrayList of strings: name = value.
-     */
-    public static void setDefaults(ArrayList<String> solverDefaults, StringBuilder errors) {
-        if(solverDefaults == null) {return;}
-        for(String line : solverDefaults) {
-            String[] parts = line.split("\\s*=\\s*");
-            if(parts.length != 2) {continue;}
-            String variable = parts[0];
-            String value = parts[1].trim();
-            switch(variable.toLowerCase()) {
-                case "arrangement":     arrangementDefault = parseIntRange(value,1,4,errors); break;
-                case "seed":            seedDefault        = parseIntRange(value,-1,Integer.MAX_VALUE,errors); break;
-                case "firstsign":
-                    firstSignDefault = parseIntRange(value,-1,1,errors);
-                    if(firstSignDefault == 0) errors.append("firstSign " + value + " must not be 0");
-                    break;
-                default: errors.append("Backtracker: unknown parameter: ").append(variable).append("\n");}
-        }}
-
-
     /** Generates the parameters for the GUI.
      *
      * @return A Parameters instance with a specification of the parameters to be presented in the GUI.

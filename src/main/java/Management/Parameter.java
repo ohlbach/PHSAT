@@ -85,7 +85,7 @@ public class Parameter {
      * @return a string representation of the parameter
      */
     public String toString() {
-        return name + "; " + valueString + "; " +valueString(value);}
+        return name + " = " + valueType.toString(value);}
 
     /**
      * Converts the given value to a string representation.<br>

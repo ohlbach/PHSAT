@@ -9,7 +9,6 @@ import Utilities.Utilities;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 
 import static Utilities.Utilities.parseInteger;
@@ -58,16 +57,6 @@ public abstract class ProblemGenerator {
         generatorClasses.add(ProblemGenerators.PythagoraenTriples.class);
     }
 
-    public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
-        for(String generator : generators) {
-            ArrayList<String> values = moduleValues.get(generator.toLowerCase());
-            if(values != null) {
-                try{
-                    generatorClass(generator).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
-                catch(Exception e) {
-                    System.err.println(e.getMessage());
-                    System.exit(1);}}}}
-
     /** Analyses the parameters and generates the corresponding solvers.
      *
      * @param parameterList the parameters
@@ -100,7 +89,11 @@ public abstract class ProblemGenerator {
             try{
                 Method method = clazz.getMethod("makeParameter");
                 parameters.add((Parameters)method.invoke(null));}
-            catch(Exception ignored){}}
+            catch(Exception ignored){
+                System.err.println("CL " + clazz.getName());
+                System.err.println("System Error: makeParameter\n" + ignored);
+
+            }}
             return parameters;}
 
 

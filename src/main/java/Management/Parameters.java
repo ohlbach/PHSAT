@@ -121,17 +121,17 @@ public class Parameters {
     public void loadParameters(BufferedReader reader, StringBuilder errors) throws IOException {
         String line = "";
         while((line = reader.readLine()).isEmpty()) {}
+        line = line.trim();
         while(!line.isEmpty()) {
-            String[] parts = line.split("\\s*;\\s*");
+            if(line.startsWith("%")) continue;
+            String[] parts = line.split("\\s*%\\s*");
+            parts = parts[0].split("\\s*=\\s*",2);
+            if(parts.length < 2) continue;
             String name = parts[0];
             for(Parameter parameter : parameters) {
                 if(parameter.name.equals(name)) {
                     parameter.valueString = parts[1];
-                    if (parameter.displayType == Parameter.DisplayType.Boolean) {
-                        parameter.value = Boolean.parseBoolean(parts[1]);}
-                    else
-                        parameter.value = (parameter.parser == null) ?
-                                parts[1] : parameter.parser.apply(parts[1],errors);
+                    parameter.value = parameter.valueType.parseValue(parameter.valueString, errors);
                     if(parameter.updater != null) parameter.updater.accept(parts[1]);}}
             line = reader.readLine();}}
 

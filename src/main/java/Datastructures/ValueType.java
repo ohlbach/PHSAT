@@ -135,7 +135,7 @@ public abstract class ValueType {
                         booleans[i] = false; continue;}
                     errors.append("Type Booleans: unknown boolean value: " + parts[i] + "\n");
                     return null;}
-                return booleans;}
+                return booleans.length == 1 ? booleans[0] : booleans;}
             if (parts[0].equalsIgnoreCase("true")) {return true;}
             if (parts[0].equalsIgnoreCase("false")) {return false;}
             errors.append("Type Booleans: unknown boolean value: " + parts[0] + "\n");
@@ -198,6 +198,10 @@ public abstract class ValueType {
          * @param list if true then a list is allowed, if false then a single value is allowed.
          */
         public Integers(int min, int max, boolean list) {
+            if(max < min) {
+                System.err.println("Error ValueType.Inegers: max < min " + max + " < " + min );
+                new Exception().printStackTrace();
+                System.exit(1);}
             this.list = list;
             this.min = min;
             this.max = max;}

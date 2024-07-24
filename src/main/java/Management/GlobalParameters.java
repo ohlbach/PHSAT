@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Objects;
 
@@ -93,43 +92,6 @@ public class GlobalParameters {
 
     /** specifies how the statistics are printed: none,life,file,frame. */
     public OutputType statisticPrintType = OutputType.LIFE;
-
-    /** This method can be used to change the default values for various global parameters.
-     * <br>
-     * - jobname: any name without ending _&lt;number&gt;<br>
-     * - logging: none,life,file,frame<br>
-     * - monitor: none,life,file,frame<br>
-     * - monitorSeparate: true,false<br>
-     * - statistic: none,life,file,frame<br>
-     * - tracking: true,false<br>
-     * - verify: true,false<br>
-     * - directory: either a full pathname, or a pathname starting with home/
-     *
-     * @param globalDefaults an ArrayList of strings: name = value.
-     */
-    public static void setDefaults(ArrayList<String> globalDefaults, StringBuilder errors) {
-        if(globalDefaults == null) {return;}
-        for(String line : globalDefaults) {
-            String[] parts = line.split("\\s*=\\s*");
-            if(parts.length != 2) {continue;}
-            String variable = parts[0];
-            String value = parts[1].trim();
-            try{
-                switch(variable.toLowerCase()) {
-                    case "jobname":         jobNameDefault            = (String)parameters.getParameter("jobname").valueType.parseValue(value,errors);  break;
-                    case "logging":         loggingDefault            = (OutputType) parameters.getParameter("logging").valueType.parseValue(value,errors);  break;
-                    case "monitor":         monitorTypeDefault        = (OutputType) parameters.getParameter("monitor").valueType.parseValue(value,errors); break;
-                    case "monitorseparate": monitorSeparateDefault    = (boolean) parameters.getParameter("monitorSeparate").valueType.parseValue(value,errors); break;
-                    case "statistic":       statisticPrintTypeDefault = (OutputType) parameters.getParameter("statistics").valueType.parseValue(value,errors); break;
-                    case "tracking":        trackReasoningDefault     = (boolean) parameters.getParameter("trackReasoning").valueType.parseValue(value,errors); break;
-                    case "verify" :         verifyDefault             = (boolean) parameters.getParameter("verify").valueType.parseValue(value,errors); break;
-                    case "directory": if(value.startsWith("home"))
-                        homeDirectory = Path.of(System.getenv("USERPROFILE"),value.substring(5));
-                        else homeDirectory = Path.of(value); break;
-                    default: errors.append("Unknown parameter: ").append(variable).append("\n");}
-                checkJobname(jobNameDefault,errors);}
-            catch(NullPointerException ignore) {errors.append("Unknown parameter: ").append(variable).append("\n");}
-            }}
 
     /** checks if the jobname ends with _&lt;number&gt; and in this case adds an error message.
      *
