@@ -20,8 +20,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static java.lang.Boolean.parseBoolean;
-
 /** This is the superclass of all solver classes.
  * <br>
  * Its static methods maintain information about all solver classes.<br>
@@ -100,7 +98,7 @@ public abstract class Solver {
             System.err.println("No Solver parameters provided. System stops.");
             System.exit(1);}
         for(Parameters parameters: parameterList) {
-            if(!(parseBoolean((String)parameters.parameters.get(0).value))) continue;
+            if(!((boolean)parameters.parameters.get(0).value)) continue;
             Class solverClass = solverClass(parameters.name);
             if(solverClass == null) {
                 System.err.println("System Error: unknown solver: " + parameters.name);

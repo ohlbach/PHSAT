@@ -1,8 +1,10 @@
 package Management;
 
 import Datastructures.ValueType;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -129,6 +131,22 @@ public class Parameter {
             return sb.toString();}
         return value.toString();
         }
+
+    /** converts the value into an ArrayList
+     *
+     * @return the value as ArrayList.
+     */
+    public ArrayList getAsArrayList() {
+            if(value instanceof ArrayList<?>) return (ArrayList) value;
+            if(value instanceof IntArrayList) {
+                ArrayList list = new ArrayList();
+                for(Object v : (IntArrayList) value) {list.add(v);}
+                return list;}
+            if(value.getClass().isArray()) return new ArrayList<>(Arrays.asList(value));
+
+            ArrayList list = new ArrayList();
+            list.add(value);
+            return list;}
 
         public static void main(String[] args) {
           int[] a = new int[]{1,2,3,4,5};

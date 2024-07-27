@@ -111,7 +111,7 @@ public class Parameters {
 
     /**
      * Loads parameters from the given BufferedReader and populates the values in the parameters list.
-     * The values are parsed using the parser function if available.
+     * The values are parsed using the parser function of the valueType
      * If parsing fails, the error message is appended to the errors StringBuilder.
      *
      * @param reader The BufferedReader to read the parameter values from.

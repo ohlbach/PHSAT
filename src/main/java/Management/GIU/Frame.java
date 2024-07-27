@@ -152,7 +152,7 @@ public class Frame {
         return westPane;
     }
 
-    private static void runQuSatSolver() {
+    public static void runQuSatSolver() {
         System.out.println("RUN");
         Thread thread = new Thread(()->{
             QuSatJob quSatJob = new QuSatJob(globalParams,generatorParams,solverParams);
@@ -420,7 +420,7 @@ public class Frame {
             //headerLabel.setToolTipText(header);
             parametersPanel.add(textArea);}
         for (Parameter parameter : parameters.parameters) {
-            JPanel panel = null;
+            JPanel panel;
             switch(parameter.displayType) {
                 case String: panel = textField(parameter,parameters);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
@@ -484,6 +484,7 @@ public class Frame {
         JRadioButton button = new JRadioButton(parameter.name);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setSelected((boolean)parameter.value);
         button.addActionListener(e -> {
             parameter.value = button.isSelected(); parameter.valueString = "true";});
         buttonPanel.add(button);

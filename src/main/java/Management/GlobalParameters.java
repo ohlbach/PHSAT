@@ -214,6 +214,7 @@ public class GlobalParameters {
         int index = -1;
         jobName                = (String)     (globalParams.parameters.get(++index).value);
         jobDirectory           = (Path)       (globalParams.parameters.get(++index).value);
+        if(jobDirectory == null) {jobDirectory = homeDirectory;}
         extendJobDirectory();
         OutputType monitorType = (OutputType) (globalParams.parameters.get(++index).value);
         monitorSeparate        = (Boolean)    (globalParams.parameters.get(++index).value);

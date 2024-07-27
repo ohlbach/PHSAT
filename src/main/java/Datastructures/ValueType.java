@@ -74,6 +74,7 @@ public abstract class ValueType {
          * @param allowed the allowed strings
          */
         public Strings(String... allowed) {
+            size = 1;
             this.allowed = allowed;}
 
 
@@ -93,7 +94,7 @@ public abstract class ValueType {
                         errors.append("Type Strings: parsing " + input + ": string " + part + " is not allowed.\n" +
                                 "  Allowed values are: " + Arrays.toString(allowed) + "\n");
                         return null;}}
-                return parts;}
+                return (size == 1) ? parts[0] : parts;}
             if (parts.length > size) {
                 errors.append("Type Strings: too many strings in " + input + ": allowed are " + size + " strings\n");
                 return null;}

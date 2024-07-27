@@ -2,17 +2,15 @@ package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.ValueType;
 import Management.Parameter;
 import Management.Parameters;
-import Datastructures.ValueType;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-
-import static Utilities.Utilities.*;
 
 /** Generates the Coloring Problem for Pythagoraen Triples.
  * <p>
@@ -40,35 +38,6 @@ public class PythagoraenTriples extends ProblemGenerator{
     private final int minimum;
     private final int maximum;
 
-    /**Sets the default values for the Pythagoraen Triples Generator.
-     *
-     * - minimum<br>
-     * - maximum<br>
-     * The method is called in ProblemGenerator
-     *
-     * @param defaults the list of default values
-     */
-    public static void setDefaults(ArrayList<String> defaults) {
-        if(defaults == null) {return;}
-        try{
-            StringBuilder errors = new StringBuilder();
-            for(String line : defaults) {
-                String[] parts = line.split("\\s*=\\s*",2);
-                if(parts.length != 2) {continue;}
-                String variable = parts[0];
-                String value = parts[1];
-                switch(variable.toLowerCase()) {
-                    case "minimum":  minimumDefault  = parseIntRange(value,5,errors); break;
-                    case "maximum":  maximumDefault  = parseIntRange(value,5,errors); break;
-                    }}
-            if(!errors.isEmpty()) {
-                System.err.println("Error in Pythagoraen Triples Defaults:\n"+ errors);
-                System.exit(1);}
-        }
-        catch(NumberFormatException e) {
-            System.err.println("Error in Pythagoraen Triples Defaults:\n"+e.getMessage());
-            System.exit(1);}
-    }
 
     /**Creates and returns a Parameters object for the makeParameter method.
      *<p>
@@ -154,9 +123,9 @@ public class PythagoraenTriples extends ProblemGenerator{
     public static void makeProblemGenerators(Parameters parameters,
                                             ArrayList<ProblemGenerator> generators) {
         assert parameters != null;
-        IntArrayList smallest = (IntArrayList) parameters.parameters.get(1).value;
-        IntArrayList largest = (IntArrayList) parameters.parameters.get(2).value;
-        for (ArrayList p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(smallest), toArrayList(largest))) {
+        ArrayList smallest = parameters.parameters.get(1).getAsArrayList();
+        ArrayList largest =  parameters.parameters.get(2).getAsArrayList();
+        for (ArrayList p : (ArrayList<ArrayList>) Utilities.crossProduct(smallest, largest)) {
             int min = (int) p.get(0);
             int max = (int) p.get(1);
             generators.add(new PythagoraenTriples(min,max));}}

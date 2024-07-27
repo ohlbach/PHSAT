@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import static Utilities.Utilities.parseInteger;
-import static java.lang.Boolean.parseBoolean;
 
 /** This is the interface to the generator classes.
  * The generator classes generate SAT-Problems from different sources. <br>
@@ -65,7 +64,7 @@ public abstract class ProblemGenerator {
     public static ArrayList<ProblemGenerator> makeGenerators(ArrayList<Parameters> parameterList) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         for(Parameters parameters: parameterList) {
-            if(!(parseBoolean((String)(parameters.parameters.get(0).value)))) continue;
+            if(!(boolean)(parameters.parameters.get(0).value)) continue;
             Class generatorClass = generatorClass(parameters.name);
             if(generatorClass == null) {
                 System.err.println("System Error: unknown Problem Generator: " + parameters.name);
