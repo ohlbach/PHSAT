@@ -93,7 +93,7 @@ public class Backtracker extends Solver {
         parameters.add(new Parameter("Less-first", Parameter.DisplayType.Boolean,boolType, arrangement,
                 "Predicates: less predicates first"));
         Parameter seed = new Parameter("Seed", Parameter.DisplayType.String,
-                new ValueType.Integers(0,true),seedDefault,
+                new ValueType.Integers(-1,true),seedDefault,
                 "Seed for random number generator (integer >= -1)");
         parameters.add(seed);
         parameters.add(new Parameter("PositiveFirst", Parameter.DisplayType.Boolean,

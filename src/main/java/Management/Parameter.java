@@ -148,14 +148,5 @@ public class Parameter {
             list.add(value);
             return list;}
 
-        public static void main(String[] args) {
-          int[] a = new int[]{1,2,3,4,5};
-          ArrayList<int[]> b = new ArrayList<>();
-          b.add(a);b.add(a);
-            System.out.println(valueString(b));
-        }
-
-
-
 
 }
