@@ -886,7 +886,8 @@ public class ClauseList {
                     if(model.status(unsignedLiteral) == 0) {
                         if(monitor!=null) monitor.accept("Extending model with " + Symboltable.toString(-unsignedLiteral,symboltable) +
                                 " for clause " + clause.toString(symboltable,0));
-                        model.add(null,-unsignedLiteral,null);}}
+                        model.add(null,-unsignedLiteral,null);
+                        trueLiterals += literalObject.multiplicity;}}
                 continue;}
 
             if(trueLiterals > clause.max) { // this should not happen
@@ -901,7 +902,10 @@ public class ClauseList {
                     if(monitor!=null) monitor.accept("Extending model with " + Symboltable.toString(unsignedLiteral,symboltable) +
                             " for clause " + clause.toString(symboltable,0));
                     model.add(null,unsignedLiteral,null);
-                    if(model.status(literalObject.literal) == 1) trueLiterals += literalObject.multiplicity;}}
+                   // if(model.status(literalObject.literal) == 1)
+                        trueLiterals += literalObject.multiplicity;}
+
+            }
 
 
             if(trueLiterals < clause.min)  // should not happen

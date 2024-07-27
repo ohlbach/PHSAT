@@ -12,7 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Propagator extends Thread {
 
     /** identifies the propagator */
-    private final int identifier;
+    protected final int identifier;
 
     /** indicates the status of the propagator */
     private boolean isActive = false;
@@ -51,7 +51,8 @@ public class Propagator extends Thread {
                 isActive = true;
                 backtracker.propagateInThread(literal);
                 propagatorPool.deactivate(this);
-                isActive = false;}}
+                isActive = false;
+            }}
         catch (InterruptedException e) {
             propagatorPool.deactivate(this);}}
 
@@ -61,6 +62,8 @@ public class Propagator extends Thread {
      * @param literal the literal to propagateInThread.
      */
     public void newPropagateJob(Backtracker backtracker, int literal) {
+         this.backtracker = backtracker;
+        this.literal = literal;
         queue.add(backtracker); queue.add(literal);}
 
     /** a short description of the propagator
@@ -70,5 +73,5 @@ public class Propagator extends Thread {
     public String toString() {
         String status = isActive ? "Active" : "Passive";
         return status + " propagator " + identifier + " for backtracker " + backtracker.solverId+
-                ", literal " + literal;}
+                ", literal " + literal + " PoolIndex: " + poolIndex;}
 }

@@ -96,7 +96,7 @@ public class Model {
      * @throws UnsatisfiableLiteral if a contradiction with an earlier entry in the model occurs.
      */
     public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {
-        if(finished) return;
+        //if(finished) return;
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}

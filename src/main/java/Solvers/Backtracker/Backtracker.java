@@ -262,6 +262,7 @@ public class Backtracker extends Solver {
     @Override
      public Result solveProblem()  {
         long solverStartTime = System.nanoTime();
+        System.out.println("Clauses\n"+ clauseList.toString("clauses",null));
         myThread = Thread.currentThread();
         initializeLocalModel();
         initializePredicateSequence(predicateArrangement,seed);
@@ -377,11 +378,13 @@ public class Backtracker extends Solver {
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
     protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
-        propagatorThreadCounter = 0;
+         propagatorThreadCounter = 0;
         propagatorQueue.clear();
-        makeLocallyTrue(selectedLiteral);
+        int propagatorJobs = statistics.propagatorJobs;
         Clause falseClause = propagateLocally(selectedLiteral); // may start propagator threads
-         if(falseClause == null) {
+
+        if(falseClause == null) {
+            if(propagatorJobs == statistics.propagatorJobs) return;
             try{Object object = propagatorQueue.take(); // waits until all propagatorJobs are finished, or one them found a false clause.
                 if(object != this) { // object is a false clause
                     falseClause = (Clause)object;}}
@@ -1000,12 +1003,12 @@ public class Backtracker extends Solver {
         st.append("\nPredicate Positions\n   ").append(Arrays.toString(predicatePositions));
         st.append("\nClauses:\n").append(clauseList.toString("clauses",symboltable));
         st.append("\nGlobal Model: ").append(model.toString(symboltable));
-        st.append("\nLocal Model:  ").append(toStringLocalModel());
+        st.append("\nLocal Model:  ").append(toStringLocalModel()).append("\n");
 
         if(!currentlyTrueLiterals.isEmpty()) {
             st.append("Selected and Derived Literals:\n");
             boolean selected = false;
-            for(int i = 0; i <= currentlyTrueLiterals.size(); ++i) {
+            for(int i = 0; i < currentlyTrueLiterals.size(); ++i) {
                 int literal = currentlyTrueLiterals.getInt(i);
                 if(literal == 0) {selected = true; continue;}
                 if(selected) {st.append("S:"); selected = false;}

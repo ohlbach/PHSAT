@@ -49,7 +49,6 @@ public class PropagatorPool {
      * @param propagator an active propagator which becomes passive.
      */
     public synchronized void deactivate(Propagator propagator) {
-        propagator.interrupt();
         int lastActive = firstPassive-1;
         if(propagator.poolIndex < lastActive) {
             Propagator lastActivePropagator = propagators.get(lastActive);
@@ -57,7 +56,8 @@ public class PropagatorPool {
             lastActivePropagator.poolIndex = propagator.poolIndex;
             propagators.set(lastActive,propagator); // becomes the first passive propagator
             propagator.poolIndex = lastActive;}
-        --firstPassive;}
+        --firstPassive;
+    }
 
     /** The backtracker has finished (found a model, a contradiction or has been aborted).
      * <p>
@@ -76,6 +76,7 @@ public class PropagatorPool {
      */
     public String toString() {
         StringBuilder st = new StringBuilder();
+        st.append("Propagator Pool: firstPassive ").append(firstPassive).append(" Size:").append(propagators.size()).append("\n");
         if(firstPassive > 0) st.append("Active Propagators:\n");
         for(int i = 0; i < firstPassive; ++i)
             st.append(propagators.get(i).toString()).append("\n");

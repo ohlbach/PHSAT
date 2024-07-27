@@ -2,10 +2,7 @@ package Management;
 
 import Datastructures.ClauseList;
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Results.Aborted;
-import Datastructures.Results.Erraneous;
-import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
+import Datastructures.Results.*;
 import Datastructures.Theory.Model;
 import Management.GIU.OutputType;
 import Management.Monitor.Monitor;
@@ -114,6 +111,7 @@ public class ProblemSupervisor {
                 solvers.get(i).initialize(this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+
         catch(Result result) {System.out.println(result.toString(inputClauses.symboltable));}
         catch(Exception ex) {
             System.out.println(ex);
@@ -138,7 +136,10 @@ public class ProblemSupervisor {
         if(result instanceof Erraneous ) {
             if(result.message != null && !result.message.isEmpty()) {quSatJob.printlog(result.message);}
             ++statistics.erraneous; return;}
-        if(result instanceof Satisfiable) checkModel((Satisfiable) result);
+        if(result instanceof Satisfiable)
+            try{clauseList.extendModel();}
+            catch(Unsatisfiable uns) {System.out.println(uns.toString());}
+            checkModel((Satisfiable) result);
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
         quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, globalParameters.trackReasoning));
