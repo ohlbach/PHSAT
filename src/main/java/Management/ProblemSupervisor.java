@@ -116,7 +116,7 @@ public class ProblemSupervisor {
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
-            System.exit(0);}
+            System.exit(1);}
         if(globalParameters.logstream != null) {
             statistics.elapsedTime = System.nanoTime() - problemStartTime;
             globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " +

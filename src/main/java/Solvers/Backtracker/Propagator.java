@@ -15,10 +15,10 @@ public class Propagator extends Thread {
     protected final int identifier;
 
     /** indicates the status of the propagator */
-    private boolean isActive = false;
+    protected boolean isActive = false;
 
     /** stores a job and waits until there is one. */
-    final BlockingQueue<Object> queue = new LinkedBlockingQueue<>(3);
+    final BlockingQueue<Object> queue = new LinkedBlockingQueue<>();
 
     /** the pool of propagator threads. */
     private final PropagatorPool propagatorPool;
@@ -32,6 +32,8 @@ public class Propagator extends Thread {
     /** the index in the propagatorPool */
     int poolIndex;
 
+    protected Thread myThread = null;
+
     /** constructs a new propagator.
      *
      * @param propagatorPool the corresponding pool or propagators.
@@ -39,7 +41,8 @@ public class Propagator extends Thread {
      * */
     public Propagator(PropagatorPool propagatorPool, int identifier) {
         this.propagatorPool = propagatorPool;
-        this.identifier = identifier;}
+        this.identifier = identifier;
+        myThread = Thread.currentThread();}
 
     /** waits for a propagator job, executes it and then waits again.*/
     @Override
@@ -49,12 +52,12 @@ public class Propagator extends Thread {
                 backtracker = (Backtracker)queue.take();
                 literal = (Integer)queue.take();
                 isActive = true;
-                backtracker.propagateInThread(literal);
-                propagatorPool.deactivate(this);
-                isActive = false;
+                if(backtracker.propagateInThread(literal)) // false clause found
+                    propagatorPool.jobFinished(backtracker);
+                else propagatorPool.deactivate(this);
             }}
         catch (InterruptedException e) {
-            propagatorPool.deactivate(this);}}
+            if(isActive) propagatorPool.deactivate(this);}}
 
     /** Adds a new propagateInThread job to the queue.
      *
@@ -63,8 +66,8 @@ public class Propagator extends Thread {
      */
     public void newPropagateJob(Backtracker backtracker, int literal) {
          this.backtracker = backtracker;
-        this.literal = literal;
-        queue.add(backtracker); queue.add(literal);}
+         this.literal = literal;
+         queue.add(backtracker); queue.add(literal);}
 
     /** a short description of the propagator
      *
@@ -73,5 +76,6 @@ public class Propagator extends Thread {
     public String toString() {
         String status = isActive ? "Active" : "Passive";
         return status + " propagator " + identifier + " for backtracker " + backtracker.solverId+
-                ", literal " + literal + " PoolIndex: " + poolIndex;}
+                ", literal " + literal + " PoolIndex: " + poolIndex + " Thread: " +
+                ((myThread == null) ? "null" : myThread.getName());}
 }

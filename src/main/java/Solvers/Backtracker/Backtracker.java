@@ -285,6 +285,7 @@ public class Backtracker extends Solver {
         catch(Result result) {
             result.complete(problemId,solverId, solverStartTime);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
+            System.out.println(statistics.toString());
             return result;}}
 
     /** increments the propagator counter */
@@ -421,15 +422,15 @@ public class Backtracker extends Solver {
      * If the propagatorCounter is 0, then 'this' is inserted into the propagatorQueue.
      *
      * @param literal a locally true literal whose implications are to be computed.
+     * @return true if a false clause has been found
      */
-    void propagateInThread(int literal) {
+    boolean propagateInThread(int literal) {
         incrementPropagatorCounter();
-        System.out.println("PC1 " + propagatorThreadCounter);
         if(propagateLocally(literal) != null) { // false clause found
-            propagatorPool.jobFinished(this);
-            propagatorThreadCounter = 0;}
-        else decrementPropagatorCounter();
-        System.out.println("PC2 " + propagatorThreadCounter);}
+            propagatorThreadCounter = 0;
+            return true;}
+        decrementPropagatorCounter();
+        return false;}
 
 
     /** propagates the truth of the trueLiteral locally.
@@ -446,7 +447,8 @@ public class Backtracker extends Solver {
          Thread currentThread = Thread.currentThread(); // may be a Propagator thread
          for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
-            while(literalObject != null && !currentThread.isInterrupted() && !myThread.isInterrupted()) {
+            while(literalObject != null && !myThread.isInterrupted()) {
+                if(currentThread.interrupted()) return null;
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true trueLiteral in an OR: ignore clause
                     Clause falseClause = analyseClause(clause);          // may produce new Propagator jobs
@@ -558,6 +560,7 @@ public class Backtracker extends Solver {
                 System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
+                new Exception().printStackTrace();
                 System.exit(1);}
             return false;}
         return true;}
@@ -576,6 +579,7 @@ public class Backtracker extends Solver {
                 if(stop) {
                     System.err.println("verifyFalseClause failed: " + clause.toString(symboltable,0) +
                         "   \nLocal Model: " + toStringLocalModel());
+                    new Exception().printStackTrace();
                     System.exit(1);}
             return false;}}
         return true;}
