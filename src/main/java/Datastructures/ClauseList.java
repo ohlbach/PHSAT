@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -134,11 +135,17 @@ public class ClauseList {
         singletons.clear();
         queue.clear();
         myThread = Thread.currentThread();
-        model.addObserver(Thread.currentThread(),
-                (literal,inferenceStep) -> {
-                        synchronized(this) {
-                            interruptSolvers(); // the solvers must wait until the true literal has been processed.
-                            queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
+        model.addObserver(myThread, observer);}
+
+    private BiConsumer<Integer, InferenceStep> observer =
+            (literal,inferenceStep) -> {
+                synchronized(this) {
+                interruptSolvers(); // the solvers must wait until the true literal has been processed.
+                queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
+
+    public void disconnect() {
+        model.removeObserver(myThread, observer);
+    }
 
     /** the number of solvers sharing this clause list */
     private int nSolvers = 0;
@@ -902,7 +909,7 @@ public class ClauseList {
                     if(monitor!=null) monitor.accept("Extending model with " + Symboltable.toString(unsignedLiteral,symboltable) +
                             " for clause " + clause.toString(symboltable,0));
                     model.add(null,unsignedLiteral,null);
-                   // if(model.status(literalObject.literal) == 1)
+                    if(model.status(literalObject.literal) == 1)
                         trueLiterals += literalObject.multiplicity;}
 
             }

@@ -129,6 +129,7 @@ public class ProblemSupervisor {
      * Some messages are logged.
      */
     public synchronized void finished(Result result) {
+        clauseList.disconnect();
         if(result == null) return;
         if(result instanceof Aborted) {
             if(result.message != null && !result.message.isEmpty()) {quSatJob.printlog(result.message);}

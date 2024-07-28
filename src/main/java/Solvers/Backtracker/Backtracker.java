@@ -296,7 +296,7 @@ public class Backtracker extends Solver {
      * It means that no further true-literal propagation is going on.*/
     private synchronized void decrementPropagatorCounter() {
         --propagatorThreadCounter;
-        if (propagatorThreadCounter == 0) {propagatorQueue.add(this);}}
+        if (propagatorThreadCounter <= 0) {propagatorQueue.add(this);}}
 
     /** inserts a false clause into the propagatorQueue.
      *
@@ -316,6 +316,7 @@ public class Backtracker extends Solver {
     @Override
     public void waitForTrueLiteralProcessing() {
         interruptReason = InterruptReason.TRUELITERALPROCESSING;
+        System.out.println("INTER " + myThread.getName());
         myThread.interrupt();}
 
     /** called by clauseList after a new true literal has been processed.*/
@@ -384,7 +385,7 @@ public class Backtracker extends Solver {
         Clause falseClause = propagateLocally(selectedLiteral); // may start propagator threads
 
         if(falseClause == null) {
-            if(propagatorJobs == statistics.propagatorJobs) return;
+            if(propagatorJobs == statistics.propagatorJobs) return; // no propagation done
             try{Object object = propagatorQueue.take(); // waits until all propagatorJobs are finished, or one them found a false clause.
                 if(object != this) { // object is a false clause
                     falseClause = (Clause)object;}}
@@ -423,8 +424,12 @@ public class Backtracker extends Solver {
      */
     void propagateInThread(int literal) {
         incrementPropagatorCounter();
-        if(propagateLocally(literal) != null) propagatorPool.jobFinished(this); // false clause found
-        else decrementPropagatorCounter();}
+        System.out.println("PC1 " + propagatorThreadCounter);
+        if(propagateLocally(literal) != null) { // false clause found
+            propagatorPool.jobFinished(this);
+            propagatorThreadCounter = 0;}
+        else decrementPropagatorCounter();
+        System.out.println("PC2 " + propagatorThreadCounter);}
 
 
     /** propagates the truth of the trueLiteral locally.

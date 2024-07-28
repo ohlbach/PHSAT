@@ -45,7 +45,7 @@ public class Propagator extends Thread {
     @Override
     public void run() {
         try {
-            while (!isInterrupted()) {
+            while (true) {
                 backtracker = (Backtracker)queue.take();
                 literal = (Integer)queue.take();
                 isActive = true;

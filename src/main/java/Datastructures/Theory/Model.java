@@ -74,6 +74,15 @@ public class Model {
     public synchronized void addObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
         observers.add(new Pair<Thread,BiConsumer<Integer, InferenceStep>>(thread,observer));}
 
+    /** removes the observer
+     *
+     * @param thread  a thread,
+     * @param observer an observer
+     */
+    public synchronized void removeObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
+        observers.removeIf(pair -> pair.first == thread && pair.second == observer);
+    }
+
     /** adds a literal to the model with null inference step.
      *
      * @param literals some predicates.
