@@ -64,6 +64,7 @@ public class ProblemSupervisor {
         normalizer            = quSatJob.normalizer;
         clauseList            = quSatJob.clauseList;
         propagatorPool        = quSatJob.propagatorPool;
+        monitor               = globalParameters.monitor;
     }
 
 

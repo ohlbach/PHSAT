@@ -235,7 +235,7 @@ public class BacktrackerTest extends TestCase {
         ArrayList<Clause> clauses = new ArrayList<>();
         IntArrayList literals = new IntArrayList();
 
-        void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
+        boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
             clauses.add(clause);
             int literal = sign * literalObject.literal;
             literals.add(literal);
@@ -243,7 +243,8 @@ public class BacktrackerTest extends TestCase {
                 System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
-                System.exit(1);}}
+                System.exit(1);}
+            return false;}
 
         IntArrayList falseClauseIds = new IntArrayList();
 

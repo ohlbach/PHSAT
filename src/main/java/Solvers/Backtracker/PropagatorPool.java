@@ -30,8 +30,19 @@ public class PropagatorPool {
      * @param backtracker  the Backtracker which submitted the job.
      * @param literal      the true literal.
      */
-    public void addPropagatorJob(Backtracker backtracker, int literal) {
-        update(1,backtracker,null,literal);}
+    public synchronized void addPropagatorJob(Backtracker backtracker, int literal) {
+        //update(1,backtracker,null,literal);
+        Propagator propagator;
+        if(firstPassive == propagators.size()) { // no passive propagator available.
+            propagator = new Propagator(this, ++identifier);
+            propagator.poolIndex = firstPassive++;
+            propagators.add(propagator);
+            propagator.newPropagateJob(backtracker,literal);
+            propagator.start();}
+        else {
+            propagator = propagators.get(firstPassive++); // it becomes active.
+            assert(!propagator.isActive);
+            propagator.newPropagateJob(backtracker,literal);}}
 
     /** deactivates the propagator.
      * <p>
@@ -40,8 +51,18 @@ public class PropagatorPool {
      *
      * @param propagator an active propagator which becomes passive.
      */
-    public void deactivate(Propagator propagator) {
-        update(2,null,propagator,0);}
+    public synchronized void deactivate(Propagator propagator) {
+        //update(2,null,propagator,0);
+        if(propagator.isActive) return;  // other threads found a false clause
+        propagator.isActive = false;
+        int lastActive = firstPassive-1;
+        if(propagator.poolIndex < lastActive) {
+            Propagator lastActivePropagator = propagators.get(lastActive);
+            propagators.set(propagator.poolIndex, lastActivePropagator);
+            lastActivePropagator.poolIndex = propagator.poolIndex;
+            propagators.set(lastActive,propagator); // becomes the first passive propagator
+            propagator.poolIndex = lastActive;}
+        --firstPassive;} // active propagator was the first active propagator}
 
     /** The backtracker has finished (found a model, a contradiction or has been aborted).
      * <p>
@@ -49,8 +70,13 @@ public class PropagatorPool {
      *
      * @param backtracker which finished the job.
      */
-    public void jobFinished(Backtracker backtracker) {
-        update(3,backtracker,null,0);}
+    public synchronized void jobFinished(Backtracker backtracker) {
+        //update(3,backtracker,null,0);
+        for(int index = firstPassive-1; index >= 0; --index) {
+            Propagator propagator = propagators.get(index);
+            propagator.myThread.interrupt();}}
+
+
 
     private synchronized void update(int action, Backtracker backtracker, Propagator propagator, int literal) {
         assert(firstPassive >= 0);
@@ -82,8 +108,7 @@ public class PropagatorPool {
             case 3: // jobFinished deactivate all active propagates for the backtracker
                 for(int index = firstPassive-1; index >= 0; --index) {
                     propagator = propagators.get(index);
-                    propagator.myThread.interrupt();
-                    if(propagator.backtracker == backtracker) deactivate(propagator);}}
+                    propagator.myThread.interrupt();}}
         }
 
     /** lists all the active and passive propagators.

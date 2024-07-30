@@ -52,8 +52,9 @@ public class Propagator extends Thread {
                 backtracker = (Backtracker)queue.take();
                 literal = (Integer)queue.take();
                 isActive = true;
-                if(backtracker.propagateInThread(literal)) // false clause found
-                    propagatorPool.jobFinished(backtracker);
+                if(backtracker.propagateInThread(literal)) {// false clause found
+                    propagatorPool.deactivate(this);
+                    propagatorPool.jobFinished(backtracker);}
                 else propagatorPool.deactivate(this);
             }}
         catch (InterruptedException e) {

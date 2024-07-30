@@ -277,7 +277,8 @@ public class Backtracker extends Solver {
             int selectedPredicate = predicateSequence[selectedPredicatePosition];
             selectedLiteral = firstSign * selectedPredicate;
             ++statistics.selectedLiterals;
-            if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
+            System.out.println("SEL " + selectedLiteral);
+            //if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
             currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
             statistics.recursionDepth = Math.max(statistics.recursionDepth,++recursionDepth);
             clearDependencies(selectedPredicate).add(selectedPredicate);
@@ -448,7 +449,6 @@ public class Backtracker extends Solver {
          for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
             while(literalObject != null && !myThread.isInterrupted()) {
-                if(currentThread.interrupted()) return null;
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true trueLiteral in an OR: ignore clause
                     Clause falseClause = analyseClause(clause);          // may produce new Propagator jobs
@@ -482,7 +482,9 @@ public class Backtracker extends Solver {
             if(unsignedLiteral == null) {
                 if(verify) verifyFalseClause(clause,true);
                 return clause;}            // all literals are false. backtrackTo
-            makeLiteralLocallyTrue(clause,unsignedLiteral,1);  // all other literals are false
+            if(makeLiteralLocallyTrue(clause,unsignedLiteral,1)) {  // all other literals are false
+                if(verify) verifyFalseClause(clause,true);
+                return clause;}
             return null;}
 
         // all other clause types.
@@ -496,6 +498,8 @@ public class Backtracker extends Solver {
 
         // too many or not enough true literals.
         if(trueLiterals > max || trueLiterals + unsignedLiterals < min) {
+            System.err.println("VF " + trueLiterals + " " + unsignedLiterals + "    " + clause.toString(null,0) +
+                    "\n " + toStringLocalModel());
             if(verify) verifyFalseClause(clause,true);
             return clause;} // clause is false
 
@@ -504,7 +508,9 @@ public class Backtracker extends Solver {
                 for(Literal literalObject : clause.literals) {
                     if(localStatus(literalObject.literal) == 0 &&
                             trueLiterals + literalObject.multiplicity > max){    // making it true causes too many true literals
-                        makeLiteralLocallyTrue(clause,literalObject,-1);}}} // literal must be false
+                        if(makeLiteralLocallyTrue(clause,literalObject,-1)) { // literal must be false
+                            if(verify) verifyFalseClause(clause,true);
+                            return clause;}}}}
             return null;}
 
         if(min == 0) return null;
@@ -516,7 +522,10 @@ public class Backtracker extends Solver {
             if(localStatus(literalObject.literal) == 0 && trueLiterals + literalObject.multiplicity >= min) {
                 ++candidates;
                 candidateLiteral = literalObject;}}
-        if(candidates == 1) makeLiteralLocallyTrue(clause,candidateLiteral,1);
+        if(candidates == 1) {
+            if(makeLiteralLocallyTrue(clause,candidateLiteral,1)) {
+                if(verify) verifyFalseClause(clause,true);
+                return clause;}} // clause is false
         return null;}
 
     /**
@@ -527,16 +536,19 @@ public class Backtracker extends Solver {
      * @param clause        The clause containing the literal.
      * @param literalObject The literal object to make true or false.
      * @param sign          The sign of the literal (-1 for literal is false, 1 for literal is true).
+     * @return true if the clause turned out to be false.
      */
-    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
+    synchronized boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int trueLiteral = sign*literalObject.literal;
+        if(!makeLocallyTrue(trueLiteral)) return true;  // another thread may have found this out. Clause is false.
+        System.out.println("LS " + trueLiteral);
         if(verify) verifyTrueLiteral(clause,trueLiteral,true);
         currentlyTrueLiterals.add(trueLiteral);
-        makeLocallyTrue(trueLiteral);
         int truePredicate = Math.abs(trueLiteral);
         joinDependencies(clause,truePredicate);
         ++statistics.propagatorJobs;
-        propagatorPool.addPropagatorJob(this,trueLiteral);}
+        propagatorPool.addPropagatorJob(this,trueLiteral);
+        return false;}
 
     /** performs a model-based check for the derivation of a true literal from a clause in the local model.
      *
@@ -557,11 +569,13 @@ public class Backtracker extends Solver {
                     clause.isTrue(model,predicates)){++trueCases;}}
         if(trueCases != 1) {
             if(stop) {
+                synchronized (this) {
                 System.err.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
+                System.err.println("Stack " + currentlyTrueLiterals);
                 new Exception().printStackTrace();
-                System.exit(1);}
+                System.exit(1);}}
             return false;}
         return true;}
 
@@ -577,10 +591,13 @@ public class Backtracker extends Solver {
         for (int model = 0; model < nModels; ++model) {
             if(compatibleLocally(model,predicates) && clause.isTrue(model,predicates)){
                 if(stop) {
+                    synchronized (this) {
                     System.err.println("verifyFalseClause failed: " + clause.toString(symboltable,0) +
                         "   \nLocal Model: " + toStringLocalModel());
+                    System.err.println("Falsifying Model: " +Clause.modelString(model,predicates,null));
+                    System.err.println("Stack " + currentlyTrueLiterals);
                     new Exception().printStackTrace();
-                    System.exit(1);}
+                    System.exit(1);}}
             return false;}}
         return true;}
 
@@ -718,6 +735,7 @@ public class Backtracker extends Solver {
             if(predicate == 0) {++backjumps; --recursionDepth; continue;}
             localModel[predicate] = 0;
             if(predicate == lastSelectedPredicate) {
+                System.out.println("BACK " + lastSelectedPredicate + "\n"+toStringLocalModel());
                 currentlyTrueLiterals.size(i-1);
                 if(backjumps > 1) ++statistics.backtrackings;
                 return;}}}
@@ -953,12 +971,20 @@ public class Backtracker extends Solver {
 
     /** sets the local truth status value of the literal.
      * <br>
-     * The literal is assumed to be locally true.
+     * The literal is assumed to be locally true.<br>
+     * Although the method is synchronized, two different threads can set contradictory values.
+     * This is checked and reported.
      *
      * @param literal  a derived true literal.
+     * @return false if a contradiction is found, otherwise true;
      */
-    protected void makeLocallyTrue(int literal) {
-        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;}
+    protected synchronized boolean makeLocallyTrue(int literal) {
+        if(literal > 0) {
+            if(localModel[literal] == -1) return false;
+            localModel[literal] = 1;}
+        else {if(localModel[-literal] == 1) return false;
+              localModel[-literal] = -1;}
+        return true;}
 
 
     /**
@@ -967,7 +993,7 @@ public class Backtracker extends Solver {
      * @param literal The literal to check.
      * @return The truth value of the literal in the local model.
      */
-    protected synchronized byte localStatus(int literal) {
+    protected byte localStatus(int literal) {
         return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
 
 
