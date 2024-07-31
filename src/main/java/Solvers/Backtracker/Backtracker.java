@@ -200,7 +200,9 @@ public class Backtracker extends Solver {
     private final BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>();
 
     /** counts the active propagator threads */
-    private int propagatorThreadCounter = 0;
+    protected int propagatorThreadCounter = 0;
+
+    protected Clause falseClause = null;
 
     /** constructs a new Backtracker.
      *
@@ -243,6 +245,7 @@ public class Backtracker extends Solver {
         currentlyTrueLiterals.clear();
         statistics = new StatisticsBacktracker(solverId);
         recursionDepth = -1;
+        falseClause = null;
         if(trackReasoning) {
             if((usedClausesArray == null || usedClausesArray.length < predicates+1))
                 usedClausesArray = new ArrayList[predicates+1];
@@ -290,15 +293,17 @@ public class Backtracker extends Solver {
             return result;}}
 
     /** increments the propagator counter */
-    private synchronized void incrementPropagatorCounter() {++propagatorThreadCounter;}
+    protected synchronized void incrementPropagatorCounter() {
+        ++propagatorThreadCounter;}
 
     /** decrements the propagator counter.
      * <br>
      * If the counter is 0, 'this' is inserted into the propagatorQueue.
      * It means that no further true-literal propagation is going on.*/
-    private synchronized void decrementPropagatorCounter() {
+    protected synchronized void decrementPropagatorCounter() {
         --propagatorThreadCounter;
-        if (propagatorThreadCounter <= 0) {propagatorQueue.add(this);}}
+        if (propagatorThreadCounter <= 0) {notifyAll();}}
+
 
     /** inserts a false clause into the propagatorQueue.
      *
@@ -306,7 +311,7 @@ public class Backtracker extends Solver {
      * @return the false clause itself.
      */
     protected synchronized Clause falseClauseFound(Clause clause) {
-        propagatorQueue.add(clause);
+        falseClause = clause;
         return clause;}
 
 
@@ -381,24 +386,26 @@ public class Backtracker extends Solver {
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
     protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
-         propagatorThreadCounter = 0;
+        propagatorThreadCounter = 0;
         propagatorQueue.clear();
+        makeLocallyTrue(selectedLiteral);
         int propagatorJobs = statistics.propagatorJobs;
-        Clause falseClause = propagateLocally(selectedLiteral); // may start propagator threads
-
-        if(falseClause == null) {
+        Clause myFalseClause = propagateLocally(selectedLiteral); // may start propagator threads
+         if(myFalseClause == null) {
             if(propagatorJobs == statistics.propagatorJobs) return; // no propagation done
-            try{Object object = propagatorQueue.take(); // waits until all propagatorJobs are finished, or one them found a false clause.
-                if(object != this) { // object is a false clause
-                    falseClause = (Clause)object;}}
-            catch(InterruptedException exception){processInterrupt(exception); }} // maybe another solver found a solution
+            synchronized (this) {
+                try{wait();} // waits until all propagatorJobs are finished
+                catch(InterruptedException exception){processInterrupt(exception); }
+            }} // maybe another solver found a solution
+        myFalseClause = falseClause;
+        falseClause = null;
         if(myThread.isInterrupted()) processInterrupt(null);             // global changes incorporated
-        if(falseClause == null) return;  // continue search, next selection
-
-        int lastSelectedPredicate = getLastSelectedPredicate(falseClause);
-        backtrackTo(lastSelectedPredicate);
+        if(myFalseClause == null) return;  // continue search, next selection
+        int lastSelectedPredicate = getLastSelectedPredicate(myFalseClause);
+         backtrackTo(lastSelectedPredicate);
         selectedPredicatePosition = predicatePositions[lastSelectedPredicate]; // this predicate must be false.
-        if(trackReasoning) joinUsedClauses(falseClause,lastSelectedPredicate);
+        if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
+        joinDependencies(myFalseClause,lastSelectedPredicate);
         int negateLastSelectedPredicate = -firstSign * lastSelectedPredicate;
         if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
             InferenceStep step = trackReasoning ?
@@ -408,7 +415,6 @@ public class Backtracker extends Solver {
             model.add(myThread,negateLastSelectedPredicate,step);}
         else {
             makeLocallyTrue(negateLastSelectedPredicate);
-            joinDependencies(falseClause,lastSelectedPredicate);
             if(monitoring) monitor.accept(
                     "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable));
             --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
@@ -428,7 +434,8 @@ public class Backtracker extends Solver {
     boolean propagateInThread(int literal) {
         incrementPropagatorCounter();
         if(propagateLocally(literal) != null) { // false clause found
-            propagatorThreadCounter = 0;
+            //propagatorThreadCounter = 0;
+            decrementPropagatorCounter();
             return true;}
         decrementPropagatorCounter();
         return false;}
@@ -444,8 +451,6 @@ public class Backtracker extends Solver {
      * @return null or a false clause.
      */
     protected Clause propagateLocally(int trueLiteral)  {
-         makeLocallyTrue(trueLiteral);
-         Thread currentThread = Thread.currentThread(); // may be a Propagator thread
          for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
             while(literalObject != null && !myThread.isInterrupted()) {
@@ -541,11 +546,11 @@ public class Backtracker extends Solver {
     synchronized boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int trueLiteral = sign*literalObject.literal;
         if(!makeLocallyTrue(trueLiteral)) return true;  // another thread may have found this out. Clause is false.
-        System.out.println("LS " + trueLiteral);
         if(verify) verifyTrueLiteral(clause,trueLiteral,true);
         currentlyTrueLiterals.add(trueLiteral);
         int truePredicate = Math.abs(trueLiteral);
         joinDependencies(clause,truePredicate);
+        if(falseClause != null) return false;  // no further propagation necessary
         ++statistics.propagatorJobs;
         propagatorPool.addPropagatorJob(this,trueLiteral);
         return false;}
@@ -586,6 +591,8 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
+        System.out.println("VC " + clause.toString(null,0) + " " + toStringDependencies(clause) +
+                "\n  " + currentlyTrueLiterals);
         IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
         for (int model = 0; model < nModels; ++model) {
@@ -1049,4 +1056,18 @@ public class Backtracker extends Solver {
                 if(selected) {st.append("S:"); selected = false;}
                 st.append(Symboltable.toString(literal,symboltable)).append(",");}}
         return st.toString();}
+
+    /**
+     * Converts the dependencies of a given clause into a string representation.
+     *
+     * @param clause the clause whose dependencies are to be converted
+     * @return a string representation of the dependencies of the given clause
+     */
+    public String toStringDependencies(Clause clause) {
+        StringBuilder sb = new StringBuilder();
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            IntArrayList dependencies = dependentSelections[Math.abs(literal)];
+            sb.append("L: ").append(literal).append(": ").append(dependencies).append(", ");}
+        return sb.toString();}
 }

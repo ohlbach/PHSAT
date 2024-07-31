@@ -32,7 +32,7 @@ public class PropagatorPool {
      */
     public synchronized void addPropagatorJob(Backtracker backtracker, int literal) {
         //update(1,backtracker,null,literal);
-        Propagator propagator;
+         Propagator propagator;
         if(firstPassive == propagators.size()) { // no passive propagator available.
             propagator = new Propagator(this, ++identifier);
             propagator.poolIndex = firstPassive++;
@@ -63,18 +63,6 @@ public class PropagatorPool {
             propagators.set(lastActive,propagator); // becomes the first passive propagator
             propagator.poolIndex = lastActive;}
         --firstPassive;} // active propagator was the first active propagator}
-
-    /** The backtracker has finished (found a model, a contradiction or has been aborted).
-     * <p>
-     * All active propagators for this backtracker are deactivated.
-     *
-     * @param backtracker which finished the job.
-     */
-    public synchronized void jobFinished(Backtracker backtracker) {
-        //update(3,backtracker,null,0);
-        for(int index = firstPassive-1; index >= 0; --index) {
-            Propagator propagator = propagators.get(index);
-            propagator.myThread.interrupt();}}
 
 
 
