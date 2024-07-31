@@ -2,9 +2,9 @@ package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.ValueType;
 import Management.Parameter;
 import Management.Parameters;
-import Datastructures.ValueType;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Random;
 
 import static Utilities.Utilities.toArrayList;
-import static java.lang.Boolean.parseBoolean;
 
 /**
  * This generator generates clause sets with randomly generated predicates.
@@ -76,42 +75,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
     /** number of interval clauses */
     private final int intervals;
 
-    /**Sets the default values for the Random Clauses Generator.
-     *
-     * The method is called in ProblemGenerator
-     *
-     * @param defaults the list of default values
-     * @return void
-     */
-    public static void setDefaults(ArrayList<String> defaults) {
-        if(defaults == null) {return;}
-        StringBuilder errors = new StringBuilder();
-        try{
-            for(String line : defaults) {
-                String[] parts = line.split("\\s*=\\s*",2);
-                if(parts.length != 2) {continue;}
-                String variable = parts[0];
-                String value = parts[1];
-                switch(variable.toLowerCase()) {
-                    case "seed":        seedDefault        = Integer.parseInt(value); break;
-                    case "predicates":  predicatesDefault  = Integer.parseInt(value); break;
-                    case "redundant":   redundantDefault   = parseBoolean(value);     break;
-                    case "lengths":     lengthDefault = parseLength(value,errors).get(0);break;
-                    case "ors":         orsDefault         = Integer.parseInt(value); break;
-                    case "ands":        andsDefault        = Integer.parseInt(value); break;
-                    case "equivs":      equivsDefault      = Integer.parseInt(value); break;
-                    case "atleasts":    atleastsDefault    = Integer.parseInt(value); break;
-                    case "atmosts":     atmostsDefault     = Integer.parseInt(value); break;
-                    case "exactlies":   exactliesDefault   = Integer.parseInt(value); break;
-                    case "intervals":   intervalsDefault   = Integer.parseInt(value); break;
-                }}}
-        catch(NumberFormatException e) {
-            if(!errors.isEmpty()) System.err.println("Error in default Parameters for Random Number Generator:\n"+ errors.toString());
-            System.err.println("Error in default Parameters for Random Number Generator:\n"+e.getMessage());
-            System.exit(1);}
-        if(!errors.isEmpty()) {System.err.println("Error in default Parameters for Random Number Generator:\n"+ errors.toString());
-            System.exit(1);}
-    }
+
     /**
      * Creates a Parameters object for generating random clauses.
      *
@@ -139,9 +103,10 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
 
         Parameter length = new Parameter("Length", Parameter.DisplayType.String,
-                new ValueType.Integers(1,true),3,
+                new ValueType.Interval(1,true),3,
                 "Length of clauses: length or min-max (atleast 1)\n" +
-                        "Examples: 3 (3 predicates in a clause), 2 to 4 (2 or 3 or 4 predicates in a clause). ");
+                        "Examples: 3 (3 predicates in a clause), 2 - 4 (2 or 3 or 4 predicates in a clause). ");
+
         parameters.add(length);
 
         Parameter redundant = new Parameter("Redundant", Parameter.DisplayType.Boolean,
@@ -200,37 +165,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         return parameters;
     }
 
-    /** parses a lengths string.
-     *
-     * lengthString: <br>
-     *  - comma separated <br>
-     *  - integer or integer-integer
-     *
-     * @param lengthString the string to be parsed.
-     * @param errors       for adding error messages
-     * @return an ArrayList of int-Arrays [min,max]
-     */
-    private static ArrayList<int[]> parseLength(String lengthString, StringBuilder errors) {
-        if(lengthString == null || lengthString.isEmpty()) {
-            errors.append("empty length string\n");
-            return null;}
-        ArrayList<int[]> lengthsArray = new ArrayList<>();
-        for(String lengths : lengthString.split("\\s*,\\s*")) {
-            String[] parts = lengths.trim().split("\\s*-\\s*");
-            try {switch (parts.length) {
-                    case 1: int n = Utilities.parseInteger(parts[0],1,errors);
-                        lengthsArray.add(new int[]{n,n});
-                        break;
-                    case 2:
-                        int min = Utilities.parseInteger(parts[0],1,errors);
-                        if(min >= 0) {
-                            int max = Utilities.parseInteger(parts[1],min,errors);
-                            lengthsArray.add(new int[]{min,max});}
-                        break;
-                    default: errors.append("Illegal length format: " + lengthString + "\n");}}
-            catch(Exception ex) {errors.append(ex);}}
-        return errors.isEmpty() ? lengthsArray : null;}
-
     /**
      * Generates a random clause set based on the provided parameters.
      *
@@ -272,7 +206,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         System.out.println("MAKE");
         System.out.println("PA " + parameters);
         int i = 0;
-        IntArrayList predicates =  (IntArrayList)parameters.parameters.get(++i).value;
+        IntArrayList predicates = (IntArrayList)parameters.parameters.get(++i).value;
         ArrayList lengths       = (ArrayList)parameters.parameters.get(++i).value;
         boolean redundant       = (Boolean)parameters.parameters.get(++i).value;
         IntArrayList ors        = (IntArrayList)parameters.parameters.get(++i).value;

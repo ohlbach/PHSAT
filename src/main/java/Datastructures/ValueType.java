@@ -1,6 +1,7 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.nio.file.InvalidPathException;
@@ -565,4 +566,96 @@ public abstract class ValueType {
                 case ATLEAST: return ">= "+quantification[1];
                 case INTERVAL: return ""+quantification[1] + " " + quantification[2];}
         return "";}
-    }}
+    }
+
+    /** This class represents integer intervals like 3-5
+     */
+    public static class Interval extends ValueType {
+
+        /** the smallest interval value */
+        private int min = 0;
+        /** the largest interval value */
+        private int max = Integer.MAX_VALUE;
+        /** if true then a list of intervals is allowed */
+        private boolean list = false;
+
+        /**
+         * Represents an integer interval.
+         *
+         * @param min The smallest value of the interval.
+         * @param max The largest value of the interval.
+         * @param list If true, a list of intervals is allowed.
+         */
+        public Interval(int min, int max, boolean list) {
+            this.min = min;
+            this.max = max;
+            this.list = list;}
+
+        /**
+         * Represents an integer interval.
+         *
+         * @param min The smallest value of the interval.
+         * @param list If true, a list of intervals is allowed.
+         */
+        public Interval(int min,boolean list) {
+            this.min = min;
+            this.list = list;}
+
+        /**
+         * Returns a string representation of the given interval.
+         *
+         * @param interval The interval to be converted to a string. Can be null.
+         * @return A string representation of the interval. If the interval is null, an empty string is returned.
+         */
+        @Override
+        public String toString(Object interval) {
+            if(interval == null) return "";
+            if(interval instanceof Integer) {return ""+interval;}
+            StringBuilder st = new StringBuilder();
+            for(int[] intervals : (ArrayList<int[]>)interval) {
+                if(intervals[0] == intervals[1]) st.append(intervals[0]);
+                else st.append(intervals[0]).append("-").append(intervals[1]);
+                st.append(",");}
+            String str = st.toString();
+            return str.substring(0, str.length()-1);}
+
+
+        /**
+         * Parses the input string and converts it into an ArrayList of integer arrays representing intervals.
+         * The intervals may be comma separated integers like 3,5 (singleton interval) or intervals like 3-5
+         *
+         * @param input  The input string to be parsed. Must not be null or empty.
+         * @param errors A StringBuilder to store any error messages encountered during parsing.
+         * @return An ArrayList of integer arrays representing intervals if the input is valid, null otherwise.
+         */
+        @Override
+        public Object parseValue(String input, StringBuilder errors) {
+            if(input == null || input.isEmpty()) {
+                errors.append("empty interval string\n");
+                return null;}
+            ArrayList<int[]> lengthsArray = new ArrayList<>();
+            for(String lengths : input.split("\\s*,\\s*")) {
+                String[] parts = lengths.trim().split("\\s*-\\s*");
+                try {switch (parts.length) {
+                    case 1: int n = Utilities.parseInteger(parts[0],1,errors);
+                        lengthsArray.add(new int[]{n,n});
+                        break;
+                    case 2:
+                        int min = Utilities.parseInteger(parts[0],1,errors);
+                        if(min >= 0) {
+                            int max = Utilities.parseInteger(parts[1],min,errors);
+                            lengthsArray.add(new int[]{min,max});}
+                        break;
+                    default: errors.append("Illegal interval format: " + input + "\n");}}
+                catch(Exception ex) {errors.append(ex);}}
+            for(int[] mima : lengthsArray) {
+                if(!(mima[0] >= min && mima[0] <= max)) {
+                    errors.append("Interval: " + mima[0] + " is not within the bounds: " + min + " " + max+"\n");}
+                if(!(mima[1] >= min && mima[1] <= max)) {
+                    errors.append("Interval: " + mima[1] + " is not within the bounds: " + min + " " + max+"\n");}}
+            if(!list && lengthsArray.size() > 1) {
+                errors.append("Interval: " + lengthsArray.toString() + " has more than 1 element\n");}
+            return errors.isEmpty() ? lengthsArray : null;}
+        }
+
+}

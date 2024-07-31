@@ -276,11 +276,12 @@ public class Backtracker extends Solver {
             if(myThread.isInterrupted()) processInterrupt(null); // maybe changes in clauseList
             if(clauseList.isEmpty() || (selectedPredicatePosition = findNextPredicateIndex(selectedPredicatePosition + 1)) == 0) {
                 model.exchangeModel(localModel);
+                System.out.println("FOUND " + model.toString());
                 throw new Satisfiable(problemId,solverId, model);}
             int selectedPredicate = predicateSequence[selectedPredicatePosition];
             selectedLiteral = firstSign * selectedPredicate;
             ++statistics.selectedLiterals;
-            System.out.println("SEL " + selectedLiteral);
+            System.out.println("Selected " + selectedLiteral);
             //if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
             currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
             statistics.recursionDepth = Math.max(statistics.recursionDepth,++recursionDepth);
@@ -407,6 +408,7 @@ public class Backtracker extends Solver {
         if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
         joinDependencies(myFalseClause,lastSelectedPredicate);
         int negateLastSelectedPredicate = -firstSign * lastSelectedPredicate;
+        makeLocallyTrue(negateLastSelectedPredicate);
         if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
             InferenceStep step = trackReasoning ?
                     new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate]) : null;
@@ -414,7 +416,6 @@ public class Backtracker extends Solver {
             selectedPredicatePosition = -1;
             model.add(myThread,negateLastSelectedPredicate,step);}
         else {
-            makeLocallyTrue(negateLastSelectedPredicate);
             if(monitoring) monitor.accept(
                     "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable));
             --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
@@ -453,7 +454,7 @@ public class Backtracker extends Solver {
     protected Clause propagateLocally(int trueLiteral)  {
          for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
-            while(literalObject != null && !myThread.isInterrupted()) {
+            while(literalObject != null && !myThread.isInterrupted() && falseClause == null) {
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true trueLiteral in an OR: ignore clause
                     Clause falseClause = analyseClause(clause);          // may produce new Propagator jobs
@@ -591,8 +592,8 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
-        System.out.println("VC " + clause.toString(null,0) + " " + toStringDependencies(clause) +
-                "\n  " + currentlyTrueLiterals);
+        System.err.println("VC " + clause.toString(null,0) + " " + toStringDependencies(clause) +
+                "\n  " + currentlyTrueLiterals + "\n" + toStringLocalModel());
         IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
         for (int model = 0; model < nModels; ++model) {
@@ -606,6 +607,7 @@ public class Backtracker extends Solver {
                     new Exception().printStackTrace();
                     System.exit(1);}}
             return false;}}
+        System.err.println("Verification Okay");
         return true;}
 
 
@@ -736,13 +738,13 @@ public class Backtracker extends Solver {
      */
     protected void backtrackTo(int lastSelectedPredicate)  {
         ++statistics.backtrackings;
+        System.out.println("BACK " + lastSelectedPredicate + " False Clause " + falseClause +"\n"+toStringLocalModel());
         int backjumps = 0;
         for(int i = currentlyTrueLiterals.size()-1; i >= 0; --i) {
             int predicate = Math.abs(currentlyTrueLiterals.getInt(i));
             if(predicate == 0) {++backjumps; --recursionDepth; continue;}
             localModel[predicate] = 0;
             if(predicate == lastSelectedPredicate) {
-                System.out.println("BACK " + lastSelectedPredicate + "\n"+toStringLocalModel());
                 currentlyTrueLiterals.size(i-1);
                 if(backjumps > 1) ++statistics.backtrackings;
                 return;}}}
@@ -986,6 +988,7 @@ public class Backtracker extends Solver {
      * @return false if a contradiction is found, otherwise true;
      */
     protected synchronized boolean makeLocallyTrue(int literal) {
+        System.out.println("MakeLocallyTrue " + literal);
         if(literal > 0) {
             if(localModel[literal] == -1) return false;
             localModel[literal] = 1;}

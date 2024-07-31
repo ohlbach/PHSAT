@@ -109,7 +109,7 @@ public class ClauseList {
     public ClauseList(boolean trackReasoning, boolean verify, Monitor monitor) {
         this.trackReasoning = trackReasoning;
         this.verify = verify;
-        this.monitor = null; //monitor == null ? null : (string -> monitor.println(solverId,string));
+        this.monitor = monitor == null ? null : (string -> monitor.println(solverId,string));
     }
 
     /** Initializes the instance for a new problem.
