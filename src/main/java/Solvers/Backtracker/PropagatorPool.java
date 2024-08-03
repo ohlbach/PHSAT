@@ -31,8 +31,7 @@ public class PropagatorPool {
      * @param literal      the true literal.
      */
     public synchronized void addPropagatorJob(Backtracker backtracker, int literal) {
-        //update(1,backtracker,null,literal);
-         Propagator propagator;
+        Propagator propagator;
         if(firstPassive == propagators.size()) { // no passive propagator available.
             propagator = new Propagator(this, ++identifier);
             propagator.poolIndex = firstPassive++;
@@ -52,8 +51,7 @@ public class PropagatorPool {
      * @param propagator an active propagator which becomes passive.
      */
     public synchronized void deactivate(Propagator propagator) {
-        //update(2,null,propagator,0);
-        if(propagator.isActive) return;  // other threads found a false clause
+        if(!propagator.isActive) return;  // other threads found a false clause
         propagator.isActive = false;
         int lastActive = firstPassive-1;
         if(propagator.poolIndex < lastActive) {
@@ -64,40 +62,6 @@ public class PropagatorPool {
             propagator.poolIndex = lastActive;}
         --firstPassive;} // active propagator was the first active propagator}
 
-
-
-    private synchronized void update(int action, Backtracker backtracker, Propagator propagator, int literal) {
-        assert(firstPassive >= 0);
-        switch (action){
-            case 1: // addPropagatorJob
-                if(firstPassive == propagators.size()) { // no passive propagator available.
-                    propagator = new Propagator(this, ++identifier);
-                    propagator.poolIndex = firstPassive++;
-                    propagators.add(propagator);
-                    propagator.newPropagateJob(backtracker,literal);
-                    propagator.start();}
-                else {
-                    propagator = propagators.get(firstPassive++); // it becomes active.
-                    assert(!propagator.isActive);
-                    propagator.newPropagateJob(backtracker,literal);}
-                break;
-            case 2: //deactivate
-                if(propagator.isActive) return;  // other threads found a false clause
-                propagator.isActive = false;
-                int lastActive = firstPassive-1;
-                if(propagator.poolIndex < lastActive) {
-                    Propagator lastActivePropagator = propagators.get(lastActive);
-                    propagators.set(propagator.poolIndex, lastActivePropagator);
-                    lastActivePropagator.poolIndex = propagator.poolIndex;
-                    propagators.set(lastActive,propagator); // becomes the first passive propagator
-                    propagator.poolIndex = lastActive;}
-                --firstPassive; // active propagator was the first active propagator
-                break;
-            case 3: // jobFinished deactivate all active propagates for the backtracker
-                for(int index = firstPassive-1; index >= 0; --index) {
-                    propagator = propagators.get(index);
-                    propagator.myThread.interrupt();}}
-        }
 
     /** lists all the active and passive propagators.
      *
