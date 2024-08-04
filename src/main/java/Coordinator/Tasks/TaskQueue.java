@@ -8,11 +8,11 @@ import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /** This class maintains a priority queue of tasks.
- * The run-method executes the tasks in the queue according to their priority.
+ * The processTasks-method executes the tasks in the queue according to their priority.
  * If the queue is empty then taskSupplier.nextTask() is called.
  * New tasks can be added by calling addTask, either when tasks are executed, or by other threads.
  *
- * The run-method stops when the queue is empty and the nextTask() method returns null.
+ * The processTasks-method stops when the queue is empty and the nextTask() method returns null.
  *
  * Created by ohlbach on 25.06.2019.
  */

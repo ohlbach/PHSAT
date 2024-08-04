@@ -229,7 +229,7 @@ public abstract class Resolution extends Solver {
     private Result initializeClauses() throws InterruptedException {/*
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
-            if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
+            if(!taskQueue.isEmpty()) {Result result = taskQueue.processTasks(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
                 (literal-> addInternalTrueLiteralTask(literal, true, "Initial Conjunction")));

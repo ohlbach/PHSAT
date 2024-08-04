@@ -98,7 +98,7 @@ public class ProblemSupervisor {
                 if(globalParameters.logstream != null) {
                     globalParameters.logstream.println(problemId + " clauses printed to file " + path.toString()); }}
             model = new Model(inputClauses.predicates);
-            clauseList.initialize(problemId,model,inputClauses.symboltable);
+            clauseList.initialize(this);
             normalizer.initialize(inputClauses,clauseList, model);
             normalizer.normalizeClauses(); // may throw Result
             System.out.println(normalizer.statistics.toString());
@@ -106,6 +106,7 @@ public class ProblemSupervisor {
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
+            clauseList.start();
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
                 threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem()));

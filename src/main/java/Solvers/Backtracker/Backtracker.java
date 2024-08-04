@@ -250,7 +250,7 @@ public class Backtracker extends Solver {
      * Predicates selected to be temporarily true cause parallel threads to perform truth-propagation.
      * A top-level selected predicate which derives a contradiction
      * causes its negation to become true, and this is used to simplify the clauses.
-     * Since several solvers may run in parallel, they may exchange true literals.
+     * Since several solvers may processTasks in parallel, they may exchange true literals.
      * These are taken into account even during the recursive search.
      *
      * @return The result of solving the problem.

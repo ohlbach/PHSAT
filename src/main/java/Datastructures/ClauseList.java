@@ -10,6 +10,7 @@ import InferenceSteps.InfMergeResolution;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.Monitor.Monitor;
+import Management.ProblemSupervisor;
 import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -37,8 +38,11 @@ import java.util.function.Consumer;
  * Destructive changes, however, should be done by stopping the parallel threads, performing the changes and then
  * continuing the threads.
  */
-public class ClauseList {
+public class ClauseList extends Thread {
     // Problem independent parameters
+
+    /** the corresponding problem supervisor */
+    private ProblemSupervisor problemSupervisor;
 
     /** If true then inference steps are tracked. */
     private final boolean trackReasoning;
@@ -110,7 +114,16 @@ public class ClauseList {
         this.trackReasoning = trackReasoning;
         this.verify = verify;
         this.monitor = monitor == null ? null : (string -> monitor.println(solverId,string));
+        if(monitor != null) {this.monitor.accept("ClausList created");}
     }
+
+    /** intializes the clauseList from the problem supervisor
+     *
+     * @param problemSupervisor the problemSupervisor.
+     */
+    public void initialize(ProblemSupervisor problemSupervisor) {
+        this.problemSupervisor = problemSupervisor;
+        initialize(problemSupervisor.problemId,problemSupervisor.model,problemSupervisor.inputClauses.symboltable);}
 
     /** Initializes the instance for a new problem.
      * <br>
@@ -139,9 +152,10 @@ public class ClauseList {
 
     private BiConsumer<Integer, InferenceStep> observer =
             (literal,inferenceStep) -> {
+
                 synchronized(this) {
-                interruptSolvers(); // the solvers must wait until the true literal has been processed.
-                queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
+                    interruptSolvers(); // the solvers must wait until the true literal has been processed.
+                    queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
 
     public void disconnect() {
         model.removeObserver(myThread, observer);
@@ -211,20 +225,28 @@ public class ClauseList {
             clause = (Clause)clause.nextItem;}
 
         if(!removePureLiterals()) // new true literals generate tasks
-            processTasks();
+            processTasks(false);
 
         if(clauses.isEmpty()) {
             extendModel();
             throw new Satisfiable(problemId,solverId,model);}}
 
+    public void run() {
+        System.out.println("ClauseList started");
+        try{processTasks(true);}
+        catch(Result result) {
+            problemSupervisor.finished(result);}}
     /**
      * Process the tasks in the queue.
      *
      * @throws Result if an error occurs during processing.
      */
-    public void processTasks() throws Result {
-        while (!queue.isEmpty()) {
-            Task task = queue.poll();
+    public void processTasks(boolean waitAlways) throws Result {
+        try{
+        while (waitAlways || !queue.isEmpty()) {
+            Task task = queue.take();
+            System.out.println("TASK " + task.toString(symboltable));
+            //if(monitor != null) {monitor.accept(task.toString(symboltable));}
             switch (task.taskType) {
                 case TRUELITERAL:
                     applyTrueLiteral(task.literal, task.inferenceStep);
@@ -241,8 +263,10 @@ public class ClauseList {
                     removePurePredicate(Math.abs(task.literal));
                     break;
                 default:
-                    break;}}
-        signalContinue();}
+                    break;}
+            if(waitAlways && queue.isEmpty()) {signalContinue();}}}
+        catch(InterruptedException ignore) {}
+    }
 
     /** adds the clause to the clauses and to the literal index.
      * <br>

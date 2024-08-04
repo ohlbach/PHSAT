@@ -60,9 +60,8 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append(title()).append("\n");
+        st.append(title()).append(Symboltable.toString(negatedPredicate,symboltable)).append("\nUsed Clauses:\n");
         for(int[] clause : usedClauses) st.append(Clause.toString(clause,symboltable)).append("\n");
-        st.append(" -> ").append(Symboltable.toString(negatedPredicate,symboltable));
         return st.toString();}
 
     /** adds the new inference step to the list of steps and ids

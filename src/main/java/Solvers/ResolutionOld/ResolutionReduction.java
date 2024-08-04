@@ -161,7 +161,7 @@ public abstract class ResolutionReduction extends Solver {
         /*
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
-            if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
+            if(!taskQueue.isEmpty()) {Result result = taskQueue.processTasks(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
                 (literal-> addInternalTrueLiteralTask(literal, "Initial Conjunction")));
@@ -172,7 +172,7 @@ public abstract class ResolutionReduction extends Solver {
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(checkConsistency) {check("initializeClauses");}
         maxInputId = id[0];
-        Result result = taskQueue.run();
+        Result result = taskQueue.processTasks();
         if(result != null) {return result;}
         result = purityAndElimination();
         initializing = false;

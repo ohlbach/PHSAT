@@ -84,7 +84,7 @@ public class Frame {
                                 "Load:          load parameter configuration\n"+
                                  "Save:         save parameter configuration\n"+
                                 "Save Default:  save parameter configuration as default configuration\n"+
-                                 "Run:          run QuSat solver.",
+                                 "Run:          processTasks QuSat solver.",
                          "Info", JOptionPane.INFORMATION_MESSAGE);}});
         westPane.add(infoLabel);
         westPane.add(Box.createVerticalStrut(50));

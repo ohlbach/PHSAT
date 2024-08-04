@@ -106,6 +106,7 @@ public class Model {
      */
     public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         //if(finished) return;
+        System.out.println("MODEL " + literal);
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
