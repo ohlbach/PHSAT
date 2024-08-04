@@ -32,8 +32,6 @@ public class Propagator extends Thread {
     /** the index in the propagatorPool */
     int poolIndex;
 
-    protected Thread myThread = null;
-
     /** constructs a new propagator.
      *
      * @param propagatorPool the corresponding pool or propagators.
@@ -41,8 +39,7 @@ public class Propagator extends Thread {
      * */
     public Propagator(PropagatorPool propagatorPool, int identifier) {
         this.propagatorPool = propagatorPool;
-        this.identifier = identifier;
-        myThread = Thread.currentThread();}
+        this.identifier = identifier;}
 
     /** waits for a propagator job, executes it and then waits again.*/
     @Override
@@ -75,6 +72,5 @@ public class Propagator extends Thread {
     public String toString() {
         String status = isActive ? "Active" : "Passive";
         return status + " propagator " + identifier + " for backtracker " + backtracker.solverId+
-                ", literal " + literal + " PoolIndex: " + poolIndex + " Thread: " +
-                ((myThread == null) ? "null" : myThread.getName());}
+                ", literal " + literal + " PoolIndex: " + poolIndex ;}
 }

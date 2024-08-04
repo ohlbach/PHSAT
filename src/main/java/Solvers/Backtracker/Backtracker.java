@@ -298,9 +298,9 @@ public class Backtracker extends Solver {
      * If the counter is 0, 'this' is inserted into the propagatorQueue.
      * It means that no further true-literal propagation is going on.*/
     protected synchronized void decrementPropagatorCounter() {
+        assert propagatorThreadCounter > 0;
         --propagatorThreadCounter;
-        System.out.println("DPC " + propagatorThreadCounter + "  " + Thread.currentThread().getName());
-        if (propagatorThreadCounter <= 0) {
+         if (propagatorThreadCounter <= 0) {
             System.out.println("Notify " + propagatorThreadCounter+ "  " + Thread.currentThread().getName());
             notifyAll();}}
 
@@ -310,7 +310,7 @@ public class Backtracker extends Solver {
      * @param clause a locally false clause
      * @return the false clause itself.
      */
-    protected synchronized Clause falseClauseFound(Clause clause) {
+    protected Clause falseClauseFound(Clause clause) {
         falseClause = clause;
         return clause;}
 
@@ -386,22 +386,22 @@ public class Backtracker extends Solver {
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
     protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
+        System.out.println("PSEL " + selectedLiteral + " " + selectedPredicatePosition + " LM " + toStringLocalModel() );
         makeLocallyTrue(selectedLiteral);
         propagatorThreadCounter = 0;
         Clause myFalseClause = propagateLocally(selectedLiteral); // may start propagator threads
         System.out.println("SELFC " + (myFalseClause == null ? "" : myFalseClause.toString(null,0)));
-        if(myFalseClause == null) {
-            if(propagatorThreadCounter == 0) return; // no propagation done
-            synchronized (this) {
-                try{
-                    System.out.println("WAIT " + propagatorThreadCounter + " "+ Thread.currentThread().getName());
-                    wait();
-                    myFalseClause = falseClause;
-                    assert propagatorThreadCounter == 0;
-                    System.out.println("CONT " + selectedLiteral + "  " + (myFalseClause == null ? "" : myFalseClause.toString(null,0)));
-                } // waits until all propagatorJobs are finished
-                catch(InterruptedException exception){processInterrupt(exception); }
-            }} // maybe another solver found a solution
+        if(propagatorThreadCounter == 0) return; // no propagation done
+        synchronized (this) {
+            try{
+                System.out.println("WAIT " + propagatorThreadCounter + " "+ Thread.currentThread().getName());
+                wait(); // waits until all propagatorJobs are finished
+                myFalseClause = falseClause;
+                assert propagatorThreadCounter == 0;
+                System.out.println("CONT " + selectedLiteral + "  " + (myFalseClause == null ? "" : myFalseClause.toString(null,0)));
+            }
+            catch(InterruptedException exception){processInterrupt(exception); }
+            } // maybe another solver found a solution
         falseClause = null;
         if(myThread.isInterrupted()) processInterrupt(null);             // global changes incorporated
         if(myFalseClause == null) return;  // continue search, next selection
@@ -412,6 +412,8 @@ public class Backtracker extends Solver {
         joinDependencies(myFalseClause,lastSelectedPredicate);
         int negateLastSelectedPredicate = -firstSign * lastSelectedPredicate;
         makeLocallyTrue(negateLastSelectedPredicate);
+        System.out.println("SELDP " + negateLastSelectedPredicate + "  " + toStringLocalModel() + "\n" +
+                dependentSelections[lastSelectedPredicate].toString());
         if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
             InferenceStep step = trackReasoning ?
                     new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate]) : null;
@@ -421,8 +423,11 @@ public class Backtracker extends Solver {
         else {
             currentlyTrueLiterals.add(negateLastSelectedPredicate);
             if(monitoring) monitor.accept(
-                    "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable));
+                    "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable) +
+                    "\n " + currentlyTrueLiterals.toString());
             --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
+            propagateSelectedLiteral(negateLastSelectedPredicate);
+
         }}
 
 
@@ -455,7 +460,8 @@ public class Backtracker extends Solver {
      * @return null or a false clause.
      */
     protected Clause propagateLocally(int trueLiteral)  {
-         for(int sign = 1; sign >= -1; sign -= 2) {
+        System.out.println("PLOC " + trueLiteral + "  " + Thread.currentThread().getName() + " " +  propagatorThreadCounter);
+        for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
             while(literalObject != null && !myThread.isInterrupted() && falseClause == null) {
                 Clause clause = literalObject.clause;
@@ -480,62 +486,65 @@ public class Backtracker extends Solver {
         // Since disjunctions are frequent,
         // and only one passage through the literals is sufficient,
         // it is worth treating this case separately.
-        if(clause.quantifier == Quantifier.OR) {
-            Literal unsignedLiteral = null;
-            for(Literal literalObject : clause.literals) {
-                switch(localStatus(literalObject.literal)) {
-                    case 0:
-                        if(unsignedLiteral != null) return null;    // two unsigned literals: nothing to be done
-                        unsignedLiteral = literalObject; break;
-                    case 1: return null;}}                          // clause is true;
-            if(unsignedLiteral == null) {
-                if(verify) verifyFalseClause(clause,true);
-                return clause;}            // all literals are false. backtrackTo
-            if(makeLiteralLocallyTrue(clause,unsignedLiteral,1)) {  // all other literals are false
-                if(verify) verifyFalseClause(clause,true);
-                return clause;}
-            return null;}
+        synchronized(clause) {
+            System.out.println("ANA " + clause.toString(null,0) + " " + Thread.currentThread().getName() + "  " +
+                    toStringLocalModel());
+            if(clause.quantifier == Quantifier.OR) {
+                Literal unsignedLiteral = null;
+                for(Literal literalObject : clause.literals) {
+                    switch(localStatus(literalObject.literal)) {
+                        case 0:
+                            if(unsignedLiteral != null) return null;    // two unsigned literals: nothing to be done
+                            unsignedLiteral = literalObject; break;
+                        case 1: return null;}}                          // clause is true;
+                if(unsignedLiteral == null) {
+                    if(verify) verifyFalseClause(clause,true);
+                    return clause;}            // all literals are false. backtrackTo
+                if(makeLiteralLocallyTrue(clause,unsignedLiteral,1)) {  // all other literals are false
+                    if(verify) verifyFalseClause(clause,true);
+                    return clause;}
+                return null;}
 
         // all other clause types.
-        int trueLiterals = 0;
-        int unsignedLiterals = 0;
-        for(Literal literalObject : clause.literals) {
-            switch(localStatus(literalObject.literal)) {
-                case 0: unsignedLiterals += literalObject.multiplicity; break;
-                case 1: trueLiterals += literalObject.multiplicity;}}
-        int max = clause.max; int min = clause.min;
+            int trueLiterals = 0;
+            int unsignedLiterals = 0;
+            for(Literal literalObject : clause.literals) {
+                switch(localStatus(literalObject.literal)) {
+                    case 0: unsignedLiterals += literalObject.multiplicity; break;
+                    case 1: trueLiterals += literalObject.multiplicity;}}
+            int max = clause.max; int min = clause.min;
 
         // too many or not enough true literals.
-        if(trueLiterals > max || trueLiterals + unsignedLiterals < min) {
-            System.out.println("VFC1 " + trueLiterals + " " + unsignedLiterals + "    " + clause.toString(null,0) +
+            if(trueLiterals > max || trueLiterals + unsignedLiterals < min) {
+                System.out.println("VFC1 " + trueLiterals + " " + unsignedLiterals + "    " + clause.toString(null,0) +
                     "\n " + toStringLocalModel());
-            if(verify) verifyFalseClause(clause,true);
-            return clause;} // clause is false
-
-        if(min <= trueLiterals) { // clause is already true.
-            if(max < clause.expandedSize) {              // more true literals might be dangerous
-                for(Literal literalObject : clause.literals) {
-                    if(localStatus(literalObject.literal) == 0 &&
-                            trueLiterals + literalObject.multiplicity > max){    // making it true causes too many true literals
-                        if(makeLiteralLocallyTrue(clause,literalObject,-1)) { // literal must be false
-                            if(verify) verifyFalseClause(clause,true);
-                            return clause;}}}}
-            return null;}
-
-        if(min == 0) return null;
-        // The clause is not yet true because there are not enough true literals.
-        // We check if a making a particular literal true is sufficient to make the clause true.
-        int candidates = 0;
-        Literal candidateLiteral = null;
-        for(Literal literalObject : clause.literals) {
-            if(localStatus(literalObject.literal) == 0 && trueLiterals + literalObject.multiplicity >= min) {
-                ++candidates;
-                candidateLiteral = literalObject;}}
-        if(candidates == 1) {
-            if(makeLiteralLocallyTrue(clause,candidateLiteral,1)) {
                 if(verify) verifyFalseClause(clause,true);
-                return clause;}} // clause is false
-        return null;}
+                return clause;} // clause is false
+
+            if(min <= trueLiterals) { // clause is already true.
+                if(max < clause.expandedSize) {              // more true literals might be dangerous
+                    for(Literal literalObject : clause.literals) {
+                        if(localStatus(literalObject.literal) == 0 &&
+                                trueLiterals + literalObject.multiplicity > max){    // making it true causes too many true literals
+                            if(makeLiteralLocallyTrue(clause,literalObject,-1)) { // literal must be false
+                               if(verify) verifyFalseClause(clause,true);
+                              return clause;}}}}
+                return null;}
+
+            if(min == 0) return null;
+            // The clause is not yet true because there are not enough true literals.
+            // We check if a making a particular literal true is sufficient to make the clause true.
+            int candidates = 0;
+            Literal candidateLiteral = null;
+            for(Literal literalObject : clause.literals) {
+                if(localStatus(literalObject.literal) == 0 && trueLiterals + literalObject.multiplicity >= min) {
+                    ++candidates;
+                    candidateLiteral = literalObject;}}
+            if(candidates == 1) {
+                if(makeLiteralLocallyTrue(clause,candidateLiteral,1)) {
+                    if(verify) verifyFalseClause(clause,true);
+                    return clause;}} // clause is false
+            return null;}}
 
     /**
      * Makes a literal locally true/false and adds the job to the propagatorPool
@@ -547,7 +556,7 @@ public class Backtracker extends Solver {
      * @param sign          The sign of the literal (-1 for literal is false, 1 for literal is true).
      * @return true if the clause turned out to be false.
      */
-    synchronized boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
+     boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int trueLiteral = sign*literalObject.literal;
         if(localStatus(trueLiteral) == 1) return false;
         if(!makeLocallyTrue(trueLiteral)) return true;  // another thread may have found this out. Clause is false.
@@ -570,7 +579,7 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyTrueLiteral(Clause clause, int literal, boolean stop) {
-        System.out.println("VTL " + literal + " " + clause.toString(null,0) + "\n" +
+        System.out.println("VTL "+  Thread.currentThread().getName() + " " + literal + " " + clause.toString(null,0) + "\n" +
                 toStringLocalModel());
         IntArrayList predicates = clause.predicates();
         int literalPosition = predicates.indexOf(Math.abs(literal));
@@ -583,13 +592,12 @@ public class Backtracker extends Solver {
                     clause.isTrue(model,predicates)){++trueCases;}}
         if(trueCases != 1) {
             if(stop) {
-                synchronized (this) {
                 System.out.println("verifyTrueLiteral failed: " + clause.toString(symboltable,0) +
                         " derived literal: " + Symboltable.toString(literal,symboltable) +
                         "\nLocal Model: " + toStringLocalModel());
                 System.out.println("Stack " + currentlyTrueLiterals);
                 new Exception().printStackTrace();
-                System.exit(1);}}
+                System.exit(1);}
             return false;}
         System.out.println("VTL okay " + literal + " " + clause.toString(null,0));
         return true;}
@@ -601,20 +609,19 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
-        System.out.println("VFC " + clause.toString(null,0) + " " + toStringDependencies(clause) +
+        System.out.println("VFC " +  Thread.currentThread().getName() + " " + clause.toString(null,0) + " " + toStringDependencies(clause) +
                 "\n  " + currentlyTrueLiterals + "\n" + toStringLocalModel());
         IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
         for (int model = 0; model < nModels; ++model) {
             if(compatibleLocally(model,predicates) && clause.isTrue(model,predicates)){
                 if(stop) {
-                    synchronized (this) {
                     System.out.println("verifyFalseClause failed: " + clause.toString(symboltable,0) +
-                        "   \nLocal Model: " + toStringLocalModel());
-                    System.out.println("Falsifying Model: " +Clause.modelString(model,predicates,null));
-                    System.out.println("Stack " + currentlyTrueLiterals);
+                        "   \nLocal Model: " + toStringLocalModel() + "\n"+
+                            "Falsifying Model: " +Clause.modelString(model,predicates,null) + "\n" +
+                            "Stack " + currentlyTrueLiterals);
                     new Exception().printStackTrace();
-                    System.exit(1);}}
+                    System.exit(1);}
             return false;}}
         System.out.println("VFC Okay " + clause.toString(null,0));
         return true;}
@@ -680,14 +687,22 @@ public class Backtracker extends Solver {
      * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
     protected IntArrayList joinDependencies(Clause clause, int truePredicate) {
-       IntArrayList joinedDependencies = clearDependencies(truePredicate);
+        System.out.println("JDP1 " + truePredicate + "  " + clause.toString(null,0) + " " +
+                Thread.currentThread().getName() + "\n  " + toStringDependencies(clause));
+        IntArrayList joinedDependencies = clearDependencies(truePredicate);
         ArrayList<Clause> usedClauses = null;
         if(trackReasoning) {usedClauses = clearUsedClauses(truePredicate); usedClauses.add(clause);}
         for(Literal literalObject : clause.literals) {
             int predicate = Math.abs(literalObject.literal);
-            if(predicate != truePredicate && model.status(predicate) == 0 && localStatus(predicate) != 0){
-                addIfNotContained(joinedDependencies,dependentSelections[predicate]);
+            if(predicate != truePredicate){
+                IntArrayList depSel = dependentSelections[predicate];
+                if(depSel != null) {
+                    for(int pred : depSel) {
+                        if(model.status(pred) == 0 && localStatus(pred) != 0 && !joinedDependencies.contains(pred)){
+                            joinedDependencies.add(pred);}}}
                 if(trackReasoning) {addIfNotContained(usedClauses,usedClausesArray[predicate]);}}}
+        System.out.println("JDP2 " + clause.id + " " +  toStringDependencies(clause) + "\n  "
+        + dependentSelections[truePredicate]);
         return joinedDependencies;}
 
     /** joins all the clauses used to derive the falseClause and puts them into usedClauseArray[predicate]
