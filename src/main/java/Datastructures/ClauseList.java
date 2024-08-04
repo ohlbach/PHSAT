@@ -152,9 +152,8 @@ public class ClauseList extends Thread {
 
     private BiConsumer<Integer, InferenceStep> observer =
             (literal,inferenceStep) -> {
-
                 synchronized(this) {
-                    interruptSolvers(); // the solvers must wait until the true literal has been processed.
+                    //interruptSolvers(); // the solvers must wait until the true literal has been processed.
                     queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
 
     public void disconnect() {
@@ -182,11 +181,10 @@ public class ClauseList extends Thread {
      * <br>
      * The method waits until all solvers have acknowledged that they are waiting.
      */
-    private void interruptSolvers(){
+    private synchronized void interruptSolvers(){
         waitingSolvers = 0;
         waitingQueue.clear();
-        for(Solver solver : solvers) {solver.waitForTrueLiteralProcessing();}
-        try{waitingQueue.take();} catch(InterruptedException ignore){} // waits until all solvers acknowledged waiting
+        for(Solver solver : solvers) {solver.notifyAll();} // waits until all solvers acknowledged waiting
     }
 
     /** called by the solvers as soon as they have been interrupted.
@@ -196,7 +194,7 @@ public class ClauseList extends Thread {
 
     /** sends all solvers the signal that a new true literal has been processed, and they can continue their work.
      * Called by processTask when the task queue is empty.*/
-    private void signalContinue() {
+    private synchronized void signalContinue() {
         for(Solver solver : solvers) {solver.continueProcessing();}}
 
     /**

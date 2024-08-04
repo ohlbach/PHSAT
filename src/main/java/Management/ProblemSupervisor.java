@@ -131,6 +131,7 @@ public class ProblemSupervisor {
      * Some messages are logged.
      */
     public synchronized void finished(Result result) {
+        System.out.println("FINISHED " + result.toString());
         clauseList.disconnect();
         if(result == null) return;
         if(result instanceof Aborted) {
@@ -139,10 +140,10 @@ public class ProblemSupervisor {
         if(result instanceof Erraneous ) {
             if(result.message != null && !result.message.isEmpty()) {quSatJob.printlog(result.message);}
             ++statistics.erraneous; return;}
-        if(result instanceof Satisfiable)
+        if(result instanceof Satisfiable){
             try{clauseList.extendModel();}
             catch(Unsatisfiable uns) {System.out.println(uns.toString());}
-            checkModel((Satisfiable) result);
+            checkModel((Satisfiable) result);}
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
         quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, globalParameters.trackReasoning));

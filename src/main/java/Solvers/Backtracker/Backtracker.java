@@ -300,9 +300,7 @@ public class Backtracker extends Solver {
     protected synchronized void decrementPropagatorCounter() {
         assert propagatorThreadCounter > 0;
         --propagatorThreadCounter;
-         if (propagatorThreadCounter <= 0) {
-            System.out.println("Notify " + propagatorThreadCounter+ "  " + Thread.currentThread().getName());
-            notifyAll();}}
+         if (propagatorThreadCounter <= 0) notifyAll();}
 
 
     /** inserts a false clause into the propagatorQueue.
@@ -323,8 +321,9 @@ public class Backtracker extends Solver {
     @Override
     public void waitForTrueLiteralProcessing() {
         interruptReason = InterruptReason.TRUELITERALPROCESSING;
-        System.out.println("INTER " + myThread.getName());
-        myThread.interrupt();}
+        try{waitingQueue.clear();
+            waitingQueue.take();}
+        catch(InterruptedException e) {}}
 
     /** called by clauseList after a new true literal has been processed.*/
     @Override
@@ -419,7 +418,8 @@ public class Backtracker extends Solver {
                     new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate]) : null;
             if(monitoring && step != null) monitor.accept(step.toString(symboltable));
             selectedPredicatePosition = -1;
-            model.add(myThread,negateLastSelectedPredicate,step);}
+            model.add(myThread,negateLastSelectedPredicate,step);
+            waitForTrueLiteralProcessing();}
         else {
             currentlyTrueLiterals.add(negateLastSelectedPredicate);
             if(monitoring) monitor.accept(
