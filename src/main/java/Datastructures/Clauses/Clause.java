@@ -239,7 +239,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 for (CLiteral cLiteral : clause.cliterals)
                     newCLiterals.add(new CLiteral(-cLiteral.literal, newClause, newCLiterals.size(),
                             cLiteral.multiplicity));
-                newClause.inferenceStep = new InfAtmostToAtleast(clause, newClause);
+               // newClause.inferenceStep = new InfAtmostToAtleast(clause, newClause);
                 clause = newClause;
 
             case ATLEAST:
@@ -255,7 +255,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     if(nextId != null) {
                         newClause = clause.clone(nextId.getAsInt());
                         newClause.minLimit = (short)newLimit;
-                        newClause.inferenceStep = new InfIncreasedLimit(clause,newClause);
+                        //newClause.inferenceStep = new InfIncreasedLimit(clause,newClause);
                         clause = newClause;}
                     else {clause.minLimit = (short)newLimit;}
                     if(clause.minLimit == expandedSize) return clause.toAnd(nextId,+1);}
@@ -319,7 +319,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(needed.contains(i)) {
                 andClause.add(cLiteral.literal,(short)1);
                 positions.add(cLiteral.clausePosition);}}
-        if(andId > 0) andClause.inferenceStep = new InfNeededLiterals(this,andClause);
+        //if(andId > 0) andClause.inferenceStep = new InfNeededLiterals(this,andClause);
         return andClause;}
 
 
@@ -349,22 +349,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     break;}}}}
 
 
-    /** turns an atleast-clause into an atmost-clause
-     *
-     * @param id the id for the new atmost-clause
-     * @return a new atmost-clause equivalent to the atleast-clause.
-     */
-    public Clause toAtmost(int id) {
-        assert quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST;
-        Clause clause = new Clause(id, Quantifier.ATMOST,(short)(expandedSize()- minLimit),cliterals.size());
-        for (CLiteral cLiteral : cliterals) {
-            clause.add(-cLiteral.literal, cLiteral.multiplicity);}
-        if(inferenceStep != null) clause.inferenceStep = new InfSwitchAtleastAtmost(this,clause);
-        clause.structure = ClauseStructure.MIXED;
-        switch(structure) {
-            case POSITIVE: clause.structure = ClauseStructure.NEGATIVE; break;
-            case NEGATIVE: clause.structure = ClauseStructure.POSITIVE;}
-        return clause;}
+
 
     /** turns an atleast-clause into an atmost-clause
      *
@@ -376,7 +361,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         Clause clause = new Clause(id, Quantifier.ATLEAST,(short)(expandedSize()- minLimit),cliterals.size());
         for (CLiteral cLiteral : cliterals) {
             clause.add(-cLiteral.literal, cLiteral.multiplicity);}
-        if(inferenceStep != null) clause.inferenceStep = new InfSwitchAtleastAtmost(this,clause);
+       // if(inferenceStep != null) clause.inferenceStep = new InfSwitchAtleastAtmost(this,clause);
         clause.structure = ClauseStructure.MIXED;
         switch(structure) {
             case POSITIVE: clause.structure = ClauseStructure.NEGATIVE; break;
@@ -405,7 +390,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(CLiteral cLiteral : clause.cliterals) {
             cLiteral.literal *= sign;
             cLiteral.multiplicity = 1;}
-        clause.inferenceStep = new InfToAnd(this,clause);
+       // clause.inferenceStep = new InfToAnd(this,clause);
         return clause;}
 
     /** turns an atleast-clause into conjunctive normal form
@@ -466,7 +451,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             else {if(!removedFalseLiterals.contains(literal)) removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);}
         clause.setPositiveNegative();
-        if(clause != this) clause.inferenceStep = new InfTrueFalseLiterals(this,clause,removedTrueLiterals,removedFalseLiterals);
+       // if(clause != this) clause.inferenceStep =
+       //         new InfTrueFalseLiterals(this,clause,removedTrueLiterals,removedFalseLiterals,"Clause");
         return clause;}
 
     private final IntArrayList complementaryLiterals = new IntArrayList();
@@ -521,8 +507,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 }}
             if(clause.minLimit <= 0) {clause.structure = ClauseStructure.TAUTOLOGY; return clause;}}
         if(!removed) return clause;
-        if(clause != this) clause.inferenceStep =
-                new InfComplementaryLiterals(this,clause,complementaryLiterals);
+        //if(clause != this) clause.inferenceStep =
+        //        new InfComplementaryLiterals(this,clause,complementaryLiterals);
         clause.setPositiveNegative();
     return clause;}
 
@@ -549,7 +535,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 Utilities.combinations(literals.size()-(minLimit -singleCounter)+1,literals,
                         true,true,true)) {
             Clause clause = new Clause(nextId.getAsInt(), Quantifier.OR,(short)1,lits);
-            if(trackReasoning) clause.inferenceStep = new InfExtractMultiples(this,clause);
+            //if(trackReasoning) clause.inferenceStep = new InfExtractMultiples(this,clause);
             clauses.add(clause);}
         return clauses;}
 

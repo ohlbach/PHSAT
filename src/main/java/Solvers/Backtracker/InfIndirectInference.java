@@ -39,6 +39,7 @@ public class InfIndirectInference extends InferenceStep {
     /** the clauses used to derive this literal */
     private ArrayList<int[]> usedClauses;
 
+    private ArrayList<InferenceStep> inferenceSteps;
     /**
      * This method initializes an instance of InfClauseInference.
      *
@@ -47,14 +48,20 @@ public class InfIndirectInference extends InferenceStep {
      * @param newTrueLiteral The derived true literal.
      * @param usedClauses    The clauses used to derive this literal.
      */
-    public InfIndirectInference(int oldTrueLiteral, InferenceStep oldStep, int newTrueLiteral, ArrayList<Clause> usedClauses) {
+    public InfIndirectInference(int oldTrueLiteral, InferenceStep oldStep, int newTrueLiteral,
+                                ArrayList<Clause> usedClauses, String reasoner) {
+        super(reasoner);
         this.oldTrueLiteral = oldTrueLiteral;
         this.oldStep = oldStep;
         this.newTrueLiteral = newTrueLiteral;
+        inferenceSteps = new ArrayList<>();
         if(usedClauses != null) {
             this.usedClauses = new ArrayList<>(usedClauses.size());
             for(Clause clause : usedClauses) {
-                this.usedClauses.add(clause.simpleClone());}}}
+                this.usedClauses.add(clause.simpleClone());
+                if(clause.inferenceSteps != null) {
+                    for(InferenceStep step : clause.inferenceSteps) {
+                    if(!inferenceSteps.contains(step)) {inferenceSteps.add(step);}}}}}}
 
     /** adds the new inference step to the list of steps and ids
      *
@@ -62,13 +69,17 @@ public class InfIndirectInference extends InferenceStep {
      * @param ids  a list for collecting the input clause ids contributed to the step.
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps,ids);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(steps.contains(this)) return;
+        super.inferenceSteps(steps,ids,reasoners);
         if(oldStep != null && !steps.contains(oldStep)) steps.add(oldStep);
         if(usedClauses != null) {
             for(int[] usedClause : usedClauses) {
                 int id = usedClause[0];
-                if(!ids.contains(id)) ids.add(id);}}}
+                if(!ids.contains(id)) ids.add(id);}}
+        if(inferenceSteps != null) {
+            for(InferenceStep step : inferenceSteps) {
+                if (!steps.contains(step)) step.inferenceSteps(steps,ids,reasoners);}}}
 
     /**
      * Returns a string representation of the inference step.

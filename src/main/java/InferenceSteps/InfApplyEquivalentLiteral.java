@@ -23,7 +23,8 @@ public class InfApplyEquivalentLiteral extends InferenceStep {
     int[] clauseAfter;
     /** the inference step which caused the equivalence (usually an inputClause) */
     InferenceStep equivalenceStep;
-
+    /** the original inference steps of the clause */
+    ArrayList<InferenceStep> inferenceSteps;
     /**
      * Constructs a new InfApplyEquivalentLiteral object.
      *
@@ -39,7 +40,8 @@ public class InfApplyEquivalentLiteral extends InferenceStep {
         this.oldLiteral      = oldLiteral;
         this.equivalenceStep = equivalenceStep;
         this.clauseBefore    = clauseBefore;
-        this.clauseAfter     = clauseAfter.simpleClone();}
+        this.clauseAfter     = clauseAfter.simpleClone();
+        inferenceSteps       = clauseAfter.inferenceSteps;}
 
     /**
      * Returns a string representation of the object. The string representation consists of the title
@@ -101,11 +103,16 @@ public class InfApplyEquivalentLiteral extends InferenceStep {
      *  collects the inputClause ids of all clauses causing the current inference
      *
      * @param steps a list for collecting the inference steps.
+     * @param ids   a list for collecting the inputClause ids
+     * @param reasoners the list of reasoners
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps,ids);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(steps.contains(this)) return;
+        super.inferenceSteps(steps,ids,reasoners);
         if(!ids.contains(clauseBefore[0])) ids.add(clauseBefore[0]);
-        if(!steps.contains(equivalenceStep)) {steps.add(equivalenceStep);}}
+        if(!steps.contains(equivalenceStep)) {steps.add(equivalenceStep);}
+        if(inferenceSteps != null) {
+            for(InferenceStep step : inferenceSteps) {step.inferenceSteps(steps,ids,reasoners);}}}
 
 }

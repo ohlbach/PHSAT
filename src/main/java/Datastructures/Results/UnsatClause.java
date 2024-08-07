@@ -16,7 +16,7 @@ public class UnsatClause extends Unsatisfiable {
     /** an unsatisfiable input clause */
     private int[] inputClause = null;
 
-    /** an unsatifiable clauase */
+    /** an unsatifiable clause */
     private Clause clause = null;
 
     /** constructs an Unsatisfiability from an unsatisfiable input clause
@@ -28,6 +28,7 @@ public class UnsatClause extends Unsatisfiable {
     public UnsatClause(String problemId, String solverId, int[] inputClause) {
         super(problemId, solverId);
         this.inputClause = inputClause;
+        message = (symboltable -> "Unsatisfiable Clause: " + InputClauses.toString(0,inputClause,symboltable));
     }
 
     /** constructs an Unsatisfiability from an unsatisfiable  clause
@@ -38,7 +39,8 @@ public class UnsatClause extends Unsatisfiable {
      */
     public UnsatClause(String problemId, String solverId, Clause clause) {
         super(problemId,solverId);
-        this.clause = clause;}
+        this.clause = clause;
+        message = (symboltable -> "Unsatisfiable Clause: " + clause.toString(symboltable,0));}
 
     /**
      * Verifies the unsatisfiability of a clause. If the clause is satisfiable, a monitoring message is
@@ -59,17 +61,5 @@ public class UnsatClause extends Unsatisfiable {
                 return false;}}
         return true;}
 
-    /**
-     * Generates a description of the unsatisfiable clause based on the given symbol table.
-     *
-     * @param symboltable the symbol table used for predicate name mapping
-     * @return a string description of the unsatisfiable clause
-     */
-    @Override
-    public String description(Symboltable symboltable) {
-        if(inputClause != null)
-            return "Unsatisfiable clause " +InputClauses.toString(0,inputClause,symboltable);
-        if(clause != null)          return "Unsatisfiable clause " + clause.toString(symboltable,0);
-         return "Unsatisfiable clause ";}
 
 }

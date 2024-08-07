@@ -157,8 +157,8 @@ public class ClauseList extends Thread {
                     queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
 
     public void disconnect() {
-        model.removeObserver(myThread, observer);
-    }
+        queue.clear();
+        model.removeObserver(myThread, observer);}
 
     /** the number of solvers sharing this clause list */
     private int nSolvers = 0;
@@ -227,7 +227,7 @@ public class ClauseList extends Thread {
 
         if(clauses.isEmpty()) {
             extendModel();
-            throw new Satisfiable(problemId,solverId,model);}}
+            throw new Satisfiable(problemId,solverId, model);}}
 
     public void run() {
         System.out.println("ClauseList started");
@@ -374,7 +374,8 @@ public class ClauseList extends Thread {
      * @param literal a possibly pure literal.
      * */
     void addPurityTask(int literal) {
-        queue.add(new Task(Task.TaskType.PURITY, literal, null));}
+        if(model.status(literal) == 0)
+            queue.add(new Task(Task.TaskType.PURITY, literal, null));}
 
     /**
      * Removes all clauses subsumed by the given clause clauses from the clause list.
@@ -577,7 +578,8 @@ public class ClauseList extends Thread {
             Clause clause = literalIndex.getFirstLiteral(literal).clause;
             singletons.add(literal); singletons.add(clause.clone());
             switch(clause.removeLiteral(literal,trackReasoning,0,this::removeLiteralFromIndex, this::addTrueLiteralTask, monitor,symboltable)) {
-                case -1: clauses.remove(clause); removeClauseFromIndex(clause); throw new UnsatClause(problemId,solverId, clause);
+                case -1: clauses.remove(clause); removeClauseFromIndex(clause);
+                throw new UnsatClause(problemId,solverId,clause);
                 case +1: removeClause(clause); removeClauseFromIndex(clause); return true;}
             return true;}
         return false;

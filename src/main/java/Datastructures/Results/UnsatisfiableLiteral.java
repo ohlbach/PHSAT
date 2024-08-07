@@ -14,19 +14,14 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      * @param stepLiteral1  the inference step for the original literal
      * @param stepLiteral2  the inference step for the newly derived literal
      */
-    public UnsatisfiableLiteral(String problemId, String solverId, long startTime, int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
-        super(problemId,solverId);
+    public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
+        super(null,null);
         this.literal = literal;
         if(stepLiteral1 != null) inferenceSteps.add(stepLiteral1);
-        if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);}
+        if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);
+        message = (symboltable -> "Unsatisfiable literal: " + Symboltable.toString(literal,symboltable));
+    }
 
-    public String toString() {
-        return toString(null,false);}
-    public String toString(Symboltable symboltable, boolean trackReasoning) {
-        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n" + super.toString(symboltable,trackReasoning);}
-    @Override
-    public String description(Symboltable symboltable) {
-        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n";}
 
 
 }

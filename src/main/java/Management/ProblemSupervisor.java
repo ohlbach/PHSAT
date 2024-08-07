@@ -39,6 +39,7 @@ public class ProblemSupervisor {
     /** the number of solvers */
     int numberOfSolvers;
 
+    public long problemStartTime = 0;
     /** the global model */
     public Model model;
     private ArrayList<Solver> solvers;
@@ -81,7 +82,7 @@ public class ProblemSupervisor {
     /** starts the solvers in parallel threads and waits for their results.
      */
     public void solveProblem()  {
-        long problemStartTime = System.nanoTime();
+        problemStartTime = System.nanoTime();
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
@@ -99,7 +100,7 @@ public class ProblemSupervisor {
                     globalParameters.logstream.println(problemId + " clauses printed to file " + path.toString()); }}
             model = new Model(inputClauses.predicates);
             clauseList.initialize(this);
-            normalizer.initialize(inputClauses,clauseList, model);
+            normalizer.initialize(this);
             normalizer.normalizeClauses(); // may throw Result
             System.out.println(normalizer.statistics.toString());
 
@@ -114,7 +115,7 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
 
-        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable));}
+        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable,problemStartTime));}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -133,20 +134,21 @@ public class ProblemSupervisor {
     public synchronized void finished(Result result) {
         System.out.println("FINISHED " + result.toString());
         clauseList.disconnect();
+        for(Solver solver : solvers) solver.problemSolved();
+        quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime));
+
         if(result == null) return;
         if(result instanceof Aborted) {
-            if(result.message != null && !result.message.isEmpty()) {quSatJob.printlog(result.message);}
             ++statistics.aborted; return;}
         if(result instanceof Erraneous ) {
-            if(result.message != null && !result.message.isEmpty()) {quSatJob.printlog(result.message);}
             ++statistics.erraneous; return;}
         if(result instanceof Satisfiable){
             try{clauseList.extendModel();}
-            catch(Unsatisfiable uns) {System.out.println(uns.toString());}
+            catch(Unsatisfiable uns) {System.out.println(uns.toString(inputClauses.symboltable,problemStartTime));}
             checkModel((Satisfiable) result);}
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
-        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, globalParameters.trackReasoning));
+        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable,problemStartTime));
         for(Solver solver: solvers) {solver.problemSolved();}}
 
     /** checks the model against the input clauses.

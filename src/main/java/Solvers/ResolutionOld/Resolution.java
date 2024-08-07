@@ -11,9 +11,9 @@ import Datastructures.Results.*;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
-import Utilities.Utilities;
-import Utilities.BucketSortedList;
 import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
@@ -154,7 +154,7 @@ public abstract class Resolution extends Solver {
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
             //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
-            result = new Aborted(null,"Resolution", solverStartTime, + resolvents + " resolvents");}
+            result = new Aborted(null,"Resolution", + resolvents + " resolvents");}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
@@ -205,7 +205,7 @@ public abstract class Resolution extends Solver {
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    private BiConsumer<Integer,IntArrayList> contradictionHandler = null; /*((reason,origin)->{
+    private BiConsumer<Integer, IntArrayList> contradictionHandler = null; /*((reason,origin)->{
         taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.description(),null
                 )), (()->reason.description())));});*/
 
@@ -304,13 +304,13 @@ public abstract class Resolution extends Solver {
         }
         if(result == null) {
             System.out.println(toString());
-            return new Aborted(null,"Resolution", solverStartTime,"Maximum Resolution Limit " + resolutionLimit + " exceeded");
+            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
-            return new Erraneous(problemId,"Resolution", solverStartTime, ((Satisfiable)result).model,falseClauses,symboltable);}
+            return new Erraneous(problemId,"Resolution", ((Satisfiable)result).model,falseClauses);}
         return result;}
 
     private HashSet<Integer> indices = new HashSet<>();
@@ -586,7 +586,8 @@ public abstract class Resolution extends Solver {
             case SOS:       // there should be no clauses any more.
                 for(Clause clause : secondaryClauses) {
                     if(!trueInModel(clause,model)) {
-                        return new Erraneous(problemId,"Resolution", solverStartTime, model,clause,symboltable);}}
+                        //return new Erraneous(problemId,"Resolution", model,clause);
+                    }}
                 break;
             case NEGATIVE: isPositive = false;
             case POSITIVE:
@@ -597,7 +598,8 @@ public abstract class Resolution extends Solver {
                         int literal = cliteral.literal;
                         if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
                             model.addImmediately(literal); found = true; break;}}
-                    if(!found) return new Erraneous(problemId,"Resolution", solverStartTime, model,clause,symboltable);}}
+                    if(!found) {}//return new Erraneous(problemId,"Resolution", model,clause);
+                }}
         completeEliminations();
         Result result = null;
         if(result != null) {return result;}

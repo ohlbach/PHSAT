@@ -56,7 +56,6 @@ public class UnsatEquivalence extends Unsatisfiable {
      * @param symboltable the symbol table used for predicate name mapping
      * @return a description of the unsatisfiability
      */
-    @Override
     public String description(Symboltable symboltable) {
         if(literal1 == 0)
             return "Input Clause: " + InputClauses.toString(0, equivalence.inputClause,symboltable) +

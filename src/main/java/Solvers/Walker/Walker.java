@@ -322,7 +322,7 @@ public class Walker extends Solver {
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
             if(falseClauseList.size == 0) {throw localToGlobalModel();}}
-        throw new Aborted(problemId,solverId, solverStartTime,"Aborted after " + statistics.flips + " flips");}
+        throw new Aborted(problemId,solverId,"Aborted after " + statistics.flips + " flips");}
 
 
     /** selects a predicate to be flipped.

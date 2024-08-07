@@ -1,7 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Clauses.Clause;
+import Datastructures.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
@@ -22,36 +22,33 @@ public class Erraneous extends Result {
      *
      * @param model        a model
      * @param falseClauses a list of false clauses
-     * @param symboltable  a symbol table (optional)
      */
-    public Erraneous(String problemId, String solverId, long startTime, Model model, ArrayList<int[]> falseClauses, Symboltable symboltable) {
-        super(problemId,solverId);
+    public Erraneous(String problemId, String solverId, Model model, ArrayList<int[]> falseClauses) {
+        super(problemId,solverId, "error");
         this.model = model;
-        this.falseClauses = falseClauses;
-        this.symboltable = symboltable;}
+        this.falseClauses = falseClauses;}
 
     /** creates an Erraneous object with a model and a list of false clauses
      *
      * @param model        a model
      * @param falseClause a list of false clauses
-     * @param symboltable  a symbol table (optional)
      */
-    public Erraneous(String problemId, String solverId,long startTime, Model model, Clause falseClause, Symboltable symboltable) {
-        super(problemId,solverId);
+    public Erraneous(String problemId, String solverId, Model model, Clause falseClause) {
+        super(problemId,solverId,"error");
         this.model = model;
-        this.falseClause = falseClause;
-        this.symboltable = symboltable;}
+        this.falseClause = falseClause;}
 
 
     /** describes the false clauses and the model
      *
      * @return a description of the false clauses and the model.
      */
-    public String toString() {
+    @Override
+    public String toString(Symboltable symboltable, long startTime) {
         StringBuilder st = new StringBuilder();
         st.append("SAT Error: the following clauses are not true in the model:\n");
         st.append("Model:\n").append(model.toString()).append("\nClauses:\n");
-        if(falseClause != null) {st.append(falseClause.toString(0,symboltable)).append("\n");}
+        if(falseClause != null) {st.append(falseClause.toString(symboltable,0)).append("\n");}
         else{int size = 0;
             for(int[] clause :falseClauses) {size = Math.max(size, (""+clause[0]).length());}
             for(int[] clause :falseClauses) {st.append(InputClauses.toString(size,clause,symboltable)).append("\n");}}

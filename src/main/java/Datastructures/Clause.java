@@ -109,7 +109,7 @@ public class Clause extends LinkedItem implements Cloneable {
         if(quantifier != Quantifier.OR) checkMultiplicities();
         if(trackReasoning) {
             inferenceSteps = new ArrayList<>();
-            inferenceSteps.add(new InfInputClause(inputClause, this));}}
+            inferenceSteps.add(new InfInputClause(inputClause, this, "Clause"));}}
 
     /**
      * Constructs a Clause object with the given parameters.
@@ -204,7 +204,7 @@ public class Clause extends LinkedItem implements Cloneable {
                 int[] clone = simpleClone();
                 for(Literal literalObject : literals) {
                     int literal = literalObject.literal;
-                    InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal) : null;
+                    InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,inferenceSteps, literal, "Clause") : null;
                     reportTruth.accept(literal,step);}
                 return 1;
             case EQUIV:
@@ -218,9 +218,9 @@ public class Clause extends LinkedItem implements Cloneable {
             result = simplifyRecursively(trackReasoning, literalRemover,
                     (literal,inferenceStep) -> {reportTruth.accept(literal,inferenceStep);},
                     monitor,symboltable);
-            if(result == -1) {addInferenceStep(new InfClauseSimplification(clone,null)); return result;}
+            if(result == -1) {addInferenceStep(new InfClauseSimplification(clone,null, "Clause")); return result;}
             if(result == 1 || versionBefore == version) return result;
-            addInferenceStep(new InfClauseSimplification(clone,this));}
+            addInferenceStep(new InfClauseSimplification(clone,this, "Clause"));}
         else result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
         checkMultiplicities();
         if(quantifier == Quantifier.ATMOST) invertAtmostClause();
@@ -254,7 +254,7 @@ public class Clause extends LinkedItem implements Cloneable {
             if(monitor != null) monitor.accept("All predicates in clause " + toString(symboltable,0) + truth);
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;
-                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),literal) : null;
+                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),inferenceSteps, literal,"Clause") : null;
                 reportTruth.accept(literal,step);} // all predicates have a truth value.
             return 1;}
 
@@ -397,7 +397,7 @@ public class Clause extends LinkedItem implements Cloneable {
         for (int j = 0; j < literals.size(); j++) {
             int literal = Math.abs(literals.get(j).literal);
             if((model & (1 << j)) == 0) literal = -literal;
-            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
+            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,inferenceSteps,literal,"Clause"): null;
             reportTruth.accept(literal,step);}}
 
     /**Extracts predicates which are true/false in all models of the clause.
@@ -422,7 +422,7 @@ public class Clause extends LinkedItem implements Cloneable {
             if(sign == 0) continue;
             changed = true;
             int literal = sign*Math.abs(literals.get(j).literal);
-            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
+            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone, inferenceSteps, literal,"Clause"): null;
             if(monitor != null) {
                 monitor.accept("Clause " + toString(clone,symboltable) + ": has true literal " + Symboltable.toString(literal,symboltable));}
             reportTruth.accept(literal,step);
@@ -571,7 +571,7 @@ public class Clause extends LinkedItem implements Cloneable {
             Literal literalObject = literals.get(0);
             if (literalRemover != null) literalRemover.accept(literalObject);
             if(reportTruth != null) {
-                InferenceStep step = trackReasoning ? new InfUnitClause(this) : null;
+                InferenceStep step = trackReasoning ? new InfUnitClause(this,"Clause") : null;
                 reportTruth.accept(literalObject.literal,step);
                 return true;}}
         return false;}

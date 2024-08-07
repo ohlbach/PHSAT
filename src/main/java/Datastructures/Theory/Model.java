@@ -111,7 +111,7 @@ public class Model {
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
         if(isFalse(literal)) {
-            throw new UnsatisfiableLiteral(null,"Model", startTime, literal,getInferenceStep(literal),inferenceStep);}
+            throw new UnsatisfiableLiteral( literal,getInferenceStep(literal),inferenceStep);}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;

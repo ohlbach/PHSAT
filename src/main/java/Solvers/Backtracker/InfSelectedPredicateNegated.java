@@ -40,6 +40,8 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     /** the clauses used to derive the contradiction */
     private ArrayList<int[]> usedClauses;
 
+    private ArrayList<InferenceStep> inferenceSteps;
+
     /** creates the inference step which describes the situation that a top-level selected predicate in the
      * backtracking search eventually causes a contradiction (usually a locally false clause).
      *
@@ -49,7 +51,12 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     public InfSelectedPredicateNegated(int negatedPredicate, ArrayList<Clause> usedClauses) {
         this.negatedPredicate = negatedPredicate;
         this.usedClauses = new ArrayList<>(usedClauses.size());
-        for(Clause clause : usedClauses) { this.usedClauses.add(clause.simpleClone());}}
+        inferenceSteps = new ArrayList<>();
+        for(Clause clause : usedClauses) {
+            this.usedClauses.add(clause.simpleClone());
+            if(clause.inferenceSteps != null) {
+                for(InferenceStep step : clause.inferenceSteps) {
+                    if(!inferenceSteps.contains(step)) {inferenceSteps.add(step);}}}}}
 
     /**
      * Returns a string representation of the inference step.
@@ -70,10 +77,13 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
      * @param ids  a list for collecting the input clause ids contributed to the step.
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps,ids);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        super.inferenceSteps(steps,ids,reasoners);
         if(usedClauses != null) {
             for(int[] usedClause : usedClauses) {
                 int id = usedClause[0];
-                if(!ids.contains(id)) ids.add(id);}}}
+                if(!ids.contains(id)) ids.add(id);}}
+        if(inferenceSteps != null) {
+            for(InferenceStep step : inferenceSteps) {
+                if (!steps.contains(step)) step.inferenceSteps(steps,ids,reasoners);}}}
 }

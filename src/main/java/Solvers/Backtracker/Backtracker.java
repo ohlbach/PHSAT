@@ -282,7 +282,7 @@ public class Backtracker extends Solver {
             clearDependencies(selectedPredicate).add(selectedPredicate);
             propagateSelectedLiteral(selectedLiteral);}}
         catch(Result result) {
-            result.complete(problemId,solverId, solverStartTime);
+            result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
             System.out.println(statistics.toString());
             return result;}}
@@ -351,7 +351,7 @@ public class Backtracker extends Solver {
                     incorporateGlobalChanges();
                     return;
                 case PROBLEMSOLVED:
-                    throw new Aborted(problemId,solverId, solverStartTime,"Interrupted by another thread");}}
+                    throw new Aborted(problemId,solverId,"Interrupted by another thread");}}
         if(exception != null) { // any external exception or internal severe errors
             System.err.println(exception.getMessage());
             exception.printStackTrace();
@@ -860,7 +860,7 @@ public class Backtracker extends Solver {
                     Symboltable.toString(literal,symboltable) + " to become globally true");
         InferenceStep step = trackReasoning ?
             new InfIndirectInference(selectedLiteral,model.getInferenceStep(selectedLiteral),
-                    literal, usedClausesArray[Math.abs(literal)]) : null;
+                    literal, usedClausesArray[Math.abs(literal)],"Backtracker") : null;
         model.add(myThread,literal,step);}
 
     /** removes a selected literal, which is globally false, from the search.
@@ -937,7 +937,7 @@ public class Backtracker extends Solver {
                         " which is globally false causes new false selected literal: " + Symboltable.toString(-newTrueLiteral,symboltable));}
             InferenceStep step = trackReasoning ?
                 new InfIndirectInference(-derivedLiteral, model.getInferenceStep(-derivedLiteral),
-                        newTrueLiteral, usedClausesArray[Math.abs(derivedLiteral)]) : null;
+                        newTrueLiteral, usedClausesArray[Math.abs(derivedLiteral)],"Backtracker") : null;
             currentlyTrueLiterals.clear();
             model.add(myThread,newTrueLiteral,step);}
         else {

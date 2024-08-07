@@ -7,22 +7,49 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
+/** This class comprises all simplification steps which can be performed within a clause.
+ *
+ */
 public class InfClauseSimplification extends InferenceStep{
+    /**
+     * Returns the title of the inference step.
+     *
+     * @return the title of the inference step.
+     */
     @Override
     public String title() {
         return "Clause Simplification";}
 
+    /**
+     * Various simplifications of clauses themselves.
+     *
+     * @return The description of the simplification rule.
+     */
     @Override
     public String rule() {
         return "Various simplifications of clauses themselves";
     }
 
+    /** the clause before the simpliciation */
     private final int[] clauseBefore;
+    /** the clause after the simplification */
+
     private final int[] clauseAfter;
 
-    public InfClauseSimplification(int[] clauseBefore, Clause clauseAfter) {
-        super();
+    /** the original inference steps of the clause */
+    ArrayList<InferenceStep> inferenceSteps;
+
+    /**
+     * Constructor for InfClauseSimplification.
+     *
+     * @param clauseBefore the original clause as an int array
+     * @param clauseAfter the simplified clause as a Clause object
+     * @param reasoner the name of the reasoner used
+     */
+    public InfClauseSimplification(int[] clauseBefore, Clause clauseAfter, String reasoner) {
+        super(reasoner);
         this.clauseBefore = clauseBefore;
+        inferenceSteps = clauseAfter.inferenceSteps;
         this.clauseAfter = clauseAfter == null ? null : clauseAfter.simpleClone();}
 
     @Override
@@ -69,9 +96,11 @@ public class InfClauseSimplification extends InferenceStep{
      * @param ids   An IntArrayList for collecting the inputClause ids.
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps,ids);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        super.inferenceSteps(steps,ids,reasoners);
         int id = clauseBefore[0];
-        if(!ids.contains(id)) ids.add(id);}
+        if(!ids.contains(id)) ids.add(id);
+        if(inferenceSteps != null) {
+            for(InferenceStep step : inferenceSteps) {step.inferenceSteps(steps,ids,reasoners);}}}
 
 }

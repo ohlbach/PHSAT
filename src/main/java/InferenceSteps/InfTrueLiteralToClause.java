@@ -24,6 +24,9 @@ public class InfTrueLiteralToClause extends InferenceStep {
     /** the clause after application of the true literal (not yet simplified) */
     int[] clauseAfter;
 
+    /** the original inference steps of the clause */
+    ArrayList<InferenceStep> inferenceSteps;
+
     /** The inference step that caused the literal to be true. */
     InferenceStep trueLiteralStep;
 
@@ -38,14 +41,25 @@ public class InfTrueLiteralToClause extends InferenceStep {
         this.trueLiteral   = trueLiteral;
         this.trueLiteralStep = trueLiteralStep;
         this.clauseBefore  = clauseBefore;
-        this.clauseAfter   = clauseAfter.simpleClone();}
+        this.clauseAfter   = clauseAfter.simpleClone();
+        inferenceSteps = clauseAfter.inferenceSteps;}
 
+    /**
+     * Returns the title of the method.
+     *
+     * @return The title of the method.
+     */
     @Override
     public String title() {
         return "True Literal Applied To Clause";}
 
+    /**
+     * Returns the rule for applying a true literal to a clause.
+     *
+     * @return The rule for applying a true literal to a clause.
+     */
     public String rule() {
-        return title() +": clauseBefore and true(literal) -> clauseAfter.\n"+
+        return title() +": clauseBefore and true(literal) -> clauseAfter. "+
                "Example: p,q,r and true(-q) -> p,r";}
 
     /** Returns a string representation of the deduced clause and the steps involved in the inference.
@@ -82,13 +96,17 @@ public class InfTrueLiteralToClause extends InferenceStep {
      *
      * @param steps a list for collecting the inference steps
      * @param ids   a list for collecting the inputClause ids
+     * @param reasoners the list of reasoners
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(steps.contains(this)) return;
         if(trueLiteralStep != null && !steps.contains(trueLiteralStep)) steps.add(trueLiteralStep);
-        super.inferenceSteps(steps, ids);
+        super.inferenceSteps(steps, ids, reasoners);
         int id = clauseBefore[0];
         if(!ids.contains(id)) ids.add(id);
+        if(inferenceSteps != null) {
+            for(InferenceStep step : inferenceSteps) {step.inferenceSteps(steps,ids,reasoners);}}
     }
 
 

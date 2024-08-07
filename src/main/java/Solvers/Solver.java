@@ -18,7 +18,6 @@ import Solvers.Walker.Walker;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /** This is the superclass of all solver classes.
  * <br>
@@ -62,29 +61,6 @@ public abstract class Solver {
             case "walker"      -> Walker.class;
             case "backtracker" -> Backtracker.class;
             default -> null;};}
-
-    /**
-     * Sets the default values for the solvers based on the module values.
-     *
-     * @param moduleValues A HashMap containing the module values.
-     */
-    public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
-        StringBuilder errors = new StringBuilder();
-        for(String solver : solvers) {
-            Class solverClass = solverClass(solver);
-            if(solverClass == null) {
-                System.err.println("Class Solver: setDefaults: unknown solver class " + solver + ".");
-                System.exit(1);}
-            ArrayList<String> values = moduleValues.get(solver);
-            if(values != null) {
-                try{solverClass(solver).getMethod("setDefaults",ArrayList.class,StringBuilder.class).invoke(null,values,errors);
-                    if(!errors.isEmpty()) {
-                        System.err.println("Error in setDefaults for solver " + solver + ": " + errors.toString());
-                        System.exit(1);}}
-                catch(Exception ignore) {
-                    System.err.println("Class Solver: No Method 'setDefaults' for solver " + solver + " found\n"+
-                            "Either unknown solver, or incomplete implementation of the solver class.");
-                    System.exit(1);}}}}
 
 
     /** Analyses the parameters and generates the corresponding solvers.
@@ -259,7 +235,7 @@ public abstract class Solver {
      */
     public Result checkModel(Model model) {
         ArrayList<int[]> falseClauses = problemSupervisor.inputClauses.falseClausesInModel(model);
-        if(falseClauses != null) {return new Erraneous(problemId,"Solver", solverStartTime, model,falseClauses,symboltable);}
+        if(falseClauses != null) {return new Erraneous(problemId,"Solver", model,falseClauses);}
         else {return null;}}
 
 

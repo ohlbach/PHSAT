@@ -10,6 +10,19 @@ import java.util.function.Consumer;
  */
 public abstract class InferenceStep {
 
+    /** the reasoner that performed the inference */
+    public String reasoner = null;
+
+    public InferenceStep() {}
+
+    /**
+     * This class represents an inference step in a solver.
+     *
+     * @param reasoner The identifier of the solver that performed the inference.
+     */
+    public InferenceStep(String reasoner) {
+        this.reasoner = reasoner;}
+
     /** the title of the inference step.
      *
      * @return the title of the inference step.
@@ -21,6 +34,7 @@ public abstract class InferenceStep {
      * @return a description of the inference step
      */
     public abstract String rule();
+
 
     /** returns the inference step as string
      *
@@ -45,9 +59,12 @@ public abstract class InferenceStep {
      *
      * @param steps a list for collecting the inference steps.
      * @param ids a list of identifiers of input clauses
+     * @param reasoners for collecting the reasoners.
      */
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        if(!steps.contains(this)) {steps.add(this);}}
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(!steps.contains(this)) {steps.add(this);}
+        if(reasoner != null && !reasoners.contains(reasoner)) {reasoners.add(reasoner);}}
+
 
     /** collects all rules which are used for the inference steps
      *

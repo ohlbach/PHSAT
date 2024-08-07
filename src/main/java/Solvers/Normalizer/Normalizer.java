@@ -13,6 +13,7 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
+import Management.ProblemSupervisor;
 import Utilities.BiConsumerWithUnsatisfiable;
 
 import java.util.ArrayList;
@@ -59,6 +60,8 @@ public class Normalizer {
     /** the problem's identifier */
     private String problemId;
 
+    private long startTime = 0;
+
     /** the number of predicates in the problem */
     public int predicates;
 
@@ -104,6 +107,7 @@ public class Normalizer {
      * The must be called for each problem separately
      *
      * @param inputClauses the original clauses
+     * @param clauseList the clauses
      * @param model The model to be initialized.
      */
     public void initialize(InputClauses inputClauses, ClauseList clauseList, Model model) {
@@ -116,6 +120,24 @@ public class Normalizer {
         statistics        = new StatisticsNormalizer(null);
         equivalences.clear();
         myThread = Thread.currentThread();}
+
+    /** Initializes the normalizer for a new problem.
+     * <br>
+     * The must be called for each problem separately
+     *
+     * @param problemSupervisor the problem supervisor
+     */
+    public void initialize(ProblemSupervisor problemSupervisor) {
+        inputClauses = problemSupervisor.inputClauses;
+        clauseList   = problemSupervisor.clauseList;
+        problemId    = inputClauses.problemId;
+        model        = problemSupervisor.model;
+        symboltable  = inputClauses.symboltable;
+        predicates   = inputClauses.predicates;
+        statistics        = new StatisticsNormalizer(null);
+        equivalences.clear();
+        myThread = Thread.currentThread();
+        startTime = problemSupervisor.problemStartTime;}
 
     /** turn the inputClauses into Clause datastructures, and simplifies them as far as possible.
      * <br>
@@ -157,11 +179,11 @@ public class Normalizer {
             int literal = inputClause[i];
             switch(model.status(literal)) {
                 case 1: continue;
-                case -1: throw new UnsatClause(problemId,solverId,inputClause);}
+                case -1: throw new UnsatClause(problemId,solverId, inputClause);}
             ++statistics.initialTrueLiterals;
             InferenceStep step = null;
             if(trackReasoning) {
-                step = new InfInputClause(inputClause,literal);
+                step = new InfInputClause(inputClause,literal, solverId);
                 if(verify) step.verify(monitor,symboltable);}
             model.add(myThread,literal,step);}}
 
@@ -215,7 +237,7 @@ public class Normalizer {
                     switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                     null, reportTrueLiteral,monitor,symboltable)) {
                         case 0: ++statistics.equivalenceReplacements; break;
-                        case -1: throw new UnsatClause(problemId,solverId, clause);
+                        case -1: throw new UnsatClause(problemId,solverId,clause);
                         case +1: ++statistics.removedClauses; return true;}}}}
         return false;}
 

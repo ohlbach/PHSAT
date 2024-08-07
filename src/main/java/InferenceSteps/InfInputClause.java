@@ -16,16 +16,11 @@ import static Utilities.Utilities.modelString;
  */
 public class InfInputClause extends InferenceStep {
 
+    /** one of the input clause transformation type */
     private enum Type {AND,EQUIV,TRANSFORM}
 
     /** one of the types of the inference step */
-    private Type type;
-
-    /** the rule name */
-    public static String title = "Input";
-
-    /** the rule itself */
-    public static String rule = "Input";
+    private final Type type;
 
     /** the original input clause */
     public int[] inputClause;
@@ -46,19 +41,36 @@ public class InfInputClause extends InferenceStep {
      *
      * @param inputClause the original input clause
      * @param clause either null or the transformed clause.
+     * @param reasoner which did the transformation
      */
-    public InfInputClause(int[] inputClause, Clause clause) {
+    public InfInputClause(int[] inputClause, Clause clause, String reasoner) {
+        super(reasoner);
         type = Type.TRANSFORM;
         this.inputClause = inputClause;
         if(clause != null) this.clause = clause.simpleClone();}
 
-    public InfInputClause(int[] inputClause, int literal1) {
+    /** Represents an inference step in which the clause is derived from input clauses.
+        *
+        * @param inputClause the original input clause
+        * @param literal a literal from an AND-clause.
+        * @param reasoner which did the transformation
+     */
+    public InfInputClause(int[] inputClause, int literal, String reasoner) {
+        super(reasoner);
         type = Type.AND;
         this.inputClause = inputClause;
         assert Quantifier.getQuantifier(inputClause[1]) == Quantifier.AND;
-        this.literal1 = literal1;}
+        this.literal1 = literal;}
 
-    public InfInputClause(int[] inputClause, int literal1, int literal2) {
+    /** Represents an inference step in which the clause is derived from input clauses.
+     *
+     * @param inputClause the original input clause
+     * @param literal1 a literal from an EQUIV-clause.
+     * @param literal2 a literal from an EQUIV-clause.
+     * @param reasoner which did the transformation
+     */
+    public InfInputClause(int[] inputClause, int literal1, int literal2, String reasoner) {
+        super(reasoner);
         type = Type.EQUIV;
         this.inputClause = inputClause;
         assert Quantifier.getQuantifier(inputClause[1]) == Quantifier.EQUIV;
@@ -67,11 +79,11 @@ public class InfInputClause extends InferenceStep {
 
     @Override
     public String title() {
-        return title;}
+        return "Input";}
 
     @Override
     public String rule() {
-        return rule;}
+        return "Input";}
 
     /**
      * Verifies the consequences of InputClause to clause.
@@ -132,12 +144,13 @@ public class InfInputClause extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         String inp = "Input clause: "+ InputClauses.toString(0,inputClause,symboltable);
-        switch(type) {
-            case AND: return inp + " => true(" + Symboltable.toString(literal1,symboltable)+")";
-            case EQUIV: return inp + " => " + Symboltable.toString(literal1,symboltable) + " == " +
-                    Symboltable.toString(literal2,symboltable);
-            case TRANSFORM: return inp + " => transformed clause " + Clause.toString(clause,symboltable);}
-    return "";}
+        return switch (type) {
+            case AND       -> inp + " => true(" + Symboltable.toString(literal1, symboltable) + ")";
+            case EQUIV     -> inp + " => " + Symboltable.toString(literal1, symboltable) + " == " +
+                                    Symboltable.toString(literal2, symboltable);
+            case TRANSFORM -> inp + " => transformed clause " + Clause.toString(clause, symboltable);
+        };
+    }
 
 
     /**
@@ -146,10 +159,11 @@ public class InfInputClause extends InferenceStep {
      *
      * @param steps a list for collecting the inference steps
      * @param ids   a list for collecting the inputClause ids
+     * @param reasoners for collecting the reasoners.
      */
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps,ids);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        super.inferenceSteps(steps,ids,reasoners);
         int id = inputClause[0];
         if(!ids.contains(id)) ids.add(id);}
 }

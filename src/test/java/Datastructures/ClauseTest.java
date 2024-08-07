@@ -498,9 +498,9 @@ public class ClauseTest extends TestCase {
         System.out.println("trueLiteralInClause");
         Clause c1 = new Clause(new int[]{1, atl, 3, 1, 2, 3}, true, litCreator);
         int[] clone = c1.simpleClone();
-        InfTrueLiteralInClause step = new InfTrueLiteralInClause(clone, 2);
+        InfTrueLiteralInClause step = new InfTrueLiteralInClause(clone, null,2);
         assertTrue(step.verify((string) -> System.out.println(string), symboltable));
-        step = new InfTrueLiteralInClause(clone, -2);
+        step = new InfTrueLiteralInClause(clone, null,-2);
         assertFalse(step.verify((String string) -> System.out.println(string), symboltable));
     }
 
@@ -508,7 +508,7 @@ public class ClauseTest extends TestCase {
         System.out.println("applyTrueLiteral");
         Clause c = new Clause(new int[]{0,or,2},false,litCreator);
         Clause c1 = new Clause(new int[]{1, or, 1, 2, 3}, true, litCreator);
-        InferenceStep step = new InfTrueLiteralInClause(c.simpleClone(),2);
+        InferenceStep step = new InfTrueLiteralInClause(c.simpleClone(),null,2);
         assertEquals(0,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
         assertEquals(2,c1.inferenceSteps.size());
         step = (InferenceStep)c1.inferenceSteps.get(1);
@@ -529,7 +529,7 @@ public class ClauseTest extends TestCase {
         c1 = new Clause(new int[]{4, intv,3,3, 1, 2, 3}, true, litCreator);
         assertEquals(-1,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
         unsat = new UnsatClause("Test","N",c1);
-        System.out.println(unsat.description(null));
+        System.out.println(unsat.toString(null,0));
         assertTrue(unsat.verify(monitor,null));
     }
 
