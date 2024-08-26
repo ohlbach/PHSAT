@@ -60,8 +60,7 @@ public class Result extends Exception {
      * @param reasoners for collecting the names of the reasoners.
      */
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
-        for(InferenceStep step: inferenceSteps) {
-            step.inferenceSteps(steps,ids, reasoners);}
+        for(InferenceStep step: inferenceSteps) {step.inferenceSteps(steps,ids, reasoners);}
         ids.sort(Integer::compare);}
 
 

@@ -41,7 +41,8 @@ public class InfMergeResolution extends InferenceStep {
      * @param parent2 the second parent
      * @param resolvent the merge-resolvent
      */
-    public InfMergeResolution(int[] parent1, int[] parent2, Clause resolvent) {
+    public InfMergeResolution(int[] parent1, int[] parent2, Clause resolvent, String reasoner) {
+        super(reasoner);
         this.parent1 = parent1;
         this.parent2 = parent2;
         this.resolvent = resolvent.simpleClone();}

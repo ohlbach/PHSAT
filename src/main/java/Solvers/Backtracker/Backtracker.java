@@ -258,9 +258,7 @@ public class Backtracker extends Solver {
     @Override
      public Result solveProblem()  {
         long solverStartTime = System.nanoTime();
-        System.out.println("Clauses\n"+ clauseList.toString("clauses",null));
         myThread = Thread.currentThread();
-        System.out.println("MAIN THREAD " + myThread.getName());
         initializeLocalModel();
         initializePredicateSequence(predicateArrangement,seed);
         selectedPredicatePosition = -1;
@@ -270,12 +268,10 @@ public class Backtracker extends Solver {
             if(myThread.isInterrupted()) processInterrupt(null); // maybe changes in clauseList
             if(clauseList.isEmpty() || (selectedPredicatePosition = findNextPredicateIndex(selectedPredicatePosition + 1)) == 0) {
                 model.exchangeModel(localModel);
-                System.out.println("FOUND " + model.toString());
                 throw new Satisfiable(problemId,solverId, model);}
             int selectedPredicate = predicateSequence[selectedPredicatePosition];
             selectedLiteral = firstSign * selectedPredicate;
             ++statistics.selectedLiterals;
-            System.out.println("SEL " + selectedLiteral);
             //if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
             currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
             statistics.recursionDepth = Math.max(statistics.recursionDepth,++recursionDepth);
@@ -284,14 +280,12 @@ public class Backtracker extends Solver {
         catch(Result result) {
             result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
-            System.out.println(statistics.toString());
             return result;}}
 
     /** increments the propagator counter */
     protected synchronized void incrementPropagatorCounter() {
         ++propagatorThreadCounter;
-        System.out.println("IPC " + propagatorThreadCounter);
-    }
+        }
 
     /** decrements the propagator counter.
      * <br>
@@ -385,46 +379,49 @@ public class Backtracker extends Solver {
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
     protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
-        System.out.println("PSEL " + selectedLiteral + " " + selectedPredicatePosition + " LM " + toStringLocalModel() );
+       if(monitoring) monitor.accept("Selected Literal " + Symboltable.toString(selectedLiteral,symboltable) +
+               "  Currently True Literals: " + currentlyTrueLiterals);
         makeLocallyTrue(selectedLiteral);
         propagatorThreadCounter = 0;
         Clause myFalseClause = propagateLocally(selectedLiteral); // may start propagator threads
-        System.out.println("SELFC " + (myFalseClause == null ? "" : myFalseClause.toString(null,0)));
         if(propagatorThreadCounter == 0) return; // no propagation done
         synchronized (this) {
             try{
-                System.out.println("WAIT " + propagatorThreadCounter + " "+ Thread.currentThread().getName());
                 wait(); // waits until all propagatorJobs are finished
                 myFalseClause = falseClause;
                 assert propagatorThreadCounter == 0;
-                System.out.println("CONT " + selectedLiteral + "  " + (myFalseClause == null ? "" : myFalseClause.toString(null,0)));
-            }
+                }
             catch(InterruptedException exception){processInterrupt(exception); }
             } // maybe another solver found a solution
         falseClause = null;
         if(myThread.isInterrupted()) processInterrupt(null);             // global changes incorporated
         if(myFalseClause == null) return;  // continue search, next selection
         int lastSelectedPredicate = getLastSelectedPredicate(myFalseClause);
-         backtrackTo(lastSelectedPredicate);
+        backtrackTo(lastSelectedPredicate);
         selectedPredicatePosition = predicatePositions[lastSelectedPredicate]; // this predicate must be false.
         if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
         joinDependencies(myFalseClause,lastSelectedPredicate);
         int negateLastSelectedPredicate = -firstSign * lastSelectedPredicate;
         makeLocallyTrue(negateLastSelectedPredicate);
-        System.out.println("SELDP " + negateLastSelectedPredicate + "  " + toStringLocalModel() + "\n" +
-                dependentSelections[lastSelectedPredicate].toString());
         if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
             InferenceStep step = trackReasoning ?
-                    new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate]) : null;
-            if(monitoring && step != null) monitor.accept(step.toString(symboltable));
+                    new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate],solverId) : null;
+            if(monitoring && step != null) {
+                monitor.accept(step.toString(symboltable) +
+                    "\n False Clause: " + myFalseClause.toString(symboltable,0) +
+                    "\n Current Model: " + model.toString(symboltable));}
             selectedPredicatePosition = -1;
+            System.out.println("BACK " + negateLastSelectedPredicate);
             model.add(myThread,negateLastSelectedPredicate,step);
-            waitForTrueLiteralProcessing();}
+            System.out.println("WAITING " + Thread.currentThread().getName());
+            waitForTrueLiteralProcessing();
+            System.out.println("WAITING END " + Thread.currentThread().getName());
+        }
         else {
             currentlyTrueLiterals.add(negateLastSelectedPredicate);
             if(monitoring) monitor.accept(
                     "backtrack and negate selected predicate: " + Symboltable.toString(negateLastSelectedPredicate,symboltable) +
-                    "\n " + currentlyTrueLiterals.toString());
+                    ".  Currently true literals: " + currentlyTrueLiterals.toString());
             --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
             propagateSelectedLiteral(negateLastSelectedPredicate);
 
@@ -460,8 +457,7 @@ public class Backtracker extends Solver {
      * @return null or a false clause.
      */
     protected Clause propagateLocally(int trueLiteral)  {
-        System.out.println("PLOC " + trueLiteral + "  " + Thread.currentThread().getName() + " " +  propagatorThreadCounter);
-        for(int sign = 1; sign >= -1; sign -= 2) {
+       for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
             while(literalObject != null && !myThread.isInterrupted() && falseClause == null) {
                 Clause clause = literalObject.clause;
@@ -487,9 +483,7 @@ public class Backtracker extends Solver {
         // and only one passage through the literals is sufficient,
         // it is worth treating this case separately.
         synchronized(clause) {
-            System.out.println("ANA " + clause.toString(null,0) + " " + Thread.currentThread().getName() + "  " +
-                    toStringLocalModel());
-            if(clause.quantifier == Quantifier.OR) {
+           if(clause.quantifier == Quantifier.OR) {
                 Literal unsignedLiteral = null;
                 for(Literal literalObject : clause.literals) {
                     switch(localStatus(literalObject.literal)) {
@@ -516,9 +510,7 @@ public class Backtracker extends Solver {
 
         // too many or not enough true literals.
             if(trueLiterals > max || trueLiterals + unsignedLiterals < min) {
-                System.out.println("VFC1 " + trueLiterals + " " + unsignedLiterals + "    " + clause.toString(null,0) +
-                    "\n " + toStringLocalModel());
-                if(verify) verifyFalseClause(clause,true);
+               if(verify) verifyFalseClause(clause,true);
                 return clause;} // clause is false
 
             if(min <= trueLiterals) { // clause is already true.
@@ -566,7 +558,6 @@ public class Backtracker extends Solver {
         joinDependencies(clause,truePredicate);
         if(falseClause != null) return false;  // no further propagation necessary
         ++statistics.propagatorJobs;
-        System.out.println("NPJ " + trueLiteral);
         incrementPropagatorCounter();
         propagatorPool.addPropagatorJob(this,trueLiteral);
         return false;}
@@ -579,8 +570,6 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyTrueLiteral(Clause clause, int literal, boolean stop) {
-        System.out.println("VTL "+  Thread.currentThread().getName() + " " + literal + " " + clause.toString(null,0) + "\n" +
-                toStringLocalModel());
         IntArrayList predicates = clause.predicates();
         int literalPosition = predicates.indexOf(Math.abs(literal));
         int nModels = 1 << predicates.size();
@@ -599,7 +588,6 @@ public class Backtracker extends Solver {
                 new Exception().printStackTrace();
                 System.exit(1);}
             return false;}
-        System.out.println("VTL okay " + literal + " " + clause.toString(null,0));
         return true;}
 
     /** verifies the derivation of a false clause in the local model.
@@ -609,9 +597,7 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
-        System.out.println("VFC " +  Thread.currentThread().getName() + " " + clause.toString(null,0) + " " + toStringDependencies(clause) +
-                "\n  " + currentlyTrueLiterals + "\n" + toStringLocalModel());
-        IntArrayList predicates = clause.predicates();
+       IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
         for (int model = 0; model < nModels; ++model) {
             if(compatibleLocally(model,predicates) && clause.isTrue(model,predicates)){
@@ -623,7 +609,6 @@ public class Backtracker extends Solver {
                     new Exception().printStackTrace();
                     System.exit(1);}
             return false;}}
-        System.out.println("VFC Okay " + clause.toString(null,0));
         return true;}
 
 
@@ -687,9 +672,7 @@ public class Backtracker extends Solver {
      * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
     protected IntArrayList joinDependencies(Clause clause, int truePredicate) {
-        System.out.println("JDP1 " + truePredicate + "  " + clause.toString(null,0) + " " +
-                Thread.currentThread().getName() + "\n  " + toStringDependencies(clause));
-        IntArrayList joinedDependencies = clearDependencies(truePredicate);
+       IntArrayList joinedDependencies = clearDependencies(truePredicate);
         ArrayList<Clause> usedClauses = null;
         if(trackReasoning) {usedClauses = clearUsedClauses(truePredicate); usedClauses.add(clause);}
         for(Literal literalObject : clause.literals) {
@@ -700,9 +683,9 @@ public class Backtracker extends Solver {
                     for(int pred : depSel) {
                         if(model.status(pred) == 0 && localStatus(pred) != 0 && !joinedDependencies.contains(pred)){
                             joinedDependencies.add(pred);}}}
-                if(trackReasoning) {addIfNotContained(usedClauses,usedClausesArray[predicate]);}}}
-        System.out.println("JDP2 " + clause.id + " " +  toStringDependencies(clause) + "\n  "
-        + dependentSelections[truePredicate]);
+                if(trackReasoning) {
+                    ArrayList<Clause> usedCl = usedClausesArray[predicate];
+                    if(usedCl != null) {synchronized (usedClausesArray) {addIfNotContained(usedClauses,usedCl);}}}}}
         return joinedDependencies;}
 
     /** joins all the clauses used to derive the falseClause and puts them into usedClauseArray[predicate]
@@ -762,8 +745,7 @@ public class Backtracker extends Solver {
      */
     protected synchronized void backtrackTo(int lastSelectedPredicate)  {
         ++statistics.backtrackings;
-        System.out.println("BACK1 " + lastSelectedPredicate + " Stack " + currentlyTrueLiterals +"\n"+toStringLocalModel());
-        int backjumps = 0;
+       int backjumps = 0;
         for(int i = currentlyTrueLiterals.size()-1; i >= 0; --i) {
             int predicate = Math.abs(currentlyTrueLiterals.getInt(i));
             if(predicate == 0) {++backjumps; --recursionDepth; continue;}
@@ -771,7 +753,6 @@ public class Backtracker extends Solver {
             if(predicate == lastSelectedPredicate) {
                 currentlyTrueLiterals.size(i-1);
                 if(backjumps > 1) ++statistics.backtrackings;
-                System.out.println("BACK2 " + currentlyTrueLiterals + "\n" + toStringLocalModel());
                 return;}}}
 
     // incorporation of global changes
@@ -1013,15 +994,13 @@ public class Backtracker extends Solver {
      * @return false if a contradiction is found, otherwise true;
      */
     protected synchronized boolean makeLocallyTrue(int literal) {
-        System.out.println("MLT " + literal + "  " + toStringLocalModel());
-        if(localStatus(literal) == 1) return true;
+       if(localStatus(literal) == 1) return true;
         boolean result = true;
         if(literal > 0) {
             if(localModel[literal] == -1) result = false;
             else localModel[literal] = 1;}
         else {if(localModel[-literal] == 1) result = false;
               else localModel[-literal] = -1;}
-        if(!result) System.out.println("MLT: contradiction " + literal);
         return result;}
 
 

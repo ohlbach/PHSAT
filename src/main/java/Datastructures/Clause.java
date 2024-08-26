@@ -540,7 +540,7 @@ public class Clause extends LinkedItem implements Cloneable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
         removeLiteral(literal,status,literalRemover);
         ++version;
-        if(trackReasoning) addInferenceStep(new InfTrueLiteralToClause(-literal,null,cloned,this));
+        if(trackReasoning) addInferenceStep(new InfTrueLiteralToClause(-literal,null,cloned,this,"Clause"));
         if(monitor != null) {
             monitor.accept("From clause " + toString(cloned, symboltable) +
                     " literal " + Symboltable.toString(literal,symboltable) + " removed => "+
@@ -729,7 +729,7 @@ public class Clause extends LinkedItem implements Cloneable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
         if(!replaceLiteral(newLiteral,oldLiteral)) return 0;
         if(trackReasoning) addInferenceStep(new InfApplyEquivalentLiteral(
-                newLiteral, oldLiteral, equivalenceStep, cloned, this));
+                newLiteral, oldLiteral, equivalenceStep, cloned, this, "Clause"));
         if(monitor != null) {
             monitor.accept("In clause " + toString(cloned, symboltable) +
                     " literal " + Symboltable.toString(oldLiteral,symboltable) +
@@ -746,6 +746,8 @@ public class Clause extends LinkedItem implements Cloneable {
      * @param inferenceStep  which caused the truth/falsehood of the literal.
      * @param trackReasoning Indicates whether reasoning steps should be tracked.
      * @param monitor        The monitor used for printing information.
+     * @param literalRemover to be applied to the removed literal.
+     * @param reportTruth    to be applied to a true literal.
      * @param symboltable    The symbol table used for converting predicates to strings.
      * @return +1 if the clause can be removed, -1 if the clause became false, and 0 otherwise.
      */
@@ -755,12 +757,18 @@ public class Clause extends LinkedItem implements Cloneable {
         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
         String truth =  isTrue ? "True" : "False";
         if(!removeLiteral(literal,isTrue ? 1 : -1,literalRemover)) return 0;
+        if(min <= 0 && max >= expandedSize) return 1;
          ++version;
-        if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this));}
+        if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this,"Clause"));}
         if(monitor != null)
-            monitor.accept(truth +" Literal " + Symboltable.toString(literal,symboltable) +
-                    " applied to clause " + Clause.toString(clauseBefore,symboltable) + " -> " +
-                    toString(symboltable,0));
+            monitor.accept("true(" +Symboltable.toString(isTrue?literal:-literal,symboltable) + ") and " +
+                            Clause.toString(clauseBefore,symboltable) + " -> " +
+                            toString(symboltable,0));
+        if(literals.size() == 1) {
+            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),
+                    inferenceSteps,literals.get(0).literal,"Clause") : null;
+            reportTruth.accept(literals.get(0).literal,step);
+            return 1;}
         return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
 
 

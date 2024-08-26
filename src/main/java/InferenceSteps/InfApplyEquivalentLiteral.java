@@ -35,7 +35,8 @@ public class InfApplyEquivalentLiteral extends InferenceStep {
      * @param clauseAfter       the clause right after the replacement (before simplification)
      */
     public InfApplyEquivalentLiteral(int newLiteral, int oldLiteral,
-                                     InferenceStep equivalenceStep, int[] clauseBefore, Clause clauseAfter) {;
+                                     InferenceStep equivalenceStep, int[] clauseBefore, Clause clauseAfter, String reasoner) {
+        super(reasoner);
         this.newLiteral      = newLiteral;
         this.oldLiteral      = oldLiteral;
         this.equivalenceStep = equivalenceStep;

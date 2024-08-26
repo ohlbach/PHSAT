@@ -37,7 +37,9 @@ public class InfTrueLiteralToClause extends InferenceStep {
      * @param clauseBefore the clause to which the true literal is applied.
      * @param clauseAfter the clause after the application of the true literal.
      */
-    public InfTrueLiteralToClause(int trueLiteral, InferenceStep trueLiteralStep, int[] clauseBefore, Clause clauseAfter) {
+    public InfTrueLiteralToClause(int trueLiteral, InferenceStep trueLiteralStep,
+                                  int[] clauseBefore, Clause clauseAfter,String reasoner) {
+        super(reasoner);
         this.trueLiteral   = trueLiteral;
         this.trueLiteralStep = trueLiteralStep;
         this.clauseBefore  = clauseBefore;

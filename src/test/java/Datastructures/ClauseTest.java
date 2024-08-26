@@ -546,7 +546,7 @@ public class ClauseTest extends TestCase {
         assertTrue(step.verify((string) -> System.out.println(string), null));
         System.out.println(step.toString(null));
 
-        step = new InfApplyEquivalentLiteral(-4,2,step,c1Clone,c1);
+        step = new InfApplyEquivalentLiteral(-4,2,step,c1Clone,c1,"Test");
         assertFalse(step.verify((string) -> System.out.println(string), null));
 
     }

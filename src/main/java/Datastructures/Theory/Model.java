@@ -106,7 +106,6 @@ public class Model {
      */
     public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         //if(finished) return;
-        System.out.println("MODEL " + literal);
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -187,7 +186,8 @@ public class Model {
         assert predicate <= predicates;
         byte status = this.status[predicate];
         if(status == 0) {return null;}
-        int position = model.indexOf((status > 0) ? predicate : -predicate);
+        int position = model.indexOf(predicate);
+        if(position == -1) {position = model.indexOf(-predicate);}
         if(position >= inferenceSteps.size()) return null;
         return inferenceSteps.get(position);}
 

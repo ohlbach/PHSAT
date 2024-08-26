@@ -7,6 +7,7 @@ import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfMergeResolution;
+import InferenceSteps.InfPureLiteral;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.Monitor.Monitor;
@@ -230,9 +231,9 @@ public class ClauseList extends Thread {
             throw new Satisfiable(problemId,solverId, model);}}
 
     public void run() {
-        System.out.println("ClauseList started");
         try{processTasks(true);}
         catch(Result result) {
+            result.complete(problemId,solverId);
             problemSupervisor.finished(result);}}
     /**
      * Process the tasks in the queue.
@@ -243,26 +244,33 @@ public class ClauseList extends Thread {
         try{
         while (waitAlways || !queue.isEmpty()) {
             Task task = queue.take();
-            System.out.println("TASK " + task.toString(symboltable));
             //if(monitor != null) {monitor.accept(task.toString(symboltable));}
             switch (task.taskType) {
                 case TRUELITERAL:
+                    System.out.println("TASK " + task.toString(symboltable));
                     applyTrueLiteral(task.literal, task.inferenceStep);
                     break;
                 case SHORTENED_CLAUSE:
                     Clause clause = task.clause;
                     if(clause.isInList) {
+                        System.out.println("TASK " + task.toString(symboltable));
                         removeSubsumedClauses(clause);
                         if(clause.quantifier == Quantifier.OR) {
                             mergeResolution(clause);
                             if(clause.expandedSize == 2 && clause.isInList) linkedMergeResolution(clause);}}
                     break;
                 case PURITY:
-                    removePurePredicate(Math.abs(task.literal));
+                    int literal = task.literal;
+                    if(!literalIndex.isBothEmpty(literal)) {
+                        System.out.println("TASK " + task.toString(symboltable));
+                        removePurePredicate(Math.abs(literal));
+                    }
                     break;
                 default:
                     break;}
-            if(waitAlways && queue.isEmpty()) {signalContinue();}}}
+            if(waitAlways && queue.isEmpty()) {
+                System.out.println("No more tasks. CLAUSELIST\n" + toStringClauses(null));
+                signalContinue();}}}
         catch(InterruptedException ignore) {}
     }
 
@@ -533,6 +541,7 @@ public class ClauseList extends Thread {
         while(purityFound) {
             purityFound = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {
+                if(literalIndex.isBothEmpty(predicate)) continue;
                 purityFound |= removePurePredicate(predicate);
                 if(clauses.isEmpty()) return true;}}
         return false;}
@@ -554,20 +563,21 @@ public class ClauseList extends Thread {
      * @throws Unsatisfiable if a contradiction is discovered.
      * */
     protected boolean removePurePredicate(int predicate) throws Unsatisfiable{
-        if(literalIndex.isBothEmpty(predicate)) return false;
         if(isPositivelyPure(predicate)) {
             if(monitor!=null) {monitor.accept("Predicate " + Symboltable.toString(predicate,symboltable) +
                     " is positively pure");}
             ++statistics.pureLiterals;
-            model.add(myThread,predicate,null);
-            applyTrueLiteral(predicate,null); // pure literals will never be part of a contradiction.
+            InferenceStep step = trackReasoning ? new InfPureLiteral(predicate) : null;
+            model.add(myThread,predicate,step);
+            applyTrueLiteral(predicate,step); // pure literals will never be part of a contradiction.
             return true;}
         if(isNegativelyPure(predicate)) {
             if(monitor!=null) {monitor.accept("Predicate " + Symboltable.toString(predicate,symboltable) +
                     " is negatively pure");}
             ++statistics.pureLiterals;
-            model.add(myThread,-predicate,null);
-            applyTrueLiteral(-predicate,null); // pure literals will never be part of a contradiction.
+            InferenceStep step = trackReasoning ? new InfPureLiteral(-predicate) : null;
+            model.add(myThread,-predicate,step);
+            applyTrueLiteral(-predicate,step); // pure literals will never be part of a contradiction.
             return true;}
 
         int literal = isSingletonPure(predicate);
@@ -871,7 +881,7 @@ public class ClauseList extends Thread {
         if(longerParent.quantifier != Quantifier.OR) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
-            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent) : null;
+            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent,"ClauseList") : null;
             if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
                 shorterParent.addInferenceStep(step);
@@ -881,7 +891,7 @@ public class ClauseList extends Thread {
         if(shorterParent.literals.size() == longerParent.literals.size()) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
-            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent) : null;
+            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent,"ClauseList") : null;
             if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
                 shorterParent.addInferenceStep(step);
@@ -892,7 +902,7 @@ public class ClauseList extends Thread {
 
         if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask))
             removeClause(longerParent); // should not happen
-        step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,longerParent) : null;
+        step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,longerParent,"ClauseList") : null;
         if(monitor != null) monitor.accept(step.toString(symboltable));
         if(trackReasoning) {
             longerParent.addInferenceStep(step);

@@ -37,7 +37,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
     int literal;
 
     /** the original inference steps of the clause */
-    ArrayList<InferenceStep> inferenceSteps;
+    public ArrayList<InferenceStep> inferenceSteps;
 
     /**
      * InfTrueLiteralInClause represents an inference step that extracts a true literal from a clause.

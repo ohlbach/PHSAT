@@ -132,7 +132,7 @@ public class ProblemSupervisor {
      * Some messages are logged.
      */
     public synchronized void finished(Result result) {
-        System.out.println("FINISHED " + result.toString());
+        System.out.println("FINISHED");
         clauseList.disconnect();
         for(Solver solver : solvers) solver.problemSolved();
         quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime));
@@ -148,8 +148,8 @@ public class ProblemSupervisor {
             checkModel((Satisfiable) result);}
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
-        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable,problemStartTime));
-        for(Solver solver: solvers) {solver.problemSolved();}}
+       System.exit(2);
+    }
 
     /** checks the model against the input clauses.
      * If some clauses are false in this model, they are printed and the system exits.

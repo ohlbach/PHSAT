@@ -2,6 +2,7 @@ package Solvers.Backtracker;
 
 import Datastructures.Clause;
 import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -48,7 +49,8 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
      * @param negatedPredicate the negated top-level selected predicate which caused a contradiction
      * @param usedClauses the clauses used to derive the contradiction
      */
-    public InfSelectedPredicateNegated(int negatedPredicate, ArrayList<Clause> usedClauses) {
+    public InfSelectedPredicateNegated(int negatedPredicate, ArrayList<Clause> usedClauses,String reasoner) {
+        super(reasoner);
         this.negatedPredicate = negatedPredicate;
         this.usedClauses = new ArrayList<>(usedClauses.size());
         inferenceSteps = new ArrayList<>();
@@ -67,8 +69,12 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append(title()).append(Symboltable.toString(negatedPredicate,symboltable)).append("\nUsed Clauses:\n");
+        st.append(title()).append(" ").append(Symboltable.toString(negatedPredicate,symboltable)).
+                append("\nUsed Clauses (maybe simplified in the meantime):\n");
         for(int[] clause : usedClauses) st.append(Clause.toString(clause,symboltable)).append("\n");
+        st.append("Inference Steps:\n");
+        for(InferenceStep step: inferenceSteps)
+            if(!(step instanceof InfInputClause)) st.append(step.toString(symboltable)).append("\n");
         return st.toString();}
 
     /** adds the new inference step to the list of steps and ids
