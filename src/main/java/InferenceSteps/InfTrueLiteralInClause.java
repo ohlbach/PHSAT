@@ -19,7 +19,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
      */
     @Override
     public String title() {
-        return "True Literal in Clause";}
+        return "True Literal from Clause";}
 
     /**
      * Retrieves the rule for various forms of extraction of true literals from a clause.
@@ -84,7 +84,8 @@ public class InfTrueLiteralInClause extends InferenceStep{
      */
     @Override
     public String toString(Symboltable symboltable) {
-        return title() + ": " + Clause.toString(clauseBefore, symboltable) + " -> " + Symboltable.toString(literal, symboltable);}
+        return title() + " by " + reasoner + ": " +
+                Clause.toString(clauseBefore, symboltable) + " -> true(" + Symboltable.toString(literal, symboltable)+")";}
 
     /**
      * Collects the inference steps culminating in this in the list "steps". Double occurrences are to be avoided.

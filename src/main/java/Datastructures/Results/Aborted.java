@@ -8,8 +8,8 @@ public class Aborted extends Result {
      *
      * @param reason why the solver was aborted.
      */
-    public Aborted(String problemId, String solverId, String reason) {
-        super(problemId,solverId,"aborted");
+    public Aborted(String problemId, String solverId, String reason, long startTime) {
+        super(problemId,solverId,"aborted",startTime);
         message = (symboltable -> "Solver aborted: " + reason);}
 
 }

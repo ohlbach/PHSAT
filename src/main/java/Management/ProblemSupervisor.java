@@ -115,7 +115,9 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
 
-        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable,problemStartTime));}
+        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable,problemStartTime)
+        +"\n EXIT");
+        System.exit(1);}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -135,7 +137,9 @@ public class ProblemSupervisor {
         System.out.println("FINISHED");
         clauseList.disconnect();
         for(Solver solver : solvers) solver.problemSolved();
-        quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime));
+        quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime) + "\nEXIT");
+        new Exception().printStackTrace();
+        //System.exit(2);
 
         if(result == null) return;
         if(result instanceof Aborted) {

@@ -154,7 +154,7 @@ public abstract class Resolution extends Solver {
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
             //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
-            result = new Aborted(null,"Resolution", + resolvents + " resolvents");}
+            result = new Aborted(null,"Resolution", + resolvents + " resolvents",model.startTime);}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
@@ -304,7 +304,7 @@ public abstract class Resolution extends Solver {
         }
         if(result == null) {
             System.out.println(toString());
-            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded");
+            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded",model.startTime);
             }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);

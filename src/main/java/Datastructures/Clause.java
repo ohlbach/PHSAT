@@ -755,7 +755,6 @@ public class Clause extends LinkedItem implements Cloneable {
                          Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                          Symboltable symboltable) throws Unsatisfiable {
         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
-        String truth =  isTrue ? "True" : "False";
         if(!removeLiteral(literal,isTrue ? 1 : -1,literalRemover)) return 0;
         if(min <= 0 && max >= expandedSize) return 1;
          ++version;

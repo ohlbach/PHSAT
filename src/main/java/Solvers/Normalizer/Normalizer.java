@@ -179,7 +179,7 @@ public class Normalizer {
             int literal = inputClause[i];
             switch(model.status(literal)) {
                 case 1: continue;
-                case -1: throw new UnsatClause(problemId,solverId, inputClause);}
+                case -1: throw new UnsatClause(problemId,solverId, inputClause,startTime);}
             ++statistics.initialTrueLiterals;
             InferenceStep step = null;
             if(trackReasoning) {
@@ -214,7 +214,7 @@ public class Normalizer {
     protected void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)));
         switch(clause.simplify(trackReasoning,null,reportTrueLiteral,monitor,symboltable)) {
-            case -1: throw new UnsatClause(problemId,solverId, inputClause);
+            case -1: throw new UnsatClause(problemId,solverId, inputClause,startTime);
             case 1: ++statistics.removedClauses; return;}
         statistics.simplifiedClauses += clause.version;
         if(!applyEquivalences(clause)) clauseList.addClause(clause);}
@@ -237,7 +237,7 @@ public class Normalizer {
                     switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                     null, reportTrueLiteral,monitor,symboltable)) {
                         case 0: ++statistics.equivalenceReplacements; break;
-                        case -1: throw new UnsatClause(problemId,solverId,clause);
+                        case -1: throw new UnsatClause(problemId,solverId,clause,startTime);
                         case +1: ++statistics.removedClauses; return true;}}}}
         return false;}
 
@@ -260,7 +260,7 @@ public class Normalizer {
                     if(status2 != 0) {
                         if(status1 != status2) throw new UnsatEquivalence(problemId,solverId,equivalence,
                                 representative, equivalentLiteral,model.getInferenceStep(representative),
-                                model.getInferenceStep(equivalentLiteral));}
+                                model.getInferenceStep(equivalentLiteral),model.startTime);}
                     else model.add(myThread, status1*equivalentLiteral,step);}
                 continue;}
 
@@ -282,11 +282,11 @@ public class Normalizer {
                                     throw new UnsatEquivalence(problemId,solverId,equivalence,
                                         representative, equivalentLiteral,
                                         model.getInferenceStep(representative),
-                                        model.getInferenceStep(equivalentLiteral));
+                                        model.getInferenceStep(equivalentLiteral),model.startTime);
                                 else throw new UnsatEquivalence(problemId,solverId,equivalence,
                                         equivalentLiteral,representative,
                                         model.getInferenceStep(equivalentLiteral),
-                                        model.getInferenceStep(representative));}
+                                        model.getInferenceStep(representative),model.startTime);}
                         else model.add(myThread, status1*equivalentLiteral,step);}
                     break;}}}}
 

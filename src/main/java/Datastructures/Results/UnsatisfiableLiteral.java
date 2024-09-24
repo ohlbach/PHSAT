@@ -13,9 +13,10 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      * @param literal       a contradictory literal
      * @param stepLiteral1  the inference step for the original literal
      * @param stepLiteral2  the inference step for the newly derived literal
+     * @param startTime the time when the reasoning started.
      */
-    public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
-        super(null,null);
+    public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2, long startTime) {
+        super(null,null,startTime);
         this.literal = literal;
         if(stepLiteral1 != null) inferenceSteps.add(stepLiteral1);
         if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);

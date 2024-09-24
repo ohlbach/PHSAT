@@ -25,8 +25,8 @@ public class UnsatEquivalence extends Unsatisfiable {
      *
      * @param equivalence the original equivalence.
      */
-    public UnsatEquivalence(Equivalence equivalence) {
-        super(null,null);
+    public UnsatEquivalence(Equivalence equivalence, long startTime) {
+        super(null,null,startTime);
         this.equivalence = equivalence;}
 
 
@@ -42,8 +42,8 @@ public class UnsatEquivalence extends Unsatisfiable {
      * @param step2       the corresponding inference step for the truth value of the second literal
      */
     public UnsatEquivalence(String problemId, String solverId, Equivalence equivalence, int literal1, int literal2,
-                            InferenceStep step1, InferenceStep step2) {
-        super(problemId,solverId);
+                            InferenceStep step1, InferenceStep step2,long startTime) {
+        super(problemId,solverId,startTime);
         this.equivalence = equivalence;
         this.literal1 = literal1;
         this.literal2 = literal2;

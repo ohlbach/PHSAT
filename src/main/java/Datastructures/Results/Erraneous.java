@@ -24,7 +24,7 @@ public class Erraneous extends Result {
      * @param falseClauses a list of false clauses
      */
     public Erraneous(String problemId, String solverId, Model model, ArrayList<int[]> falseClauses) {
-        super(problemId,solverId, "error");
+        super(problemId,solverId, "error",model.startTime);
         this.model = model;
         this.falseClauses = falseClauses;}
 
@@ -34,7 +34,7 @@ public class Erraneous extends Result {
      * @param falseClause a list of false clauses
      */
     public Erraneous(String problemId, String solverId, Model model, Clause falseClause) {
-        super(problemId,solverId,"error");
+        super(problemId,solverId,"error",model.startTime);
         this.model = model;
         this.falseClause = falseClause;}
 

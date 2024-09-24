@@ -69,12 +69,16 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append(title()).append(" ").append(Symboltable.toString(negatedPredicate,symboltable)).
+        st.append(title()).append(" ").append(Symboltable.toString(negatedPredicate,symboltable)).append(" found by " + reasoner).
                 append("\nUsed Clauses (maybe simplified in the meantime):\n");
         for(int[] clause : usedClauses) st.append(Clause.toString(clause,symboltable)).append("\n");
-        st.append("Inference Steps:\n");
+        StringBuilder stp = new StringBuilder();
         for(InferenceStep step: inferenceSteps)
-            if(!(step instanceof InfInputClause)) st.append(step.toString(symboltable)).append("\n");
+           if(!(step instanceof InfInputClause)) stp.append(step.toString(symboltable)).append("\n");
+        if(!stp.isEmpty()) {
+            st.append("Inference Steps:\n");
+            st.append(stp);}
+        st.append("End of " + title());
         return st.toString();}
 
     /** adds the new inference step to the list of steps and ids
@@ -91,5 +95,8 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
                 if(!ids.contains(id)) ids.add(id);}}
         if(inferenceSteps != null) {
             for(InferenceStep step : inferenceSteps) {
-                if (!steps.contains(step)) step.inferenceSteps(steps,ids,reasoners);}}}
+                if (!steps.contains(step)) {
+                    steps.add(step);
+                    step.inferenceSteps(steps,ids,reasoners);}}}}
+
 }

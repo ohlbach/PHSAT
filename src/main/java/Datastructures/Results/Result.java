@@ -1,6 +1,5 @@
 package Datastructures.Results;
 
-import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import Utilities.Utilities;
@@ -20,28 +19,27 @@ public class Result extends Exception {
     /** the problem identifier which has the result. */
     public String problemId = null;
 
-     /** the statistics of the solver. */
-    public Statistic statistic = null;
-
     /** the nanotime at which the problem was ended*/
-    public long endTime = 0L;
+    public String duration = null;
 
     /** an optional message */
     public Function<Symboltable,String> message = null;
 
+    /** the inference steps contributing to the result */
     public ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     /** the constructor. It sets the endTime.
      *
      * @param problemId the problem identifier which has the result.
      * @param solverId the solver which found the result
      * @param result a name of the result (eg. satisfiable, aborted etc.)
+     * @param startTime the time when the reasoning started.
      */
-    public Result(String problemId, String solverId, String result) {
+    public Result(String problemId, String solverId, String result, long startTime) {
         super();
         this.problemId = problemId;
         this.solverId  = solverId;
         this.result    = result;
-        endTime        = System.nanoTime();}
+        this.duration = startTime == 0L ? null: Utilities.duration(System.nanoTime()-startTime);}
 
     /** completes the information about the result
      *
@@ -60,6 +58,7 @@ public class Result extends Exception {
      * @param reasoners for collecting the names of the reasoners.
      */
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(!reasoners.contains(solverId)) {reasoners.add(solverId);}
         for(InferenceStep step: inferenceSteps) {step.inferenceSteps(steps,ids, reasoners);}
         ids.sort(Integer::compare);}
 
@@ -75,10 +74,10 @@ public class Result extends Exception {
      * @param symboltable null or a symboltable
      * @return a description of the result.
      */
-    public String toString(Symboltable symboltable, long startTime) {
+    public String toString(Symboltable symboltable, long stmeartTi) {
         StringBuilder st = new StringBuilder();
         st.append("Result: ").append(result).append( " for problem ").append(problemId).append(" found by ").append(solverId);
-        if(startTime != 0L) st.append(", elapsed time: ").append(Utilities.duration(endTime-startTime));
+        if(duration != null) st.append(", elapsed time: ").append(duration);
         st.append("\n");
         if(message != null) {st.append(message.apply(symboltable)).append("\n");}
         if(!inferenceSteps.isEmpty()) {

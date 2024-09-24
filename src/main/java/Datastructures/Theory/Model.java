@@ -34,7 +34,7 @@ public class Model {
     /** the current model. It collects the true predicates.*/
     public IntArrayList model;
 
-    long startTime;
+    public long startTime;
 
     /** the inference steps which caused the truth of the predicates. The positions in the array are the same
      * as the positions of the true literal in the model-array.*/
@@ -110,7 +110,7 @@ public class Model {
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
         if(isFalse(literal)) {
-            throw new UnsatisfiableLiteral( literal,getInferenceStep(literal),inferenceStep);}
+            throw new UnsatisfiableLiteral( literal,getInferenceStep(literal),inferenceStep,startTime);}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;

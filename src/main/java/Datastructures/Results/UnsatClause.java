@@ -24,9 +24,10 @@ public class UnsatClause extends Unsatisfiable {
      * @param problemId the promblem's id
      * @param solverId the solvers's id
      * @param inputClause an unsatisfiable clause
+     * @param startTime the time when the reasoning started.
      */
-    public UnsatClause(String problemId, String solverId, int[] inputClause) {
-        super(problemId, solverId);
+    public UnsatClause(String problemId, String solverId, int[] inputClause, long startTime) {
+        super(problemId, solverId, startTime);
         this.inputClause = inputClause;
         message = (symboltable -> "Unsatisfiable Clause: " + InputClauses.toString(0,inputClause,symboltable));
     }
@@ -36,11 +37,13 @@ public class UnsatClause extends Unsatisfiable {
      * @param problemId the promblem's id
      * @param solverId the solvers's id
      * @param clause an unsatisfiable clause
+     * @param startTime the time when the reasoning started.
      */
-    public UnsatClause(String problemId, String solverId, Clause clause) {
-        super(problemId,solverId);
+    public UnsatClause(String problemId, String solverId, Clause clause, long startTime) {
+        super(problemId,solverId, startTime);
         this.clause = clause;
-        message = (symboltable -> "Unsatisfiable Clause: " + clause.toString(symboltable,0));}
+        message = (symboltable -> "Unsatisfiable Clause: " + clause.toString(symboltable,0));
+        inferenceSteps = clause.inferenceSteps;}
 
     /**
      * Verifies the unsatisfiability of a clause. If the clause is satisfiable, a monitoring message is

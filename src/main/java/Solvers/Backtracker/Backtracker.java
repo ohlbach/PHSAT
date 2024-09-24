@@ -280,6 +280,7 @@ public class Backtracker extends Solver {
         catch(Result result) {
             result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
+            System.out.println("SOLUTION FOUND");
             return result;}}
 
     /** increments the propagator counter */
@@ -345,7 +346,7 @@ public class Backtracker extends Solver {
                     incorporateGlobalChanges();
                     return;
                 case PROBLEMSOLVED:
-                    throw new Aborted(problemId,solverId,"Interrupted by another thread");}}
+                    throw new Aborted(problemId,solverId,"Interrupted by another thread",model.startTime);}}
         if(exception != null) { // any external exception or internal severe errors
             System.err.println(exception.getMessage());
             exception.printStackTrace();
@@ -411,7 +412,7 @@ public class Backtracker extends Solver {
                     "\n False Clause: " + myFalseClause.toString(symboltable,0) +
                     "\n Current Model: " + model.toString(symboltable));}
             selectedPredicatePosition = -1;
-            System.out.println("BACK " + negateLastSelectedPredicate);
+            System.out.println("BACK " + negateLastSelectedPredicate + " " + step.toString(symboltable));
             model.add(myThread,negateLastSelectedPredicate,step);
             System.out.println("WAITING " + Thread.currentThread().getName());
             waitForTrueLiteralProcessing();

@@ -15,9 +15,11 @@ public class Satisfiable extends Result {
      * @param model     the model for the clause set.
      */
     public Satisfiable(String problemId, String solverId, Model model) {
-        super(problemId,solverId,"satisfiable");
+        super(problemId,solverId,"satisfiable",model.startTime);
         message = (symboltable) -> "Model: " + model.toString(symboltable);
-        this.model = model;}
+        this.model = model;
+        inferenceSteps = model.inferenceSteps;
+    }
 
 
 }

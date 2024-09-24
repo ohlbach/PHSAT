@@ -107,8 +107,8 @@ public class QuSatJob {
      */
     public void printlog(String message) {
         if(globalParameters.logstream == null) return;
-        globalParameters.logstream.print(Utilities.duration(System.nanoTime() - globalParameters.jobStartTime) + " ");
-        globalParameters.logstream.println(message);
+        globalParameters.logstream.println("LOG: "+ Utilities.duration(System.nanoTime() - globalParameters.jobStartTime) +
+                " " + message + "|");
     }
 
     protected void analyseResults() {

@@ -354,7 +354,7 @@ public class ClauseList extends Thread {
                 Clause clause = literalObject.clause;
                 switch(clause.applyTrueLiteral(sign*literal,sign == 1, inferenceStep, trackReasoning,
                         monitor,this::removeLiteralFromIndex,this::addTrueLiteralTask, symboltable)){
-                    case -1: throw new UnsatClause(problemId,solverId, clause);
+                    case -1: throw new UnsatClause(problemId,solverId, clause, model.startTime);
                     case 1: removeClause(clause); removeClauseFromIndex(clause); break;
                     case 0: addShortenedClauseTask(clause);}
                 literalObject = (Literal)literalObject.nextItem;
@@ -589,7 +589,7 @@ public class ClauseList extends Thread {
             singletons.add(literal); singletons.add(clause.clone());
             switch(clause.removeLiteral(literal,trackReasoning,0,this::removeLiteralFromIndex, this::addTrueLiteralTask, monitor,symboltable)) {
                 case -1: clauses.remove(clause); removeClauseFromIndex(clause);
-                throw new UnsatClause(problemId,solverId,clause);
+                throw new UnsatClause(problemId,solverId,clause, model.startTime);
                 case +1: removeClause(clause); removeClauseFromIndex(clause); return true;}
             return true;}
         return false;

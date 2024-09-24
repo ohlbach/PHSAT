@@ -48,7 +48,7 @@ public class Equivalence {
     public void addLiteral(int literal) throws Unsatisfiable {
         if(literal == representative || literals.contains(literal)) return;
         InferenceStep step = new InfInputClause(inputClause,representative,literal, "Equivalence");
-        if(literal == -representative || literals.contains(-literal)) throw new UnsatEquivalence(this);
+        if(literal == -representative || literals.contains(-literal)) throw new UnsatEquivalence(this,0L);
         literals.add(literal);
         inferenceSteps.add(step);
     }
