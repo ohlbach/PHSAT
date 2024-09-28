@@ -72,7 +72,7 @@ public class InfIndirectInference extends InferenceStep {
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
         if(steps.contains(this)) return;
         super.inferenceSteps(steps,ids,reasoners);
-        if(oldStep != null && !steps.contains(oldStep)) steps.add(oldStep);
+        if(oldStep != null && !steps.contains(oldStep)) oldStep.inferenceSteps(steps,ids,reasoners);
         if(usedClauses != null) {
             for(int[] usedClause : usedClauses) {
                 int id = usedClause[0];

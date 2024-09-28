@@ -1,6 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -91,7 +92,9 @@ public class Result extends Exception {
                 st.append("Input Clauses Ids contributing to the result:  \n").append(ids).append("\n");}
             if(!steps.isEmpty()) {
                 st.append("Inference Steps contributing to the result:  \n");
-                    for(InferenceStep infStep : steps) st.append(infStep.toString(symboltable)).append("\n");}}
+                    for(InferenceStep infStep : steps)
+                        if(!(infStep instanceof InfInputClause))
+                            st.append(infStep.toString(symboltable)).append("\n");}}
         return st.toString();}
 
 

@@ -380,9 +380,10 @@ public class Backtracker extends Solver {
      * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
      */
     protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
-       if(monitoring) monitor.accept("Selected Literal " + Symboltable.toString(selectedLiteral,symboltable) +
-               "  Currently True Literals: " + currentlyTrueLiterals);
-        makeLocallyTrue(selectedLiteral);
+       if(monitoring) monitor.accept("Locally True Literal " + Symboltable.toString(selectedLiteral,symboltable) +
+               ".  Currently True Literals: " + currentlyTrueLiterals);
+        boolean isOkay = makeLocallyTrue(selectedLiteral);
+        assert isOkay;
         propagatorThreadCounter = 0;
         Clause myFalseClause = propagateLocally(selectedLiteral); // may start propagator threads
         if(propagatorThreadCounter == 0) return; // no propagation done
@@ -403,7 +404,8 @@ public class Backtracker extends Solver {
         if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
         joinDependencies(myFalseClause,lastSelectedPredicate);
         int negateLastSelectedPredicate = -firstSign * lastSelectedPredicate;
-        makeLocallyTrue(negateLastSelectedPredicate);
+        isOkay = makeLocallyTrue(negateLastSelectedPredicate);
+        assert isOkay;
         if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
             InferenceStep step = trackReasoning ?
                     new InfSelectedPredicateNegated(negateLastSelectedPredicate,usedClausesArray[lastSelectedPredicate],solverId) : null;
@@ -412,7 +414,7 @@ public class Backtracker extends Solver {
                     "\n False Clause: " + myFalseClause.toString(symboltable,0) +
                     "\n Current Model: " + model.toString(symboltable));}
             selectedPredicatePosition = -1;
-            System.out.println("BACK " + negateLastSelectedPredicate + " " + step.toString(symboltable));
+            System.out.println("BACK " + negateLastSelectedPredicate);
             model.add(myThread,negateLastSelectedPredicate,step);
             System.out.println("WAITING " + Thread.currentThread().getName());
             waitForTrueLiteralProcessing();
@@ -989,7 +991,6 @@ public class Backtracker extends Solver {
      * <br>
      * The literal is assumed to be locally true.<br>
      * Although the method is synchronized, two different threads can set contradictory values.
-     * This is checked and reported.
      *
      * @param literal  a derived true literal.
      * @return false if a contradiction is found, otherwise true;

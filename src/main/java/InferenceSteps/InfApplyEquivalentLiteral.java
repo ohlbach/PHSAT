@@ -112,7 +112,7 @@ public class InfApplyEquivalentLiteral extends InferenceStep {
         if(steps.contains(this)) return;
         super.inferenceSteps(steps,ids,reasoners);
         if(!ids.contains(clauseBefore[0])) ids.add(clauseBefore[0]);
-        if(!steps.contains(equivalenceStep)) {steps.add(equivalenceStep);}
+        if(equivalenceStep != null && !steps.contains(equivalenceStep)) {equivalenceStep.inferenceSteps(steps,ids,reasoners);}
         if(inferenceSteps != null) {
             for(InferenceStep step : inferenceSteps) {step.inferenceSteps(steps,ids,reasoners);}}}
 

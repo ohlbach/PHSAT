@@ -97,6 +97,7 @@ public class InfClauseSimplification extends InferenceStep{
      */
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids, ArrayList<String> reasoners) {
+        if(steps.contains(this)) return;
         super.inferenceSteps(steps,ids,reasoners);
         int id = clauseBefore[0];
         if(!ids.contains(id)) ids.add(id);

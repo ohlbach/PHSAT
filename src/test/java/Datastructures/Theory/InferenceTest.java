@@ -25,7 +25,6 @@ public class InferenceTest extends InferenceStep {
         return comment;
     }
 
-    @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
 
     }

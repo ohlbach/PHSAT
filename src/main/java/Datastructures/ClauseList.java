@@ -809,7 +809,10 @@ public class ClauseList extends Thread {
         assert clause1.quantifier == Quantifier.OR;
         assert clause2.quantifier == Quantifier.OR;
         ++statistics.linkedMergedResolvents;
-
+        int[] clause1Clone = null; int[] clause2Clone = null;
+        if(trackReasoning || monitor != null) {
+            clause1Clone = clause1.simpleClone();
+            clause2Clone = clause2.simpleClone();}
         int literal1 = -link.literals.get(0).literal;
         int literal2 = -link.literals.get(1).literal;
         if(clause1.findLiteral(literal2) != null || clause2.findLiteral(literal1) != null) return null; // tautology
@@ -821,14 +824,12 @@ public class ClauseList extends Thread {
         assert clause1.findLiteral(literal1) != null;
         assert clause2.findLiteral(literal2) != null;
 
-        int[] clause1Clone = clause1.simpleClone();
-        int[] clause2Clone = clause2.simpleClone();
         if(clause1.expandedSize == clause2.expandedSize) {
             removeClause(clause2);
             removeClauseFromIndex(clause2);
             boolean remove = clause1.removeLiteral(literal1, trackReasoning,this::removeLiteralFromIndex,this::addTrueLiteralTask);
             InferenceStep step = (trackReasoning || monitor != null) ?
-                    new InfMergeResolution(link,clause1Clone,clause2Clone,clause1) : null;
+                    new InfMergeResolution(link,clause1Clone,clause2Clone,clause1,clause1.inferenceSteps,clause2.inferenceSteps,solverId) : null;
             if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
                 clause1.addInferenceStep(step);
@@ -840,7 +841,7 @@ public class ClauseList extends Thread {
 
         boolean remove = clause2.removeLiteral(literal2, trackReasoning,this::removeLiteralFromIndex,this::addTrueLiteralTask);
         InferenceStep step = (trackReasoning || monitor != null) ?
-                new InfMergeResolution(link,clause1Clone,clause2Clone,clause2) : null;
+                new InfMergeResolution(link,clause1Clone,clause2Clone,clause2,clause1.inferenceSteps,clause2.inferenceSteps,solverId) : null;
         if(monitor != null) monitor.accept(step.toString(symboltable));
         if(trackReasoning) {
             clause2.addInferenceStep(step);
@@ -881,7 +882,8 @@ public class ClauseList extends Thread {
         if(longerParent.quantifier != Quantifier.OR) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
-            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent,"ClauseList") : null;
+            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent,
+                    shorterParent.inferenceSteps,longerParent.inferenceSteps,solverId) : null;
             if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
                 shorterParent.addInferenceStep(step);
@@ -891,7 +893,8 @@ public class ClauseList extends Thread {
         if(shorterParent.literals.size() == longerParent.literals.size()) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
-            step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,shorterParent,"ClauseList") : null;
+            step = (trackReasoning || monitor != null) ?
+                    new InfMergeResolution(shorterClone, longerClone,shorterParent,shorterParent.inferenceSteps, longerParent.inferenceSteps,solverId) : null;
             if(monitor != null) monitor.accept(step.toString(symboltable));
             if(trackReasoning) {
                 shorterParent.addInferenceStep(step);
@@ -902,7 +905,9 @@ public class ClauseList extends Thread {
 
         if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask))
             removeClause(longerParent); // should not happen
-        step = (trackReasoning || monitor != null) ? new InfMergeResolution(shorterClone, longerClone,longerParent,"ClauseList") : null;
+        step = (trackReasoning || monitor != null) ?
+                new InfMergeResolution(shorterClone, longerClone,longerParent,
+                        shorterParent.inferenceSteps,longerParent.inferenceSteps, solverId) : null;
         if(monitor != null) monitor.accept(step.toString(symboltable));
         if(trackReasoning) {
             longerParent.addInferenceStep(step);

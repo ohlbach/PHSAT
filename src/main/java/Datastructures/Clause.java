@@ -1076,6 +1076,25 @@ public class Clause extends LinkedItem implements Cloneable {
             if(i < predicates.size()-1) st.append(",");}
         return st.toString();}
 
+    /** returns the identifier + version (if != 0)
+     *
+     * @return the identifier + version (if != 0)
+     */
+    public String getName() {
+        if(version == 0) return Integer.toString(id);
+        return id+"."+version;}
+
+    /** returns the identifier + version (if != 0)
+     *
+     * @param clause a simpleClone of the clause
+     * @return the identifier + version (if != 0)
+     */
+    public static String getName(int[] clause) {
+        int id = clause[0];
+        int version = clause[1];
+        if(version == 0) return Integer.toString(id);
+        return id+"."+version;}
+
     /**
      * Returns a string representation of the clause without symboltable.
      *
