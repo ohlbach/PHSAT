@@ -53,8 +53,8 @@ public class InfMergeResolution extends InferenceStep {
         super(reasoner);
         this.parent1 = parent1;
         this.parent2 = parent2;
-        inferenceSteps.addAll(inferenceSteps1);
-        inferenceSteps.addAll(inferenceSteps2);
+        if(inferenceSteps1 != null) inferenceSteps.addAll(inferenceSteps1);
+        if(inferenceSteps2 != null) inferenceSteps.addAll(inferenceSteps2);
         this.resolvent = resolvent.simpleClone();}
 
     /** creates the Linked Merge-Resolution inference step.
@@ -74,9 +74,9 @@ public class InfMergeResolution extends InferenceStep {
         this.link = link.simpleClone();
         this.parent1 = parent1;
         this.parent2 = parent2;
-        inferenceSteps.addAll(link.inferenceSteps);
-        inferenceSteps.addAll(inferenceSteps1);
-        inferenceSteps.addAll(inferenceSteps2);
+        if(link.inferenceSteps != null)inferenceSteps.addAll(link.inferenceSteps);
+        if(inferenceSteps1 != null) inferenceSteps.addAll(inferenceSteps1);
+        if(inferenceSteps2 != null) inferenceSteps.addAll(inferenceSteps2);
         this.resolvent = resolvent.simpleClone();
     }
 

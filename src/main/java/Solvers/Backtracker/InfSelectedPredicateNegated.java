@@ -70,6 +70,7 @@ public class InfSelectedPredicateNegated  extends InferenceStep {
         StringBuilder st = new StringBuilder();
         st.append(title()).append(" ").append(Symboltable.toString(negatedPredicate,symboltable)).append(" found by " + reasoner).
                 append("\n  Used Clauses: ");
+        usedClauses.sort((a,b) -> Integer.compare(a[0],b[0]));
         for(int[] clause : usedClauses) st.append(Clause.getName(clause)).append(",");
        /* st.append("\n");
         StringBuilder stp = new StringBuilder();

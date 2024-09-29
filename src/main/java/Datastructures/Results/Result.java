@@ -7,6 +7,7 @@ import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.function.Function;
 
 /** This is the superclass of the various possible results the solvers can generate.
@@ -86,6 +87,7 @@ public class Result extends Exception {
             IntArrayList ids = new IntArrayList();
             ArrayList<String> reasoners = new ArrayList<>();
             inferenceSteps(steps,ids,reasoners);
+            steps.sort(Comparator.comparingLong(step->step.time));
             if(!reasoners.isEmpty()) {
                 st.append("Reasoners contributing to the result:\n  ").append(reasoners).append("\n");}
             if(!ids.isEmpty()) {

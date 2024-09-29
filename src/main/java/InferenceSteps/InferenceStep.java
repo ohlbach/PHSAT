@@ -13,7 +13,10 @@ public abstract class InferenceStep {
     /** the reasoner that performed the inference */
     public String reasoner = null;
 
-    public InferenceStep() {}
+    public long time = 0;
+
+    public InferenceStep() {
+        time = System.nanoTime();}
 
     /**
      * This class represents an inference step in a solver.
@@ -21,7 +24,8 @@ public abstract class InferenceStep {
      * @param reasoner The identifier of the solver that performed the inference.
      */
     public InferenceStep(String reasoner) {
-        this.reasoner = reasoner;}
+        this.reasoner = reasoner;
+        time = System.nanoTime();}
 
     /** the title of the inference step.
      *

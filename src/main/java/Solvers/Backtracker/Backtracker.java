@@ -654,12 +654,13 @@ public class Backtracker extends Solver {
      * @return the old cleared or new usedClauses list.
      */
     private ArrayList<Clause> clearUsedClauses(int predicate) {
-        ArrayList<Clause> usedClauses = usedClausesArray[predicate];
-        if (usedClauses == null) {
-            usedClauses = new ArrayList<>();
-            usedClausesArray[predicate] = usedClauses;}
-        else usedClauses.clear();
-        return usedClauses;}
+        synchronized (usedClausesArray) {
+            ArrayList<Clause> usedClauses = usedClausesArray[predicate];
+            if (usedClauses == null) {
+                usedClauses = new ArrayList<>();
+                usedClausesArray[predicate] = usedClauses;}
+            else usedClauses.clear();
+            return usedClauses;}}
 
     /**Joins the dependencies and the usedClauses (if trackReasoning == true) of a given clause.
      * <br>
@@ -697,12 +698,13 @@ public class Backtracker extends Solver {
      * @param predicate the selected predicate which is to be negated in backtracking.
      */
     protected void joinUsedClauses(Clause falseClause, int predicate) {
-        ArrayList<Clause> usedClauses = usedClausesArray[predicate];
-        if(usedClauses == null) {usedClauses = new ArrayList<>(); usedClausesArray[predicate] = usedClauses;}
-        else usedClauses.clear();
-        usedClauses.add(falseClause);
-        for(Literal literalObject : falseClause.literals) {
-            addIfNotContained(usedClauses,usedClausesArray[Math.abs(literalObject.literal)]);}}
+        synchronized (usedClausesArray) {
+            ArrayList<Clause> usedClauses = usedClausesArray[predicate];
+            if(usedClauses == null) {usedClauses = new ArrayList<>(); usedClausesArray[predicate] = usedClauses;}
+            else usedClauses.clear();
+            usedClauses.add(falseClause);
+            for(Literal literalObject : falseClause.literals) {
+                addIfNotContained(usedClauses,usedClausesArray[Math.abs(literalObject.literal)]);}}}
 
     /** The selected predicate which has the last position in predicatePositions.
      * <br>
