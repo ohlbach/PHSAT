@@ -281,6 +281,7 @@ public class Backtracker extends Solver {
             result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
             System.out.println("SOLUTION FOUND");
+            System.out.println(statistics.toString());
             return result;}}
 
     /** increments the propagator counter */
@@ -556,7 +557,7 @@ public class Backtracker extends Solver {
         if(localStatus(trueLiteral) == 1) return false;
         if(!makeLocallyTrue(trueLiteral)) return true;  // another thread may have found this out. Clause is false.
         if(verify) verifyTrueLiteral(clause,trueLiteral,true);
-        currentlyTrueLiterals.add(trueLiteral);
+        synchronized (currentlyTrueLiterals){currentlyTrueLiterals.add(trueLiteral);}
         int truePredicate = Math.abs(trueLiteral);
         joinDependencies(clause,truePredicate);
         if(falseClause != null) return false;  // no further propagation necessary
