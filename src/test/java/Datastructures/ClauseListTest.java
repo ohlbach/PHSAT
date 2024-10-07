@@ -6,7 +6,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
-import InferenceSteps.InfTrueLiteralInClause;
+import InferenceSteps.InfTrueLiteralFromClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
@@ -142,7 +142,7 @@ public class ClauseListTest extends TestCase {
         cl.addClause(makeClause(new int[]{3,natm,2,1,2,3,4,1}));
         cl.addClause(makeClause(new int[]{4,nint,2,3,1,2,3,4,5,6}));
         Clause cAnd = makeClause(new int[]{10,nand,1,2});
-        InferenceStep step = new InfTrueLiteralInClause(cAnd.simpleClone(),null,1);
+        InferenceStep step = new InfTrueLiteralFromClause(cAnd.simpleClone(),null,1);
 
 
         assertEquals ("Clauses:\n" +
@@ -202,7 +202,7 @@ public class ClauseListTest extends TestCase {
         System.out.println("\nExample 2");
         model = new Model(10);
         cAnd = makeClause(new int[]{11,nand,2,-1});
-        step = new InfTrueLiteralInClause(cAnd.simpleClone(),null,-1);
+        step = new InfTrueLiteralFromClause(cAnd.simpleClone(),null,-1);
 
         cl.initialize("Test",model,symboltable);
         cl.addClause(makeClause(new int[]{1,nor,1,2,3,4}));

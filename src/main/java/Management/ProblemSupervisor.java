@@ -115,17 +115,14 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
 
-        catch(Result result) {System.out.println(result.toString(inputClauses.symboltable,problemStartTime)
-        +"\n EXIT");
-        System.exit(1);}
+        catch(Result result) {;
+            System.out.println("RESULT " + result.toString());
+            new Exception().printStackTrace();
+            System.exit(1);}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
-            System.exit(1);}
-        if(globalParameters.logstream != null) {
-            statistics.elapsedTime = System.nanoTime() - problemStartTime;
-            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " +
-                    Utilities.duration(statistics.elapsedTime));}}
+            System.exit(1);}}
 
 
 
@@ -134,11 +131,20 @@ public class ProblemSupervisor {
      * Some messages are logged.
      */
     public synchronized void finished(Result result) {
-        System.out.println("FINISHED");
+        System.out.println("FINISHED " + Thread.currentThread().getName());
+        if(globalParameters.logstream != null) {
+            statistics.elapsedTime = System.nanoTime() - problemStartTime;
+            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " +
+                    Utilities.duration(statistics.elapsedTime));}
         clauseList.disconnect();
         for(Solver solver : solvers) solver.problemSolved();
-        quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime) + "\nEXIT");
-        new Exception().printStackTrace();
+        quSatJob.printlog(result.toString(inputClauses.symboltable,problemStartTime) +
+                "\n"+statistics.toString()+
+                "\nEXIT");
+        if(globalParameters.logstream != null) {
+            for(Solver solver : solvers) {solver.problemSolved();
+                globalParameters.logstream.println(solver.getStatistics().toString());}}
+        //new Exception().printStackTrace();
         //System.exit(2);
 
         if(result == null) return;

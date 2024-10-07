@@ -261,6 +261,7 @@ public class Backtracker extends Solver {
         myThread = Thread.currentThread();
         initializeLocalModel();
         initializePredicateSequence(predicateArrangement,seed);
+        System.out.println("Predicate Sequence " + Arrays.toString(predicateSequence));
         selectedPredicatePosition = -1;
         int selectedLiteral;
         try{
@@ -272,17 +273,22 @@ public class Backtracker extends Solver {
             int selectedPredicate = predicateSequence[selectedPredicatePosition];
             selectedLiteral = firstSign * selectedPredicate;
             ++statistics.selectedLiterals;
-            //if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
+            if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
             currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
             statistics.recursionDepth = Math.max(statistics.recursionDepth,++recursionDepth);
             clearDependencies(selectedPredicate).add(selectedPredicate);
-            propagateSelectedLiteral(selectedLiteral);}}
+            propagateSelectedLiteral(selectedLiteral);
+            System.out.println("PROPA " + selectedLiteral);}}
         catch(Result result) {
             result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
             System.out.println("SOLUTION FOUND");
             System.out.println(statistics.toString());
-            return result;}}
+            return result;}
+        catch(Exception ex) {ex.printStackTrace();}
+        return null;
+
+    }
 
     /** increments the propagator counter */
     protected synchronized void incrementPropagatorCounter() {
@@ -318,8 +324,15 @@ public class Backtracker extends Solver {
     public void waitForTrueLiteralProcessing() {
         interruptReason = InterruptReason.TRUELITERALPROCESSING;
         try{waitingQueue.clear();
-            waitingQueue.take();}
-        catch(InterruptedException e) {}}
+            System.out.println("TAKEN A");
+            waitingQueue.take();
+            System.out.println("TAKEN B");
+        }
+        catch(InterruptedException e) {
+            System.out.println("INTERRUPT TrueLiteralProcessing " + Thread.currentThread().getName() + "\n" +
+                    e.toString());
+            e.printStackTrace();
+        }}
 
     /** called by clauseList after a new true literal has been processed.*/
     @Override
@@ -461,7 +474,8 @@ public class Backtracker extends Solver {
      * @return null or a false clause.
      */
     protected Clause propagateLocally(int trueLiteral)  {
-       for(int sign = 1; sign >= -1; sign -= 2) {
+        System.out.println("Propagate Locally " + trueLiteral + " in " + Thread.currentThread().getName());
+        for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
             while(literalObject != null && !myThread.isInterrupted() && falseClause == null) {
                 Clause clause = literalObject.clause;

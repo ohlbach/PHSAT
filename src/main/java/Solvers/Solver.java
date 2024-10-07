@@ -202,7 +202,8 @@ public abstract class Solver {
      */
     public synchronized void problemSolved() {
         interruptReason = InterruptReason.PROBLEMSOLVED;
-        myThread.interrupt();}
+       // myThread.interrupt();
+    }
 
     /** The key method, which has to be implemented by the solvers.<br>
      * It is supposed to find a model or a contradiction in the clauses.<br>

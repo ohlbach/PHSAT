@@ -4,7 +4,7 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import InferenceSteps.InfApplyEquivalentLiteral;
-import InferenceSteps.InfTrueLiteralInClause;
+import InferenceSteps.InfTrueLiteralFromClause;
 import InferenceSteps.InferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -498,9 +498,9 @@ public class ClauseTest extends TestCase {
         System.out.println("trueLiteralInClause");
         Clause c1 = new Clause(new int[]{1, atl, 3, 1, 2, 3}, true, litCreator);
         int[] clone = c1.simpleClone();
-        InfTrueLiteralInClause step = new InfTrueLiteralInClause(clone, null,2,"test");
+        InfTrueLiteralFromClause step = new InfTrueLiteralFromClause(clone, null,2,"test");
         assertTrue(step.verify((string) -> System.out.println(string), symboltable));
-        step = new InfTrueLiteralInClause(clone, null,-2,"test");
+        step = new InfTrueLiteralFromClause(clone, null,-2,"test");
         assertFalse(step.verify((String string) -> System.out.println(string), symboltable));
     }
 
@@ -508,7 +508,7 @@ public class ClauseTest extends TestCase {
         System.out.println("applyTrueLiteral");
         Clause c = new Clause(new int[]{0,or,2},false,litCreator);
         Clause c1 = new Clause(new int[]{1, or, 1, 2, 3}, true, litCreator);
-        InferenceStep step = new InfTrueLiteralInClause(c.simpleClone(),null,2,"test");
+        InferenceStep step = new InfTrueLiteralFromClause(c.simpleClone(),null,2,"test");
         assertEquals(0,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
         assertEquals(2,c1.inferenceSteps.size());
         step = (InferenceStep)c1.inferenceSteps.get(1);

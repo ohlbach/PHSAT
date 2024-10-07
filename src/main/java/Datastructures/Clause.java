@@ -204,7 +204,7 @@ public class Clause extends LinkedItem implements Cloneable {
                 int[] clone = simpleClone();
                 for(Literal literalObject : literals) {
                     int literal = literalObject.literal;
-                    InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,inferenceSteps, literal, "Clause") : null;
+                    InferenceStep step = trackReasoning ? new InfTrueLiteralFromClause(clone,inferenceSteps, literal, "Clause") : null;
                     reportTruth.accept(literal,step);}
                 return 1;
             case EQUIV:
@@ -254,7 +254,7 @@ public class Clause extends LinkedItem implements Cloneable {
             if(monitor != null) monitor.accept("All predicates in clause " + toString(symboltable,0) + truth);
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;
-                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),inferenceSteps, literal,"Clause") : null;
+                InferenceStep step = trackReasoning ? new InfTrueLiteralFromClause(simpleClone(),inferenceSteps, literal,"Clause") : null;
                 reportTruth.accept(literal,step);} // all predicates have a truth value.
             return 1;}
 
@@ -397,7 +397,7 @@ public class Clause extends LinkedItem implements Cloneable {
         for (int j = 0; j < literals.size(); j++) {
             int literal = Math.abs(literals.get(j).literal);
             if((model & (1 << j)) == 0) literal = -literal;
-            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,inferenceSteps,literal,"Clause"): null;
+            InferenceStep step = trackReasoning ? new InfTrueLiteralFromClause(clone,inferenceSteps,literal,"Clause"): null;
             reportTruth.accept(literal,step);}}
 
     /**Extracts predicates which are true/false in all models of the clause.
@@ -422,7 +422,7 @@ public class Clause extends LinkedItem implements Cloneable {
             if(sign == 0) continue;
             changed = true;
             int literal = sign*Math.abs(literals.get(j).literal);
-            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone, inferenceSteps, literal,"Clause"): null;
+            InferenceStep step = trackReasoning ? new InfTrueLiteralFromClause(clone, inferenceSteps, literal,"Clause"): null;
             if(monitor != null) {
                 monitor.accept("Clause " + toString(clone,symboltable) + ": has true literal " + Symboltable.toString(literal,symboltable));}
             reportTruth.accept(literal,step);
@@ -762,9 +762,9 @@ public class Clause extends LinkedItem implements Cloneable {
         if(monitor != null)
             monitor.accept("true(" +Symboltable.toString(isTrue?literal:-literal,symboltable) + ") and " +
                             Clause.toString(clauseBefore,symboltable) + " -> " +
-                            toString(symboltable,0));
+                            toString(symboltable,0) + " in " + Thread.currentThread().getName());
         if(literals.size() == 1) {
-            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),
+            InferenceStep step = trackReasoning ? new InfTrueLiteralFromClause(simpleClone(),
                     inferenceSteps,literals.get(0).literal,"Clause") : null;
             reportTruth.accept(literals.get(0).literal,step);
             return 1;}

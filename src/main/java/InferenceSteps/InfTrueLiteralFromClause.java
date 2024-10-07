@@ -11,7 +11,7 @@ import java.util.function.Consumer;
  * <p>
  * Examples: atleast 2 p,q  -&gt; true(p,q)
  */
-public class InfTrueLiteralInClause extends InferenceStep{
+public class InfTrueLiteralFromClause extends InferenceStep{
     /**
      * Retrieves the title of the inference step.
      *
@@ -46,11 +46,12 @@ public class InfTrueLiteralInClause extends InferenceStep{
      * @param inferenceSteps the original inference steps of the clause
      * @param literal the extracted literal
      */
-    public InfTrueLiteralInClause(int[] clauseBefore, ArrayList<InferenceStep> inferenceSteps, int literal, String reasoner) {
+    public InfTrueLiteralFromClause(int[] clauseBefore, ArrayList<InferenceStep> inferenceSteps, int literal, String reasoner) {
         super(reasoner);
         this.clauseBefore = clauseBefore;
         this.literal = literal;
-        this.inferenceSteps = inferenceSteps;}
+        this.inferenceSteps = inferenceSteps;
+    }
 
     /**
      * Verifies the extraction of a true literal from a clause.
@@ -84,7 +85,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
      */
     @Override
     public String toString(Symboltable symboltable) {
-        return title() + " by " + reasoner + ": " +
+        return title() + " by reasoner " + reasoner + ": " +
                 Clause.toString(clauseBefore, symboltable) + " -> true(" + Symboltable.toString(literal, symboltable)+")";}
 
     /**

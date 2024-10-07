@@ -157,6 +157,8 @@ public class ClauseList extends Thread {
                     //interruptSolvers(); // the solvers must wait until the true literal has been processed.
                     queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}};
 
+    /** clears the queue and removed the observer.
+     */
     public void disconnect() {
         queue.clear();
         model.removeObserver(myThread, observer);}
