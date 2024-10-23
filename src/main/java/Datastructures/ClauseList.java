@@ -954,19 +954,34 @@ public class ClauseList extends Thread {
                         trueLiterals += literalObject.multiplicity;}
 
             }
-
-
             if(trueLiterals < clause.min)  // should not happen
                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true literals in clause " +
                         clause.toString(symboltable,0) + "\nnumber of true literals: " + trueLiterals  +
                         "\nModel: " + model.toString(symboltable));}}
+
+    /** checks all literals in the clauses: are they in the literalIndex?
+     *
+     * @param symboltable null or a symboltable
+     * @return the list of clauses not contained in the index
+     */
+    public String checkIndex(Symboltable symboltable) {
+        StringBuilder sb = new StringBuilder();
+         Clause clause = clauses.firstLinkedItem;
+        while (clause != null) {
+            for(Literal literalObject : clause.literals) {
+                if(literalIndex.getFirstLiteral(literalObject.literal) == null) {
+                    sb.append(Symboltable.toString(literalObject.literal,symboltable)).append(" of clause ").
+                            append(clause.toString(symboltable,0)).append(" is not contained in the index\n") ;}}
+            clause = (Clause) clause.nextItem;}
+        return sb.toString();}
 
     /**
      * Returns a string representation of the given version of the clause list.
      * <br>
      * - clauses:    all clauses<br>
      * - singletons: all singletons<br>
-     * - index:      the clauses in the literal index
+     * - index:      the clauses in the literal index<br>
+     * - queue:      the task queue <br>
      * <br>
      * None of these keywords: all three lists.
      *
@@ -1019,6 +1034,29 @@ public class ClauseList extends Thread {
             sb.append(clause.toString(symboltable,size)).append("\n");
             clause = (Clause) clause.nextItem;}
         return sb.toString();}
+
+    /** collects all clause with the given literal in a string.
+     *
+     * @param literal    a literal
+     * @param symboltable null or a symboltable
+     * @return all clause with the given literal in a string.
+     */
+    public String toStringClauses(int literal, Symboltable symboltable) {
+        StringBuilder sb = new StringBuilder();
+        int size = (clauses.lastLinkedItem.id + "." + clauses.lastLinkedItem.version).length();
+        sb.append("Clauses with literal " + Symboltable.toString(literal,symboltable)  + "\n");
+        Clause clause = clauses.firstLinkedItem;
+        while (clause != null) {
+            if(clause.findLiteral(literal) != null)
+                sb.append(clause.toString(symboltable,size)).append("\n");
+            clause = (Clause) clause.nextItem;}
+        clause = clauses.firstLinkedItem;
+        while (clause != null) {
+            if(clause.findLiteral(-literal) != null)
+                sb.append(clause.toString(symboltable,size)).append("\n");
+            clause = (Clause) clause.nextItem;}
+        return sb.toString();}
+
 
     /**
      * Convert the queue of tasks to a string representation.

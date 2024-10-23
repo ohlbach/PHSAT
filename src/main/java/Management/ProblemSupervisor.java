@@ -115,10 +115,7 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
 
-        catch(Result result) {;
-            System.out.println("RESULT " + result.toString());
-            new Exception().printStackTrace();
-            System.exit(1);}
+        catch(Result result) {finished(result);}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -142,6 +139,7 @@ public class ProblemSupervisor {
                 "\n"+statistics.toString()+
                 "\nEXIT");
         if(globalParameters.logstream != null) {
+            globalParameters.logstream.println(normalizer.statistics.toString());
             for(Solver solver : solvers) {solver.problemSolved();
                 globalParameters.logstream.println(solver.getStatistics().toString());}}
         //new Exception().printStackTrace();
