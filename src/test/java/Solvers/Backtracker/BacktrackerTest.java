@@ -248,8 +248,7 @@ public class BacktrackerTest extends TestCase {
 
         IntArrayList falseClauseIds = new IntArrayList();
 
-        @Override
-        protected synchronized Clause  falseClauseFound(Clause clause) {
+       protected synchronized Clause  falseClauseFound(Clause clause) {
              System.out.println("FALSE Clause " + clause.toString(symboltable,0));
              falseClauseIds.add(clause.id);
              return clause;}
@@ -311,7 +310,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker.localModel = new byte[backtracker.predicates+1];
         backtracker.makeLocallyTrue(1);
-        assertTrue(backtracker.propagateLocally(2) != null);
+        assertTrue(backtracker.propagateLocally(2));
         assertEquals("[2]",backtracker.falseClauseIds.toString());
 
     }

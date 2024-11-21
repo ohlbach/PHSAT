@@ -194,9 +194,9 @@ public class Backtracker extends Solver {
     public Consumer<String> monitor = null;
 
     /** counts the active propagator threads */
-    protected int propagatorThreadCounter = 0;
+    protected volatile int propagatorThreadCounter = 0;
 
-    protected Clause falseClause = null;
+    protected volatile Clause falseClause = null;
 
     /** constructs a new Backtracker.
      *
@@ -290,29 +290,32 @@ public class Backtracker extends Solver {
     }
 
     /** increments the propagator counter */
-    protected synchronized void incrementPropagatorCounter() {
+    private void incrementPropagatorCounter() {
+        System.out.println("PC+ " + propagatorThreadCounter);
         ++propagatorThreadCounter;}
 
     /** decrements the propagator counter.
      * <br>
      * If the counter is 0, notifyAll is called, which causes wait() to wake up.
      * It means that no further true-literal propagation is going on.*/
-    protected synchronized void decrementPropagatorCounter() {
+    private synchronized void decrementPropagatorCounter() {
+        System.out.println("PC- " + propagatorThreadCounter);
         assert propagatorThreadCounter > 0;
         --propagatorThreadCounter;
          if (propagatorThreadCounter <= 0) notifyAll();}
 
-    /** return the propagatorThreadCounter
-     *
-     * @return the propagatorThreadCounter
-     */
-    public synchronized int getPropagatorThreadCounter() {
-        return propagatorThreadCounter;}
-
     /** sets the propagatorThreadCounter to 0.
      */
-    public synchronized void clearPropagatorThreadCounter () {
+    private synchronized void clearPropagatorThreadCounter () {
+        System.out.println("PC Cl " + propagatorThreadCounter);
         propagatorThreadCounter = 0;}
+
+    /** checks if there are active Propagator threads
+     *
+     * @return true if there are no more active Propagator threads.
+     */
+    private synchronized boolean noPropagatorThreads () {
+        return propagatorThreadCounter == 0;}
 
     /** clears the false clause.
      *
@@ -422,12 +425,11 @@ public class Backtracker extends Solver {
         clearFalseClause();
         Clause myFalseClause = null;
         if(!propagateLocally(selectedLiteral)) { // no immediately false clause
-            if (getPropagatorThreadCounter() == 0) return; // no propagation done
+            if (noPropagatorThreads()) return; // no propagation done
             synchronized (this) {
                 try {
                     wait(); // waits until all propagatorJobs are finished
-                    if(getPropagatorThreadCounter() != 0 ) System.out.println("PC " + propagatorThreadCounter);
-                    assert getPropagatorThreadCounter() == 0;
+                    assert noPropagatorThreads();
                 } catch (InterruptedException exception) {
                     processInterrupt(exception);
                 }
@@ -436,7 +438,6 @@ public class Backtracker extends Solver {
         myFalseClause = getFalseClause();
         if (myFalseClause == null) return;  // continue search, next selection
         int lastSelectedPredicate = getLastSelectedPredicate(myFalseClause);
-        System.out.println("FALSE CLAUSE " + myFalseClause.toString() + " | " + lastSelectedPredicate);
         backtrackTo(lastSelectedPredicate);
         selectedPredicatePosition = predicatePositions[lastSelectedPredicate]; // this predicate must be false.
         if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
@@ -476,13 +477,12 @@ public class Backtracker extends Solver {
      * @param literal a locally true literal whose implications are to be computed.
      * @return true if a false clause has been found
      */
-     boolean propagateInThread(int literal) {
-         incrementPropagatorCounter();
+     void propagateInThread(int literal) {
+         synchronized (this) {if(falseClause != null) {decrementPropagatorCounter(); return;}}
          if(propagateLocally(literal)) { // false clause found
             decrementPropagatorCounter();
-            return true;}
-        decrementPropagatorCounter();
-        return false;}
+            return;}
+         decrementPropagatorCounter();}
 
 
     /** propagates the truth of the trueLiteral locally. Called by the main thread and by the Propagator threads.
@@ -535,7 +535,6 @@ public class Backtracker extends Solver {
                     return true;}            // all literals are false. backtrackTo
                 if(makeLiteralLocallyTrue(clause,unsignedLiteral,1)) {  // all other literals are false
                     if(verify) verifyFalseClause(clause,true); // other threads may have made the last literal false
-                    setFalseClause(clause);
                     return true;}
                 return false;}
 
@@ -594,14 +593,16 @@ public class Backtracker extends Solver {
      boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int trueLiteral = sign*literalObject.literal;
         if(localStatus(trueLiteral) == 1) return false;
-        if(!makeLocallyTrue(trueLiteral)) return true;  // another thread may have found this out. Clause is false.
+        if(!makeLocallyTrue(trueLiteral)) {falseClause = clause; return true;}  // another thread may have found this out. Clause is false.
         if(verify) verifyTrueLiteral(clause,trueLiteral,true);
         synchronized (currentlyTrueLiterals){currentlyTrueLiterals.add(trueLiteral);}
         int truePredicate = Math.abs(trueLiteral);
         joinDependencies(clause,truePredicate);
         if(falseClause != null) return false;  // no further propagation necessary
         ++statistics.propagatorJobs;
-        propagatorPool.addPropagatorJob(this,trueLiteral);
+        synchronized (this) {
+            propagatorPool.addPropagatorJob(this,trueLiteral);
+            incrementPropagatorCounter();}
         return false;}
 
     /** performs a model-based check for the derivation of a true literal from a clause in the local model.
@@ -641,12 +642,12 @@ public class Backtracker extends Solver {
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
        IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
-        for (int model = 0; model < nModels; ++model) {
-            if(compatibleLocally(model,predicates) && clause.isTrue(model,predicates)){
+        for (int bitmodel = 0; bitmodel < nModels; ++bitmodel) {
+            if(compatibleLocally(bitmodel,predicates) && clause.isTrue(bitmodel,predicates)){
                 if(stop) {
                     System.out.println("verifyFalseClause failed: " + clause.toString(symboltable,0) +
                         "   \nLocal Model: " + toStringLocalModel() + "\n"+
-                            "Falsifying Model: " +Clause.modelString(model,predicates,null) + "\n" +
+                            "Falsifying Model: " +Clause.modelString(bitmodel,predicates,null) + "\n" +
                             "Stack " + currentlyTrueLiterals);
                     new Exception().printStackTrace();
                     System.exit(1);}
@@ -667,12 +668,13 @@ public class Backtracker extends Solver {
      * @return true if the given model is true in the local model.
      */
     protected boolean compatibleLocally(int model, IntArrayList predicates) {
-        for(int predicate : predicates) {
-            if(localModel[predicate] == 0) continue;
-            boolean isTrue = (model & (1 << predicates.indexOf(predicate))) != 0;
-            if(isTrue) {if(localModel[predicate] == -1) return false;}
-            else       {if(localModel[predicate] == 1)  return false;}}
-         return true;}
+        synchronized (localModel) {
+            for(int predicate : predicates) {
+                if(localModel[predicate] == 0) continue;
+                boolean isTrue = (model & (1 << predicates.indexOf(predicate))) != 0;
+                if(isTrue) {if(localModel[predicate] == -1) return false;}
+                else       {if(localModel[predicate] == 1)  return false;}}
+            return true;}}
 
     /** either clears an existing dependencies list for the given predicate, or creates a new empty list.
      *
@@ -727,8 +729,9 @@ public class Backtracker extends Solver {
                         if(model.status(pred) == 0 && localStatus(pred) != 0 && !joinedDependencies.contains(pred)){
                             joinedDependencies.add(pred);}}}
                 if(trackReasoning) {
-                    ArrayList<Clause> usedCl = usedClausesArray[predicate];
-                    if(usedCl != null) {synchronized (usedClausesArray) {addIfNotContained(usedClauses,usedCl);}}}}}
+                    synchronized (usedClausesArray){
+                        ArrayList<Clause> usedCl = usedClausesArray[predicate];
+                        if(usedCl != null) addIfNotContained(usedClauses,usedCl);}}}}
         return joinedDependencies;}
 
     /** joins all the clauses used to derive the falseClause and puts them into usedClauseArray[predicate]
@@ -764,7 +767,8 @@ public class Backtracker extends Solver {
                 lastPosition = predicatePositions[lastPredicate];}}
         return lastPredicate;}
 
-    /** The selected predicate which has the last position in the clause's dependecies.
+    /** The selected predicate which has the last position in the clause's dependencies.
+     * This is the predicate to which backtracking should be performed.
      *
      * @param clause A clause with some locally true/false predicates
      * @return The selected predicate which has the last position in predicatePositions.
@@ -1036,15 +1040,18 @@ public class Backtracker extends Solver {
      * @param literal  a derived true literal.
      * @return false if a contradiction is found, otherwise true;
      */
-    protected synchronized boolean makeLocallyTrue(int literal) {
-       if(localStatus(literal) == 1) return true;
-        boolean result = true;
-        if(literal > 0) {
-            if(localModel[literal] == -1) result = false;
-            else localModel[literal] = 1;}
-        else {if(localModel[-literal] == 1) result = false;
-              else localModel[-literal] = -1;}
-        return result;}
+    protected boolean makeLocallyTrue(int literal) {
+       synchronized (localModel) {
+            if(localStatus(literal) == 1) return true;
+            boolean result = true;
+            if(literal > 0) {
+                if(localModel[literal] == -1) result = false;
+                else localModel[literal] = 1;}
+            else {if(localModel[-literal] == 1) result = false;
+                else localModel[-literal] = -1;}
+            System.out.println("MLT1 " + literal + "  " + result);
+           System.out.println("MLT2 " + toStringLocalModel());
+            return result;}}
 
 
     /**
@@ -1054,7 +1061,8 @@ public class Backtracker extends Solver {
      * @return The truth value of the literal in the local model.
      */
     protected byte localStatus(int literal) {
-        return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
+        synchronized (localModel) {
+            return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }}
 
 
     /** Converts LocalModel to String representation.
