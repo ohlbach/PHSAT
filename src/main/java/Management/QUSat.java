@@ -8,7 +8,7 @@ import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
-/** This is the class with the main method for the QUSat system. <br>
+/** This is the Class with the main method for the QUSat system. <br>
  * QUSat solves SAT-problems for quantified propositional logic. <br>
  * In this logic there are clauses with quantifiers over predicates.
  * Examples: <br>
