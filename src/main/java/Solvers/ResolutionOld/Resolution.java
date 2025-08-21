@@ -154,7 +154,7 @@ public abstract class Resolution extends Solver {
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
             //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
-            result = new Aborted(null,"Resolution", + resolvents + " resolvents",model.startTime);}
+            result = new Aborted(null,"Resolution", + resolvents + " resolvents", globalModel.startTime);}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
@@ -304,7 +304,7 @@ public abstract class Resolution extends Solver {
         }
         if(result == null) {
             System.out.println(toString());
-            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded",model.startTime);
+            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded", globalModel.startTime);
             }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);
@@ -502,15 +502,15 @@ public abstract class Resolution extends Solver {
     private Result processTrueLiteral(int literal) {
         //System.out.println("PL START " + literal);
         //System.out.println(description());
-        switch(model.status(literal)) {
+        switch(globalModel.status(literal)) {
             case -1: //return new Unsatisfiable(null,null); //model,null); //literal);
             case +1: return null;}
-        model.addImmediately(literal);
+        globalModel.addImmediately(literal);
         if(false) {
-            ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(model);
+            ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(globalModel);
             if(falseClauses != null) {
                 System.out.println("ErrorCheck: the following basic clauses are false in the model");
-                System.out.println(model.toString());
+                System.out.println(globalModel.toString());
                 for(int[] clause : falseClauses) {
                     System.out.println(inputClauses.toString(clause));}
                 System.exit(1);}}
@@ -579,45 +579,45 @@ public abstract class Resolution extends Solver {
      */
     private Result completeModel() {
         System.out.println("Completing Model\n"+toString());
-        if(model.size() == predicates) {return new Satisfiable(null,null, model);}
+        if(globalModel.size() == predicates) {return new Satisfiable(null,null, globalModel);}
         boolean isPositive = true;
         switch(strategy) {
             case INPUT:
             case SOS:       // there should be no clauses any more.
                 for(Clause clause : secondaryClauses) {
-                    if(!trueInModel(clause,model)) {
+                    if(!trueInModel(clause, globalModel)) {
                         //return new Erraneous(problemId,"Resolution", model,clause);
                     }}
                 break;
             case NEGATIVE: isPositive = false;
             case POSITIVE:
                 for(Clause clause : secondaryClauses) {
-                    if(trueInModel(clause,model)) {continue;}
+                    if(trueInModel(clause, globalModel)) {continue;}
                     boolean found = false;
                     for(CLiteral cliteral : clause) {
                         int literal = cliteral.literal;
-                        if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
-                            model.addImmediately(literal); found = true; break;}}
+                        if(globalModel.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
+                            globalModel.addImmediately(literal); found = true; break;}}
                     if(!found) {}//return new Erraneous(problemId,"Resolution", model,clause);
                 }}
         completeEliminations();
         Result result = null;
         if(result != null) {return result;}
-        result = checkModel(model);
+        result = checkModel(globalModel);
         if(result != null) {return result;}
-        return new Satisfiable(null,null, model);}
+        return new Satisfiable(null,null, globalModel);}
 
     private void completeEliminations() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
             Object[] els = eliminatedLiterals.get(i);
             ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
             int literal = (int)els[1];
-            if(model.status(literal) != 0) {continue;}
+            if(globalModel.status(literal) != 0) {continue;}
             boolean satisfied = false;
             for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
-                if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.addImmediately(satisfied ? -literal : literal);}}
+                if(lit != literal && globalModel.status(lit) == 1) {satisfied = true; break;}}
+            globalModel.addImmediately(satisfied ? -literal : literal);}}
 
 
     /** counts the number of clauses in the resolution solver */
@@ -770,8 +770,8 @@ public abstract class Resolution extends Solver {
     private Result processEquivalence(int fromLiteral, int toLiteral) throws Unsatisfiable{
         //System.out.println("START EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
         //System.out.println(description());
-        int fromStatus = model.status(fromLiteral);
-        int toStatus   = model.status(toLiteral);
+        int fromStatus = globalModel.status(fromLiteral);
+        int toStatus   = globalModel.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
             return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
@@ -849,8 +849,8 @@ public abstract class Resolution extends Solver {
             st.append("Primary Clauses:\n").append(primaryClauses.toString(clauseString)).append("\n");}
         if(!secondaryClauses.isEmpty()) {
             st.append("Secondary Clauses:\n").append(secondaryClauses.toString(clauseString)).append("\n");}
-        if(model != null && !model.isEmpty()) {
-            st.append("Model:\n").append(model.toString()).append("\n\n");}
+        if(globalModel != null && !globalModel.isEmpty()) {
+            st.append("Model:\n").append(globalModel.toString()).append("\n\n");}
         st.append("Literal Index:\n").append(literalIndex.toString(literalString));
         if(!taskQueue.isEmpty()) {
             st.append("\nTask Queue:\n").append(taskQueue.toString());}

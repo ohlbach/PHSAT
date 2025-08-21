@@ -24,9 +24,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Represents a list of clauses and provides operations for adding, removing, and processing clauses.
+ * Represents a list of clauses and provides operations for adding, removing and processing clauses.
  * <br>
- * In particular the following operations are supported:<br>
+ * In particular, the following operations are supported:<br>
  * - subsumption checks: subsumed clauses are removed<br>
  * - mergeResolution: resolution steps which shorten clauses are performed.<br>
  * - purity-checks: pure literals are identified and removed.

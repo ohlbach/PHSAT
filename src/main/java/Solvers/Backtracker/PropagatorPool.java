@@ -30,7 +30,7 @@ public class PropagatorPool {
      * @param backtracker  the Backtracker which submitted the job.
      * @param literal      the true literal.
      */
-    public synchronized void addPropagatorJob(Backtracker backtracker, int literal) {
+    public synchronized void addPropagatorJob(BacktrackerAlt backtracker, int literal) {
         Propagator propagator;
         if(firstPassive == propagators.size()) { // no passive propagator available.
             propagator = new Propagator(this, ++identifier);

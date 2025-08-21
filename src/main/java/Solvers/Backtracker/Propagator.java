@@ -24,7 +24,7 @@ public class Propagator extends Thread {
     private final PropagatorPool propagatorPool;
 
     /** the backtracker which submitted the job. */
-    Backtracker backtracker;
+    BacktrackerAlt backtracker;
 
     /**  the literal submitted by the job. */
     private int literal = 0;
@@ -46,7 +46,7 @@ public class Propagator extends Thread {
     public void run() {
         try {
             while (true) {
-                backtracker = (Backtracker)queue.take();
+                backtracker = (BacktrackerAlt)queue.take();
                 literal = (Integer)queue.take();
                 isActive = true;
                 backtracker.propagateInThread(literal);
@@ -60,7 +60,7 @@ public class Propagator extends Thread {
      * @param backtracker the backtracker which submitted the job.
      * @param literal the literal to propagateInThread.
      */
-    public void newPropagateJob(Backtracker backtracker, int literal) {
+    public void newPropagateJob(BacktrackerAlt backtracker, int literal) {
          this.backtracker = backtracker;
          this.literal = literal;
          queue.add(backtracker); queue.add(literal);}

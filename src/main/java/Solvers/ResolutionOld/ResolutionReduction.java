@@ -132,7 +132,7 @@ public abstract class ResolutionReduction extends Solver {
             if(result == null) {result = doTheWork();}}
         catch(InterruptedException ex) {
             //globalParameters.log(combinedId + " interrupted.\n");
-            result = new Aborted(null,"Resolution", combinedId + " aborted after ",model.startTime);}
+            result = new Aborted(null,"Resolution", combinedId + " aborted after ", globalModel.startTime);}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
         //problemSupervisor.finished(this.solverId, result, "done");
@@ -361,7 +361,7 @@ public abstract class ResolutionReduction extends Solver {
         while(literalIndex.zeroes(predicates,null)) { //zeros)) {
             purities = true;
             for(int literal : zeros) {
-                if(model.status(literal) != 0) {continue;}
+                if(globalModel.status(literal) != 0) {continue;}
                 if(monitoring) {monitor.print(combinedId, "Making pure literal true: " + literalName(-literal));}
                 ++statistics.purities;
                 Result result = processTrueLiteral(-literal);
@@ -417,7 +417,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param literal a new true literal
      */
     public Result importTrueLiteral(int literal) {
-        if(model.isFalse(literal)) {return null;} //new Unsatisfiable(model,literal,symboltable);}
+        if(globalModel.isFalse(literal)) {return null;} //new Unsatisfiable(model,literal,symboltable);}
         ++statistics.importedUnitClauses;
         taskQueue.add(new Task(priorityUnity,
                 (()->processTrueLiteral(literal)),
@@ -520,10 +520,10 @@ public abstract class ResolutionReduction extends Solver {
      * @return the result of a model completion or null
      */
     Result processTrueLiteral(int literal) {
-        switch(model.status(literal)) {
+        switch(globalModel.status(literal)) {
             case -1: return null; //new Unsatisfiable(null,null); //model,literal);
             case +1: return null;}
-        model.addImmediately(literal);
+        globalModel.addImmediately(literal);
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
@@ -546,11 +546,11 @@ public abstract class ResolutionReduction extends Solver {
     void processBinaryClause(int literal1, int literal2)  throws Unsatisfiable {
         if(literal1 == literal2) {
             addTrueLiteralTask(literal1,"Imported binary clause merged to" + literalName(literal1)); return;}
-        if(literal1 == -literal2 || model.isTrue(literal1) || model.isTrue(literal2)) {return;}
-        if(model.isFalse(literal1)) {
+        if(literal1 == -literal2 || globalModel.isTrue(literal1) || globalModel.isTrue(literal2)) {return;}
+        if(globalModel.isFalse(literal1)) {
             addTrueLiteralTask(literal2,"Imported binary clause " + literalName(literal1) + "," +
                 literalName(literal2) + " reduced to " + literalName(literal2)); return;}
-        if(model.isFalse(literal2)) {
+        if(globalModel.isFalse(literal2)) {
             addTrueLiteralTask(literal2,"Imported binary clause " + literalName(literal1) + "," +
                 literalName(literal2) + " reduced to " + literalName(literal1)); return;}
         Clause clause = new Clause(++id[0], Quantifier.OR, 2);
@@ -572,8 +572,8 @@ public abstract class ResolutionReduction extends Solver {
         Clause clause = new Clause(++id[0], Quantifier.OR, literals.length);
         for(int i = 0; i < size; ++i) {
             int literal = literals[i];
-            if(model.isTrue(literal)) {return;}
-            if(!model.isFalse(literal)) {clause.add(new CLiteral(literal));}}
+            if(globalModel.isTrue(literal)) {return;}
+            if(!globalModel.isFalse(literal)) {clause.add(new CLiteral(literal));}}
         if(clause.hasComplementaries()) {return;}
         //clause.removeDoubles();
         if(clause.size() == 1) {
@@ -639,8 +639,8 @@ public abstract class ResolutionReduction extends Solver {
      * @return            null
      */
     Result processEquivalence(int fromLiteral, int toLiteral) throws Unsatisfiable {
-        int fromStatus = model.status(fromLiteral);
-        int toStatus   = model.status(toLiteral);
+        int fromStatus = globalModel.status(fromLiteral);
+        int toStatus   = globalModel.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
             return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
@@ -765,12 +765,12 @@ public abstract class ResolutionReduction extends Solver {
         System.out.println("Completing Model\n"+toString());
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
-            if(model.size() == predicates) {return new Satisfiable(null,null, model);}
+            if(globalModel.size() == predicates) {return new Satisfiable(null,null, globalModel);}
             if(result != null) {return result;}
             completeEliminationsInModel();
-            result = checkModel(model);
+            result = checkModel(globalModel);
             if(result != null) {return result;}}
-        return new Satisfiable(null,null, model);}
+        return new Satisfiable(null,null, globalModel);}
 
     /** completes a partial model by inserting the value for eliminated predicates */
     void completeEliminationsInModel() {
@@ -778,12 +778,12 @@ public abstract class ResolutionReduction extends Solver {
             Object[] els = eliminatedLiterals.get(i);
             ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
             int literal = (int)els[1];
-            if(model.status(literal) != 0) {continue;}
+            if(globalModel.status(literal) != 0) {continue;}
             boolean satisfied = false;
             for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
-                if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.addImmediately(satisfied ? -literal : literal);}}
+                if(lit != literal && globalModel.status(lit) == 1) {satisfied = true; break;}}
+            globalModel.addImmediately(satisfied ? -literal : literal);}}
 
 
     /** inserts a clause into the literal index

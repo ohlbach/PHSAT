@@ -2,6 +2,7 @@ package Solvers.Backtracker;
 
 import Datastructures.*;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
@@ -10,14 +11,15 @@ import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
+import Solvers.InterruptReason;
 import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.StructuredTaskScope;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 import static Utilities.Utilities.*;
@@ -58,7 +60,7 @@ import static Utilities.Utilities.*;
  * initialize is called in the ProblemSupervisor's thread, which also maintains the clauseList.
  * solveProblem is called in a separate thread.
  */
-public class Backtracker extends Solver {
+public class BacktrackerAlt extends Solver {
 
     private static int arrangementDefault = 1;
     private static int seedDefault = 1;
@@ -134,10 +136,10 @@ public class Backtracker extends Solver {
             if(seed >= 0) {
                 if(positiveFirst) backtrackers.add(new BacktrackerAlt(++solverNumber, 4, seed,1));
                 if(negativeFirst) backtrackers.add(new BacktrackerAlt(++solverNumber, 4, seed,-1));}
-        }}
+            }}
 
 
-    /** The predicates are initially sorted as follows:<br>
+     /** The predicates are initially sorted as follows:<br>
      * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
      * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
      * - predicateArrangement == 3: predicates with more literal occurrences first<br>
@@ -173,7 +175,7 @@ public class Backtracker extends Solver {
     protected ArrayList<Clause>[] usedClausesArray;
 
     /** keeps the local candidate model */
-    protected TemporaryModel temporaryModel;
+    protected byte[] localModel;
 
     /** keeps statistical information */
     public StatisticsBacktracker statistics;
@@ -181,6 +183,8 @@ public class Backtracker extends Solver {
     /** current recursions depth, for statistical purposes */
     private int recursionDepth;
 
+    /** stores the threads which are used to propagateInThread derived true predicates. */
+    public PropagatorPool propagatorPool;
 
     /** for monitoring the operations */
     public Consumer<String> monitor = null;
@@ -189,9 +193,6 @@ public class Backtracker extends Solver {
     protected volatile int propagatorThreadCounter = 0;
 
     protected volatile Clause falseClause = null;
-
-    protected StructuredTaskScope.ShutdownOnSuccess<StateDependency> propagatorThreads;
-
 
     /** constructs a new Backtracker.
      *
@@ -204,7 +205,7 @@ public class Backtracker extends Solver {
      * @param seed if seed &gt;= 0 then the predicates are sorted randomly, and predicateArrangement is ignored.
      * @param firstSign: +1 selected predicates are always true, -1: selected predicates are always false.
      */
-    public Backtracker(int solverNumber, int predicateArrangement, int seed, int firstSign) {
+    public BacktrackerAlt(int solverNumber, int predicateArrangement, int seed, int firstSign) {
         super(solverNumber);
         solverId                  = "Backtracker_" + solverNumber;
         this.predicateArrangement = predicateArrangement;
@@ -223,10 +224,14 @@ public class Backtracker extends Solver {
         super.initialize(problemSupervisor);
         clauseList = problemSupervisor.clauseList;
         clauseList.addSolver(this);
-        globalModel = problemSupervisor.model;
-        temporaryModel = temporaryModel == null ? new TemporaryModel(globalModel.predicates):
-                temporaryModel.reuseModel(globalModel.predicates);
         monitor = monitoring ? (message) -> super.monitor.println(solverId+"_" + solverNumber, message) : null;
+        propagatorPool = problemSupervisor.propagatorPool;
+        propagatorThreadCounter = 0;
+        if(dependentSelections == null || dependentSelections.length < predicates +1)
+            dependentSelections = new IntArrayList[predicates+1];
+        if(currentlyTrueLiterals == null) currentlyTrueLiterals = new IntArrayList(predicates);
+        else                                currentlyTrueLiterals.ensureCapacity(predicates);
+        currentlyTrueLiterals.clear();
         statistics = new StatisticsBacktracker(solverId);
         recursionDepth = -1;
         falseClause = null;
@@ -247,69 +252,139 @@ public class Backtracker extends Solver {
      * @return The result of solving the problem.
      */
     @Override
-    public Result solveProblem()  {
+     public Result solveProblem()  {
         long solverStartTime = System.nanoTime();
         myThread = Thread.currentThread();
-        StateDependency stateDependency;
-        int selectedPredicate = 0;
-        int flippableLiteral = 0;
+        initializeLocalModel();
         initializePredicateSequence(predicateArrangement,seed);
         System.out.println("Predicate Sequence " + Arrays.toString(predicateSequence));
-        selectedPredicatePosition = findNextPredicateIndex(0);
-
+        selectedPredicatePosition = -1;
+        int selectedLiteral;
         try{
-            while(!myThread.isInterrupted()){ // stopped by throw Satisfiable/Unsatisfiable or Aborted
-                if(clauseList.isEmpty() || selectedPredicatePosition == 0) {
-                    globalModel.exchangeModel(temporaryModel.truthValues);
-                    return new Satisfiable(problemId,solverId, globalModel);}
-                selectedPredicate = predicateSequence[selectedPredicatePosition];
-                int selectedLiteral = firstSign * selectedPredicate;
-                flippableLiteral = selectedLiteral;
-                ++statistics.selectedLiterals;
-                if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
-
-                // first try
-                temporaryModel.makeTemporarilyTrue(selectedLiteral,flippableLiteral);
-                propagatorThreads = new StructuredTaskScope.ShutdownOnSuccess<>();
-                final int selLiteral1 = selectedLiteral;
-                propagatorThreads.fork(()->propagateLocally(selLiteral1));
-                propagatorThreads.join(); // wait until the first false clause is derived, or there is none.
-                try {stateDependency = propagatorThreads.result();}
-                catch (ExecutionException noSuccess){ // no contradiction found. Try next selectedPredicatePosition
-                    selectedPredicatePosition = findNextPredicateIndex(selectedPredicatePosition+1);
-                    continue;}
-
-                switch(stateDependency.state) {
-                    case GloballyFalse: return new Result(problemId,solverId,"unsatisfiable",solverStartTime);
-                    case BacktrackTo: //try negated literal
-                        temporaryModel.clear(selectedLiteral);
-                        temporaryModel.makeTemporarilyTrue(-selectedLiteral,0);
-                        final int selLiteral2 = selectedLiteral;
-                        propagatorThreads.fork(()->propagateLocally(selLiteral2));
-                        propagatorThreads.join(); // wait until the first false clause is derived, or there is none.
-                        try {stateDependency = propagatorThreads.result();}
-                        catch (ExecutionException noSuccess){ // no contradiction found.
-                            selectedPredicatePosition = findNextPredicateIndex(selectedPredicatePosition+1);
-                            continue;}
-
-                        flippableLiteral = stateDependency.flippableLiteral;
-                        if(flippableLiteral == selectedLiteral) {
-                           selectedLiteral = -selectedLiteral;
-                            flippableLiteral = 0;
-                            continue;}
-                        if(flippableLiteral == 0) {
-                            globalModel.add(myThread,selectedLiteral,null);
-                            continue;} }
-                        selectedPredicatePosition = backtrackTo(stateDependency.flippableLiteral);
-
+        while(true){ // stopped by throw Satisfiable/Unsatisfiable or Aborted
+            if(myThread.isInterrupted()) processInterrupt(null); // maybe changes in clauseList
+            if(clauseList.isEmpty() || (selectedPredicatePosition = findNextPredicateIndex(selectedPredicatePosition + 1)) == 0) {
+                globalModel.exchangeModel(localModel);
+                throw new Satisfiable(problemId,solverId, globalModel);}
+            int selectedPredicate = predicateSequence[selectedPredicatePosition];
+            selectedLiteral = firstSign * selectedPredicate;
+            ++statistics.selectedLiterals;
+            if(monitoring) monitor.accept("Selected literal " + Symboltable.toString(selectedLiteral,symboltable));
+            currentlyTrueLiterals.add(0); currentlyTrueLiterals.add(selectedLiteral);
+            statistics.recursionDepth = Math.max(statistics.recursionDepth,++recursionDepth);
+            clearDependencies(selectedPredicate).add(selectedPredicate);
+            propagateSelectedLiteral(selectedLiteral);}}
+        catch(Result result) {
+            result.complete(problemId,solverId);
             statistics.elapsedTime = System.nanoTime() - solverStartTime;
             System.out.println("SOLUTION FOUND");
-            System.out.println(statistics.toString());}}
-                catch (InterruptedException e) {}
-
+            System.out.println(statistics.toString());
+            return result;}
+        catch(Exception ex) {ex.printStackTrace();}
         return null;
+
     }
 
+    /** increments the propagator counter */
+    private void incrementPropagatorCounter() {
+        System.out.println("PC+ " + propagatorThreadCounter);
+        ++propagatorThreadCounter;}
+
+    /** decrements the propagator counter.
+     * <br>
+     * If the counter is 0, notifyAll is called, which causes wait() to wake up.
+     * It means that no further true-literal propagation is going on.*/
+    private synchronized void decrementPropagatorCounter() {
+        System.out.println("PC- " + propagatorThreadCounter);
+        assert propagatorThreadCounter > 0;
+        --propagatorThreadCounter;
+         if (propagatorThreadCounter <= 0) notifyAll();}
+
+    /** sets the propagatorThreadCounter to 0.
+     */
+    private synchronized void clearPropagatorThreadCounter () {
+        System.out.println("PC Cl " + propagatorThreadCounter);
+        propagatorThreadCounter = 0;}
+
+    /** checks if there are active Propagator threads
+     *
+     * @return true if there are no more active Propagator threads.
+     */
+    private synchronized boolean noPropagatorThreads () {
+        return propagatorThreadCounter == 0;}
+
+    /** clears the false clause.
+     *
+     */
+    private synchronized void clearFalseClause() {
+        falseClause = null;}
+
+    /** inserts a false clause into the propagatorQueue.
+     *
+     * @param clause a locally false clause
+     * @return the false clause itself.
+     */
+    private synchronized Clause setFalseClause(Clause clause) {
+        falseClause = clause;
+        return clause;}
+
+    /** returns the false clause or null
+     *
+     * @return the false clause or null
+     */
+    private synchronized Clause getFalseClause() {
+        return falseClause;}
+
+
+    /** used to stop the processing until a new true literal has been processed in the clauseList. */
+    private final BlockingQueue<Boolean> waitingQueue = new LinkedBlockingQueue<>(1);
+
+    /** called by clauseList to cause the solver to stop until a true literal has been processed.
+     */
+    @Override
+    public void waitForTrueLiteralProcessing() {
+        interruptReason = InterruptReason.TRUELITERALPROCESSING;
+        try{waitingQueue.clear();
+            waitingQueue.take();
+        }
+        catch(InterruptedException e) {
+            System.out.println("INTERRUPT TrueLiteralProcessing " + Thread.currentThread().getName() + "\n" +
+                    e.toString());
+            e.printStackTrace();
+        }}
+
+    /** called by clauseList after a new true literal has been processed.*/
+    @Override
+    public void continueProcessing() {
+        waitingQueue.add(true);} // stops waiting waitingQueue.take and starts incorporating global changes
+
+    /** processes different kinds of interrupts.
+     * <br>
+     * - TRUELITERALPROCESSING: all global changes are incorporated into the search structure.<br>
+     * - PROBLEMSOLVED:  an Aborted exception is thrown.
+     * - any other interrupt: StackTrace is printed and the system exits.
+     *
+     * @param exception null or an unexpected exception.
+     * @throws Aborted when another solver has found a solution and has sent an interrupt.
+     * */
+    private void processInterrupt(Exception exception) throws Result {
+        if(interruptReason != null) {
+            switch(interruptReason) {
+                case TRUELITERALPROCESSING:
+                    waitingQueue.clear();
+                    clauseList.acknowledgeWaiting();
+                    interruptReason = null;
+                    try {waitingQueue.take();} // clauseList has finished incorporating new true literals.
+                    catch (InterruptedException exception1) {processInterrupt(exception1);} // maybe the entire process is aborted
+                    incorporateGlobalChanges();
+                    return;
+                case PROBLEMSOLVED:
+                    throw new Aborted(problemId,solverId,"Interrupted by another thread", globalModel.startTime);}}
+        if(exception != null) { // any external exception or internal severe errors
+            System.err.println(exception.getMessage());
+            exception.printStackTrace();
+            System.exit(1);}
+    }
 
     /** finds from the given predicateIndex this one or the next index of the predicate without a global and local truth value
      * and with clauses containing such a predicate.
@@ -321,10 +396,89 @@ public class Backtracker extends Solver {
         for(; predicateIndex <= predicates; ++predicateIndex) {
             int predicate = predicateSequence[predicateIndex];
             if (clauseList.isBothEmpty(predicate)) continue;
-            if(temporaryModel.status(predicate) == 0) return predicateIndex;}
+            if(globalModel.status(predicate) == 0 && localStatus(predicate) == 0) return predicateIndex;}
         return 0;}
 
+    /** propagates the truth of the selected literal.
+     * <br>
+     * Immediately derivable true literals are derived immediately.
+     * Each newly derived literal causes a propagatorThread to be activated,
+     * such that further true literals can be derived in parallel.
+     * <br>
+     * The method then waits until all propagator threads are finished.
+     * If one of them found a false clause then the last selected predicate which caused the contradiction
+     * is determined and selectedPredicatePosition is determined and the search backtracks to this position.
+     *
+     * @param selectedLiteral the selected literal
+     * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
+     */
+    protected void propagateSelectedLiteral(int selectedLiteral) throws Result {
+       if(monitoring) monitor.accept("Locally True Literal " + Symboltable.toString(selectedLiteral,symboltable) +
+               ".  Currently True Literals:\n " + currentlyTrueLiterals);
+        boolean isOkay = makeLocallyTrue(selectedLiteral);
+        assert isOkay;
+        clearPropagatorThreadCounter();
+        clearFalseClause();
+        Clause myFalseClause = null;
+        if(!propagateLocally(selectedLiteral)) { // no immediately false clause
+            if (noPropagatorThreads()) return; // no propagation done
+            synchronized (this) {
+                try {
+                    wait(); // waits until all propagatorJobs are finished
+                    assert noPropagatorThreads();
+                } catch (InterruptedException exception) {
+                    processInterrupt(exception);
+                }
+            }}// maybe another solver found a solution
+        if (myThread.isInterrupted()) processInterrupt(null);             // global changes incorporated
+        myFalseClause = getFalseClause();
+        if (myFalseClause == null) return;  // continue search, next selection
+        int lastSelectedPredicate = getLastSelectedPredicate(myFalseClause);
+        backtrackTo(lastSelectedPredicate);
+        selectedPredicatePosition = predicatePositions[lastSelectedPredicate]; // this predicate must be false.
+        if(trackReasoning) joinUsedClauses(myFalseClause,lastSelectedPredicate);
+        joinDependencies(myFalseClause,lastSelectedPredicate);
+        int negatedLastSelectedPredicate = -firstSign * lastSelectedPredicate;
+        isOkay = makeLocallyTrue(negatedLastSelectedPredicate);
+        assert isOkay;
+        if(currentlyTrueLiterals.isEmpty()) {                                  // the top-literal in the search must be false.
+            InferenceStep step = trackReasoning ?
+                    new InfSelectedPredicateNegated(negatedLastSelectedPredicate,usedClausesArray[lastSelectedPredicate],solverId) : null;
+            if(monitoring && step != null) {
+                monitor.accept(step.toString(symboltable) +
+                    "\n False Clause: " + myFalseClause.toString(symboltable,0) +
+                    "\n Current Model: " + globalModel.toString(symboltable));}
+            selectedPredicatePosition = -1;
+            globalModel.add(myThread,negatedLastSelectedPredicate,step);
+            waitForTrueLiteralProcessing();
+        }
+        else {
+            currentlyTrueLiterals.add(negatedLastSelectedPredicate);
+            if(monitoring) monitor.accept(
+                    "backtrack and negate selected predicate: " + Symboltable.toString(negatedLastSelectedPredicate,symboltable) +
+                    ".  Currently True Literals:\n " + currentlyTrueLiterals.toString());
+            --selectedPredicatePosition;  // a new predicate must be selected from the previously selected predicate.
+            propagateSelectedLiteral(negatedLastSelectedPredicate);
 
+        }}
+
+
+    /** propagates the local truth of the given literal. Called by a Propagator Thread.
+     * <br>
+     * Derived unit clauses cause a new Propagator thread to be activated.<br>
+     * If a locally false clause is found, it is inserted into the propagatorQueue,
+     * and the propagatorPool is instructed to deactivate all jobs. <br>
+     * If the propagatorCounter is 0, then 'this' is inserted into the propagatorQueue.
+     *
+     * @param literal a locally true literal whose implications are to be computed.
+     * @return true if a false clause has been found
+     */
+     void propagateInThread(int literal) {
+         synchronized (this) {if(falseClause != null) {decrementPropagatorCounter(); return;}}
+         if(propagateLocally(literal)) { // false clause found
+            decrementPropagatorCounter();
+            return;}
+         decrementPropagatorCounter();}
 
 
     /** propagates the truth of the trueLiteral locally. Called by the main thread and by the Propagator threads.
@@ -333,176 +487,119 @@ public class Backtracker extends Solver {
      * A false clause is inserted into the propagatorQueue and causes backtracking<br>
      * The method may be called from the main thread and from the propagator threads.
      *
-     *@param trueLiteral a locally true trueLiteral
+      *@param trueLiteral a locally true trueLiteral
      * @return true if a clause turned out to be false.
      */
-    protected StateDependency propagateLocally(int trueLiteral) throws Exception{
+    protected boolean propagateLocally(int trueLiteral)  {
         System.out.println("Propagate Locally " + trueLiteral + " in " + Thread.currentThread().getName());
         for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = clauseList.literalIndex.getFirstLiteral(sign*trueLiteral);
-            while(literalObject != null && !myThread.isInterrupted()) {
+            while(literalObject != null && !myThread.isInterrupted() && falseClause == null) {
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true trueLiteral in an OR: ignore clause
-                    StateDependency stateDependency = analyseClause(clause);
-                    switch(stateDependency.state) {
-                        case GloballyFalse: return stateDependency; // stops propagatorThreads
-                        case BacktrackTo:   return stateDependency;}}
+                    if(analyseClause(clause)) return true;}
                 literalObject = (Literal)literalObject.nextItem;}}
-        throw noFalseClause;} // signals: no false clause found. Other virtual threads may continue
-
-    private Exception noFalseClause = new Exception("no false clause");
-
-    private enum ClauseState {
-        GloballyFalse, // stop the solver
-        AlreadyTrue,   // continue search
-        Undetermined,  // continue search
-        MadeTrue,      // new virtual thread started, continue search
-        BacktrackTo
-       }
-
-   private record StateDependency(ClauseState state, Clause clause, int flippableLiteral) {}
+        return false;}
 
     /** Analyzes a clause given the current local model (the global model is ignored).
      * <p>
      * The following cases are possible:<br>
-     * - the clause is already true: return AlreadyTrue; <br>
-     * - the clause is globally false: return GloballyFalse; <br>
-     * - the clause is locally false: return the BacktrackTo with the last flippable literal; <br>
+     * - the clause is already true: return null; <br>
+     * - the clause is already false: return the clause; <br>
      * - making an unsigned literal true causes the clause to become false: make the literal false;<br>
      * - making an unsigned literal false causes the clause to become false: make the literal true.
      *
-     * If the global model contradicts the temporary model then BacktrackTo is returned.<br>
-     * If the global model has a non-zero value, and the temporary model is 0, then the global value is transferred to the temporary model.
-     * The global model may change while the clause is being analyzed.
-     * The temporary model, however, will always have the state which is used while it is being analyzed.
-     * This is important for the verification of the inference against the temporary model.
-     *
      * @param clause The clause to be analyzed.
-     * @return (ClauseState, clause, flippableLiteral)
+     * @return true if the clause turned out to be false.
      */
-    protected StateDependency analyseClause(Clause clause) {
+    protected boolean analyseClause(Clause clause) {
         // Since disjunctions are frequent,
         // and only one passage through the literals is sufficient,
         // it is worth treating this case separately.
-        int flippableLiteral = 0;
-        if(clause.quantifier == Quantifier.OR) {
-            Literal unsignedLiteral = null;
-            for(Literal literalObject : clause.literals) { // try to find a single unsigned literal.
-                int literal = literalObject.literal;
-                int localStatus = temporaryModel.status(literal);
-                switch(globalModel.status(literal)) {
-                    case +1:
-                        switch(localStatus) {
-                            case +1: return new StateDependency(ClauseState.AlreadyTrue,clause,literal);
-                            case  0: temporaryModel.makeTemporarilyTrue(literal,0); break;
-                            case -1:
-                                temporaryModel.max(flippableLiteral, flippableLiteral = temporaryModel.lastFlippableLiteral(literal));
-                                return flippableLiteral == 0 ?
-                                        new StateDependency(ClauseState.GloballyFalse,clause,literal):
-                                        new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);}
-                        break;
-                    case 0:
-                        switch(localStatus) {
-                            case +1: return new StateDependency(ClauseState.AlreadyTrue,clause,literal);
-                            case  0: if(unsignedLiteral != null) // at least two undetermined literals
-                                        return new StateDependency(ClauseState.Undetermined,clause,0);
-                                    else unsignedLiteral = literalObject; break;}
-                        break;
-                    case -1:
-                        switch(localStatus) {
-                            case +1:
-                                flippableLiteral = temporaryModel.max(flippableLiteral, temporaryModel.lastFlippableLiteral(literal));
-                                return flippableLiteral == 0 ?
-                                    new StateDependency(ClauseState.GloballyFalse,clause,literal):
-                                    new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);
-                            case 0: temporaryModel.makeTemporarilyTrue(-literal,0); break;}}}
-
-                if(unsignedLiteral == null) { // false clause
-                    if(flippableLiteral == 0) return new StateDependency(ClauseState.GloballyFalse,clause,0);
+        synchronized(clause) {
+           if(clause.quantifier == Quantifier.OR) {
+                Literal unsignedLiteral = null;
+                for(Literal literalObject : clause.literals) {
+                    switch(localStatus(literalObject.literal)) {
+                        case 0:
+                            if(unsignedLiteral != null) return false;    // two unsigned literals: nothing to be done
+                            unsignedLiteral = literalObject; break;
+                        case 1: return false;}}                          // clause is true;
+                if(unsignedLiteral == null) {
                     if(verify) verifyFalseClause(clause,true);
-                    return new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);}
-                                         // all literals are false. backtrackTo
-                int unsLiteral = unsignedLiteral.literal;
-                temporaryModel.makeTemporarilyTrue(unsLiteral,flippableLiteral); // unit propagation
-                propagatorThreads.fork(()->propagateLocally(unsLiteral)); // propagate the newly derived literal
-                return new StateDependency(ClauseState.MadeTrue, clause,unsLiteral);}
+                    setFalseClause(clause);
+                    return true;}            // all literals are false. backtrackTo
+                if(makeLiteralLocallyTrue(clause,unsignedLiteral,1)) {  // all other literals are false
+                    if(verify) verifyFalseClause(clause,true); // other threads may have made the last literal false
+                    return true;}
+                return false;}
 
-            // all other clause types.
-
+        // all other clause types.
             int trueLiterals = 0;
             int unsignedLiterals = 0;
             for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                int multiplicity = literalObject.multiplicity;
-                int localStatus = temporaryModel.status(literal);
-                switch(globalModel.status(literal)) {
-                    case +1: trueLiterals += multiplicity;
-                        switch(localStatus) {
-                            case  0: temporaryModel.makeTemporarilyTrue(literal,0); break;
-                            case -1:
-                                flippableLiteral = temporaryModel.max(flippableLiteral, temporaryModel.lastFlippableLiteral(literal));
-                                return flippableLiteral == 0 ?
-                                    new StateDependency(ClauseState.GloballyFalse,clause,literal):
-                                    new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);}
-                        break;
-                    case 0:
-                        switch(localStatus) {
-                            case +1: trueLiterals     += literalObject.multiplicity; break;
-                            case  0: unsignedLiterals += literalObject.multiplicity;}
-                        break;
-                    case -1:
-                        switch(localStatus) {
-                            case +1:
-                                flippableLiteral = temporaryModel.max(flippableLiteral, temporaryModel.lastFlippableLiteral(literal));
-                                return flippableLiteral == 0 ?
-                                    new StateDependency(ClauseState.GloballyFalse,clause,literal):
-                                    new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);
-                        case 0: temporaryModel.makeTemporarilyTrue(-literal,0); break;}}}
-
+                switch(localStatus(literalObject.literal)) {
+                    case 0: unsignedLiterals += literalObject.multiplicity; break;
+                    case 1: trueLiterals += literalObject.multiplicity;}}
             int max = clause.max; int min = clause.min;
 
-            // too many or not enough globally true literals. Clause is false
-            if(trueLiterals > max || trueLiterals + unsignedLiterals < min)
-                return flippableLiteral == 0 ?
-                    new StateDependency(ClauseState.GloballyFalse,clause,0):
-                    new StateDependency(ClauseState.BacktrackTo,clause,flippableLiteral);
+        // too many or not enough true literals.
+            if(trueLiterals > max || trueLiterals + unsignedLiterals < min) {
+               if(verify) verifyFalseClause(clause,true);
+               setFalseClause(clause);
+                return true;} // clause is false
 
-
-            if(trueLiterals >= min) { // clause is already true.
-                if(clause.expandedSize > max) {              // more true literals might be dangerous
+            if(min <= trueLiterals) { // clause is already true.
+                if(max < clause.expandedSize) {              // more true literals might be dangerous
                     for(Literal literalObject : clause.literals) {
-                        if(globalModel.status(literalObject.literal) == 0 &&
-                                temporaryModel.status(literalObject.literal) == 0 &&
+                        if(localStatus(literalObject.literal) == 0 &&
                                 trueLiterals + literalObject.multiplicity > max){    // making it true causes too many true literals
-                            int falseLiteral = -literalObject.literal; // literal must be false
-                            temporaryModel.makeTemporarilyTrue(falseLiteral,findFlippableLiteral(clause)); // unit propagation
-                            propagatorThreads.fork(()->propagateLocally(falseLiteral));}} // propagate the newly derived literal
-                    return new StateDependency(ClauseState.Undetermined,clause,0);}
-                else return new StateDependency(ClauseState.AlreadyTrue,clause,0);}
+                            if(makeLiteralLocallyTrue(clause,literalObject,-1)) { // literal must be false
+                               if(verify) verifyFalseClause(clause,true);
+                               setFalseClause(clause);
+                              return true;}}}}
+                return false;}
 
-            if(min <= 1) return new StateDependency(ClauseState.Undetermined,clause,0);
+            if(min == 0) return false;
             // The clause is not yet true because there are not enough true literals.
-            // We check if a making a particular literal true is necessary to make the clause true.
-            // Example: &gt;= 4 p,q^3,r,s. If true(p)  then q must be true because true(r,s) is not enough to get enough true literals.
+            // We check if a making a particular literal true is sufficient to make the clause true.
             int candidates = 0;
             Literal candidateLiteral = null;
             for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                if(temporaryModel.status(literal) == 0 &&
-                        globalModel.status(literal) == 0 &&
-                        trueLiterals + (unsignedLiterals - literalObject.multiplicity) < min) {
-                    int trueLiteral = literalObject.literal; // literal must be false
-                    temporaryModel.makeTemporarilyTrue(trueLiteral,findFlippableLiteral(clause)); // unit propagation
-                    propagatorThreads.fork(()->propagateLocally(trueLiteral));}} // propagate the newly derived literal
-            return new StateDependency(ClauseState.Undetermined,clause,0);}
+                if(localStatus(literalObject.literal) == 0 && trueLiterals + literalObject.multiplicity >= min) {
+                    ++candidates;
+                    candidateLiteral = literalObject;}}
+            if(candidates == 1) {
+                if(makeLiteralLocallyTrue(clause,candidateLiteral,1)) {
+                    if(verify) verifyFalseClause(clause,true);
+                    setFalseClause(clause);
+                    return true;}} // clause is false
+            return false;}}
 
-    int findFlippableLiteral(Clause clause) {
-        int flippableLiteral = 0;
-        for(Literal literalObject : clause.literals) {
-            int literal = literalObject.literal;
-            if(temporaryModel.status(literal) != 0) {
-                flippableLiteral = temporaryModel.max(flippableLiteral,temporaryModel.lastFlippableLiteral(literal));}}
-        return flippableLiteral;}
+    /**
+     * Makes a literal locally true/false and adds the job to the propagatorPool
+     * <br>
+     * A propagator propagates the truth value of the literal to the other clauses.
+     *
+     * @param clause        The clause containing the literal.
+     * @param literalObject The literal object to make true or false.
+     * @param sign          The sign of the literal (-1 for literal is false, 1 for literal is true).
+     * @return true if the clause turned out to be false.
+     */
+     boolean makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
+        int trueLiteral = sign*literalObject.literal;
+        if(localStatus(trueLiteral) == 1) return false;
+        if(!makeLocallyTrue(trueLiteral)) {falseClause = clause; return true;}  // another thread may have found this out. Clause is false.
+        if(verify) verifyTrueLiteral(clause,trueLiteral,true);
+        synchronized (currentlyTrueLiterals){currentlyTrueLiterals.add(trueLiteral);}
+        int truePredicate = Math.abs(trueLiteral);
+        joinDependencies(clause,truePredicate);
+        if(falseClause != null) return false;  // no further propagation necessary
+        ++statistics.propagatorJobs;
+        synchronized (this) {
+            propagatorPool.addPropagatorJob(this,trueLiteral);
+            incrementPropagatorCounter();}
+        return false;}
 
     /** performs a model-based check for the derivation of a true literal from a clause in the local model.
      *
@@ -519,7 +616,7 @@ public class Backtracker extends Solver {
         for (int model = 0; model < nModels; ++model) {
             if(compatibleLocally(model,predicates) &&
                     ((literal > 0) ? (model & (1 << literalPosition)) != 0 :
-                            (model & (1 << literalPosition)) == 0) &&
+                                     (model & (1 << literalPosition)) == 0) &&
                     clause.isTrue(model,predicates)){++trueCases;}}
         if(trueCases != 1) {
             if(stop) {
@@ -539,22 +636,41 @@ public class Backtracker extends Solver {
      * @return true if the verification succeeded.
      */
     protected boolean verifyFalseClause(Clause clause, boolean stop) {
-        IntArrayList predicates = clause.predicates();
+       IntArrayList predicates = clause.predicates();
         int nModels = 1 << predicates.size();
         for (int bitmodel = 0; bitmodel < nModels; ++bitmodel) {
             if(compatibleLocally(bitmodel,predicates) && clause.isTrue(bitmodel,predicates)){
                 if(stop) {
                     System.out.println("verifyFalseClause failed: " + clause.toString(symboltable,0) +
-                            "   \nLocal Model: " + toStringLocalModel() + "\n"+
+                        "   \nLocal Model: " + toStringLocalModel() + "\n"+
                             "Falsifying Model: " +Clause.modelString(bitmodel,predicates,null) + "\n" +
                             "Stack " + currentlyTrueLiterals);
                     new Exception().printStackTrace();
                     System.exit(1);}
-                return false;}}
+            return false;}}
         return true;}
 
 
 
+
+    /** checks if the model (an int) is compatible with the local model.
+     *  <br>
+     *  If the local model is unassigned (= 0) for a predicate, it is ignored.<br>
+     *  Otherwise if the model is 1 for a predicate, the local model must also be 1.<br>
+     *  If the model is 0 for a predicate, the local model must be -1.
+     *
+     * @param model      a model as int-value
+     * @param predicates the predicates which determine the bits in the model
+     * @return true if the given model is true in the local model.
+     */
+    protected boolean compatibleLocally(int model, IntArrayList predicates) {
+        synchronized (localModel) {
+            for(int predicate : predicates) {
+                if(localModel[predicate] == 0) continue;
+                boolean isTrue = (model & (1 << predicates.indexOf(predicate))) != 0;
+                if(isTrue) {if(localModel[predicate] == -1) return false;}
+                else       {if(localModel[predicate] == 1)  return false;}}
+            return true;}}
 
     /** either clears an existing dependencies list for the given predicate, or creates a new empty list.
      *
@@ -597,7 +713,7 @@ public class Backtracker extends Solver {
      * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
     protected IntArrayList joinDependencies(Clause clause, int truePredicate) {
-        IntArrayList joinedDependencies = clearDependencies(truePredicate);
+       IntArrayList joinedDependencies = clearDependencies(truePredicate);
         ArrayList<Clause> usedClauses = null;
         if(trackReasoning) {usedClauses = clearUsedClauses(truePredicate); usedClauses.add(clause);}
         for(Literal literalObject : clause.literals) {
@@ -606,7 +722,7 @@ public class Backtracker extends Solver {
                 IntArrayList depSel = dependentSelections[predicate];
                 if(depSel != null) {
                     for(int pred : depSel) {
-                        if(this.globalModel.status(pred) == 0 && localStatus(pred) != 0 && !joinedDependencies.contains(pred)){
+                        if(globalModel.status(pred) == 0 && localStatus(pred) != 0 && !joinedDependencies.contains(pred)){
                             joinedDependencies.add(pred);}}}
                 if(trackReasoning) {
                     synchronized (usedClausesArray){
@@ -641,7 +757,7 @@ public class Backtracker extends Solver {
         int lastPosition  = 0;
         for(int i = 0; i < dependencies.size(); ++i) {
             int predicate = dependencies.getInt(i);
-            if(this.globalModel.status(predicate) != 0) continue;
+            if(globalModel.status(predicate) != 0) continue;
             if(lastPredicate == 0 || predicatePositions[predicate] > lastPosition) {
                 lastPredicate = predicate;
                 lastPosition = predicatePositions[lastPredicate];}}
@@ -671,13 +787,13 @@ public class Backtracker extends Solver {
      *
      * @param lastSelectedPredicate to where backtrackTo
      */
-    protected synchronized int backtrackTo(int lastSelectedPredicate)  {
+    protected synchronized void backtrackTo(int lastSelectedPredicate)  {
         ++statistics.backtrackings;
-        int backjumps = 0;
+       int backjumps = 0;
         for(int i = currentlyTrueLiterals.size()-1; i >= 0; --i) {
             int predicate = Math.abs(currentlyTrueLiterals.getInt(i));
             if(predicate == 0) {++backjumps; --recursionDepth; continue;}
-            temporaryModel[predicate] = 0;
+            localModel[predicate] = 0;
             if(predicate == lastSelectedPredicate) {
                 currentlyTrueLiterals.size(i-1);
                 if(backjumps > 1) ++statistics.backtrackings;
@@ -702,12 +818,12 @@ public class Backtracker extends Solver {
             if(literal == 0) {selected = true; continue;}
             if(selected) {
                 selected = false;
-                switch(this.globalModel.status(literal)) {
+                switch(globalModel.status(literal)) {
                     case 0:  continue;
                     case 1:  removeSelectedTrueLiteral(i); i -= 2; continue;
                     case -1: removeSelectedFalseLiteral(i); return;}}
             else {
-                switch(this.globalModel.status(literal)) {
+                switch(globalModel.status(literal)) {
                     case 0:  continue;
                     case 1:  removeDerivedTrueLiteral(i--); continue;
                     case -1: removeDerivedFalseLiteral(i); return;}}}}
@@ -737,7 +853,7 @@ public class Backtracker extends Solver {
             for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
                 int literal = currentlyTrueLiterals.getInt(j);
                 if(literal == 0) {removeRange(currentlyTrueLiterals,0,j); break;}
-                if(this.globalModel.status(literal) == 0) incGlobChAddTrueLiteral(selectedLiteral,literal);} // might not be necessary
+                if(globalModel.status(literal) == 0) incGlobChAddTrueLiteral(selectedLiteral,literal);} // might not be necessary
 
             for(int j = 2; j < currentlyTrueLiterals.size(); ++j) {
                 int literal = currentlyTrueLiterals.getInt(j);
@@ -768,9 +884,9 @@ public class Backtracker extends Solver {
                     Symboltable.toString(selectedLiteral,symboltable) + " causes locally derived literal " +
                     Symboltable.toString(literal,symboltable) + " to become globally true");
         InferenceStep step = trackReasoning ?
-                new InfIndirectInference(selectedLiteral, this.globalModel.getInferenceStep(selectedLiteral),
-                        literal, usedClausesArray[Math.abs(literal)],"Backtracker") : null;
-        this.globalModel.add(myThread,literal,step);}
+            new InfIndirectInference(selectedLiteral, globalModel.getInferenceStep(selectedLiteral),
+                    literal, usedClausesArray[Math.abs(literal)],"Backtracker") : null;
+        globalModel.add(myThread,literal,step);}
 
     /** removes a selected literal, which is globally false, from the search.
      * <br>
@@ -793,7 +909,7 @@ public class Backtracker extends Solver {
         int selectedLiteral = currentlyTrueLiterals.getInt(position);
         for(int j = position+1; j < currentlyTrueLiterals.size(); ++j) { // the local truth value all literals after position are zeroed
             int literal = currentlyTrueLiterals.getInt(j);
-            if(literal != 0) temporaryModel[Math.abs(literal)] = 0;}
+            if(literal != 0) localModel[Math.abs(literal)] = 0;}
 
         currentlyTrueLiterals.size(position-1); // remove all items from this position on.
 
@@ -845,10 +961,10 @@ public class Backtracker extends Solver {
                 monitor.accept("incorparateGlobalChanges: derived literal " + Symboltable.toString(derivedLiteral,symboltable) +
                         " which is globally false causes new false selected literal: " + Symboltable.toString(-newTrueLiteral,symboltable));}
             InferenceStep step = trackReasoning ?
-                    new InfIndirectInference(-derivedLiteral, this.globalModel.getInferenceStep(-derivedLiteral),
-                            newTrueLiteral, usedClausesArray[Math.abs(derivedLiteral)],"Backtracker") : null;
+                new InfIndirectInference(-derivedLiteral, globalModel.getInferenceStep(-derivedLiteral),
+                        newTrueLiteral, usedClausesArray[Math.abs(derivedLiteral)],"Backtracker") : null;
             currentlyTrueLiterals.clear();
-            this.globalModel.add(myThread,newTrueLiteral,step);}
+            globalModel.add(myThread,newTrueLiteral,step);}
         else {
             backtrackTo(lastSelectedPredicate);
             makeLocallyTrue(newTrueLiteral);}}
@@ -856,18 +972,18 @@ public class Backtracker extends Solver {
 
 
     /** initializes the predicate sequence.
-     * <br>
-     * The predicates are sorted as follows:<br>
-     * - seed &gt;= 0:              randomly<br>
-     * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
-     * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
-     * - predicateArrangement == 3: predicates with more literal occurrences first<br>
-     * - predicateArrangement == 4: predicates with less literal occurrences first.<br>
-     * The arrays may be reused for different problems.
-     *
-     * @param predicateArrangement see above
-     * @param seed for the random number generator
-     */
+         * <br>
+         * The predicates are sorted as follows:<br>
+         * - seed &gt;= 0:              randomly<br>
+         * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
+         * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
+         * - predicateArrangement == 3: predicates with more literal occurrences first<br>
+         * - predicateArrangement == 4: predicates with less literal occurrences first.<br>
+         * The arrays may be reused for different problems.
+         *
+         * @param predicateArrangement see above
+         * @param seed for the random number generator
+         */
     protected void initializePredicateSequence(int predicateArrangement, int seed) {
         if(predicateSequence == null || predicateSequence.length < predicates+1) {
             predicateSequence  = new int[predicates+1];
@@ -906,6 +1022,11 @@ public class Backtracker extends Solver {
         for(int position = 1; position <= predicates; ++position) {
             predicatePositions[predicateSequence[position]] = position;}}
 
+    /** initializes the local to be synchronous to the global model.
+     */
+    protected void initializeLocalModel() {
+        if(localModel == null || localModel.length < predicates+1) localModel = new byte[predicates+1];
+        globalModel.copy(localModel);}
 
     /** sets the local truth status value of the literal.
      * <br>
@@ -916,16 +1037,16 @@ public class Backtracker extends Solver {
      * @return false if a contradiction is found, otherwise true;
      */
     protected boolean makeLocallyTrue(int literal) {
-        synchronized (temporaryModel) {
+       synchronized (localModel) {
             if(localStatus(literal) == 1) return true;
             boolean result = true;
             if(literal > 0) {
-                if(temporaryModel[literal] == -1) result = false;
-                else temporaryModel[literal] = 1;}
-            else {if(temporaryModel[-literal] == 1) result = false;
-            else temporaryModel[-literal] = -1;}
+                if(localModel[literal] == -1) result = false;
+                else localModel[literal] = 1;}
+            else {if(localModel[-literal] == 1) result = false;
+                else localModel[-literal] = -1;}
             System.out.println("MLT1 " + literal + "  " + result);
-            System.out.println("MLT2 " + toStringLocalModel());
+           System.out.println("MLT2 " + toStringLocalModel());
             return result;}}
 
 
@@ -936,8 +1057,8 @@ public class Backtracker extends Solver {
      * @return The truth value of the literal in the local model.
      */
     protected byte localStatus(int literal) {
-        synchronized (temporaryModel) {
-            return literal > 0 ? temporaryModel[literal] : (byte)-temporaryModel[-literal]; }}
+        synchronized (localModel) {
+            return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }}
 
 
     /** Converts LocalModel to String representation.
@@ -948,7 +1069,7 @@ public class Backtracker extends Solver {
         StringBuilder st = new StringBuilder();
         int counter = 0;
         for (int predicate = 1; predicate <= predicates; ++predicate) {
-            int sign = temporaryModel[predicate];
+            int sign = localModel[predicate];
             if(sign != 0) {
                 st.append(sign*predicate).append(",");
                 ++counter;
@@ -980,7 +1101,7 @@ public class Backtracker extends Solver {
         st.append("\nPredicate Sequence\n   ").append(Arrays.toString(predicateSequence));
         st.append("\nPredicate Positions\n   ").append(Arrays.toString(predicatePositions));
         st.append("\nClauses:\n").append(clauseList.toString("clauses",symboltable));
-        st.append("\nGlobal Model: ").append(this.globalModel.toString(symboltable));
+        st.append("\nGlobal Model: ").append(globalModel.toString(symboltable));
         st.append("\nLocal Model:  ").append(toStringLocalModel()).append("\n");
 
         if(!currentlyTrueLiterals.isEmpty()) {

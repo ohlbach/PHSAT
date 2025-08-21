@@ -150,7 +150,7 @@ public class Walker extends Solver {
     @Override
     public void initialize(ProblemSupervisor problemSupervisor) {
         super.initialize(problemSupervisor);
-        model.addObserver(myThread,this::addGloballyTrueLiteral);}
+        globalModel.addObserver(myThread,this::addGloballyTrueLiteral);}
 
     /** starts the search for a model.
      *
@@ -216,7 +216,7 @@ public class Walker extends Solver {
      */
     void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            byte status = model.status(predicate);
+            byte status = globalModel.status(predicate);
             if(status == 1)  {localModel[predicate] = true; continue;}
             if(status == -1) {localModel[predicate] = false; continue;}
             int posSize = literals.size(predicate);
@@ -322,7 +322,7 @@ public class Walker extends Solver {
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
             if(falseClauseList.size == 0) {throw localToGlobalModel();}}
-        throw new Aborted(problemId,solverId,"Aborted after " + statistics.flips + " flips",model.startTime);}
+        throw new Aborted(problemId,solverId,"Aborted after " + statistics.flips + " flips", globalModel.startTime);}
 
 
     /** selects a predicate to be flipped.
@@ -471,8 +471,8 @@ public class Walker extends Solver {
             int predicate = Math.abs(literal);
             flipScores[predicate] = trueLiteralScore;
             predicatesWithPositiveScore.remove(predicate);
-            if((literal > 0 && localModel[literal] == model.isTrue(literal)) ||
-                    (literal < 0 && localModel[-literal] == model.isFalse(literal))) continue;
+            if((literal > 0 && localModel[literal] == globalModel.isTrue(literal)) ||
+                    (literal < 0 && localModel[-literal] == globalModel.isFalse(literal))) continue;
             flipPredicate(predicate);}}
 
 

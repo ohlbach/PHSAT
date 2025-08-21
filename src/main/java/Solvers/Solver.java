@@ -11,7 +11,7 @@ import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.Parameters;
 import Management.ProblemSupervisor;
-import Solvers.Backtracker.Backtracker;
+import Solvers.Backtracker.BacktrackerAlt;
 import Solvers.Normalizer.Normalizer;
 import Solvers.ResolutionOld.Resolution;
 import Solvers.Walker.Walker;
@@ -36,7 +36,7 @@ public abstract class Solver {
     public static ArrayList<Class> solverClasses = new ArrayList<>();
     static{
         solverClasses.add(Solvers.Walker.Walker.class);
-        solverClasses.add(Solvers.Backtracker.Backtracker.class);
+        solverClasses.add(BacktrackerAlt.class);
     }
 
     /** checks if the name is a solver name
@@ -59,7 +59,7 @@ public abstract class Solver {
         return switch (solverName.toLowerCase()) {
             case "resolution"  -> Resolution.class;
             case "walker"      -> Walker.class;
-            case "backtracker" -> Backtracker.class;
+            case "backtracker" -> BacktrackerAlt.class;
             default -> null;};}
 
 
@@ -136,7 +136,7 @@ public abstract class Solver {
     public int predicates;
 
     /** the global model (from the problemSupervisor). */
-    public Model model;
+    public Model globalModel;
 
     /** the symboltable */
     public  Symboltable symboltable = null;
@@ -192,7 +192,7 @@ public abstract class Solver {
         symboltable                = problemSupervisor.inputClauses.symboltable;
         monitoring                 = problemSupervisor.monitor != null;
         monitor                    = problemSupervisor.monitor;
-        model                      = problemSupervisor.model;
+        globalModel = problemSupervisor.model;
         trackReasoning             = globalParameters.trackReasoning;
         verify                     = globalParameters.verify;
         }

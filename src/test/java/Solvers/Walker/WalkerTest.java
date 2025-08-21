@@ -22,7 +22,7 @@ public class WalkerTest extends TestCase {
         walker.problemId = "TestProblem";
         walker.solverId = "TestSolver";
         walker.predicates = predicates;
-        walker.model = new Model(predicates);
+        walker.globalModel = new Model(predicates);
         walker.literals = new Literals(predicates);
         walker.localModel = new boolean[predicates+1];
         walker.random = new Random(0);
@@ -85,7 +85,7 @@ public class WalkerTest extends TestCase {
         walker.insertClause(makeClause(new int[]{1, cOr, 1,2,3}));
         walker.insertClause(makeClause(new int[]{2, cOr, 1,-2,3}));
         walker.insertClause(makeClause(new int[]{3, cOr, -1,-2,3}));
-        walker.model.addImmediately(4,-5);
+        walker.globalModel.addImmediately(4,-5);
         walker.initializeModel();
         assertTrue(walker.localModel[1]);
         assertFalse(walker.localModel[2]);
@@ -415,7 +415,7 @@ public class WalkerTest extends TestCase {
                 "    1: 1v2v3\n",walker.toString("falseClauses"));
         assertEquals(1,walker.falseClauseList.size());
 
-        walker.model.add(null,1,null);
+        walker.globalModel.add(null,1,null);
         walker.addGloballyTrueLiteral(1, null);
         assertTrue(walker.myThread.isInterrupted());
         assertTrue(walker.trueLiteralInterrupt);
@@ -472,7 +472,7 @@ public void testWalk() throws Unsatisfiable {
         walker.walk();}
     catch(Result result) {
         System.out.println("RESULT " + result.toString(null));
-        for(int[] clause : inputClauses.falseClausesInModel(walker.model)) {
+        for(int[] clause : inputClauses.falseClausesInModel(walker.globalModel)) {
             System.out.println(Arrays.toString(clause));}
         System.out.println(walker.statistics);
     }}
